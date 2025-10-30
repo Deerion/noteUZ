@@ -1,55 +1,19 @@
-// src/lib/api.ts
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
+// lib/api.ts
+const API = process.env.NEXT_PUBLIC_API_URL!;
 
-// Helper do fetch z JWT
-async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
-    const token = localStorage.getItem('token');
-
-    const config: RequestInit = {
-        ...options,
+export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
+    const res = await fetch(`${API}${path}`, {
+        ...init,
         headers: {
             'Content-Type': 'application/json',
-            ...(token && { Authorization: `Bearer ${token}` }),
-            ...options.headers,
+            ...(init?.headers || {}),
         },
-    };
-
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
-
-    if (!response.ok) {
-        throw new Error(`API Error: ${response.statusText}`);
+        // dla Server Components domyślne cachowanie można kontrolować:
+        cache: 'no-store',
+    });
+    if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`API ${res.status}: ${text}`);
     }
-
-    return response.json();
+    return res.json() as Promise<T>;
 }
-
-// Przykładowe funkcje API
-export const api = {
-    // Auth
-    login: (email: string, password: string) =>
-        fetchWithAuth('/auth/login', {
-            method: 'POST',
-            body: JSON.stringify({ email, password }),
-        }),
-
-    register: (email: string, password: string, name: string) =>
-        fetchWithAuth('/auth/register', {
-            method: 'POST',
-            body: JSON.stringify({ email, password, name }),
-        }),
-
-    // Notes
-    getNotes: () => fetchWithAuth('/notes'),
-
-    createNote: (title: string, content: string) =>
-        fetchWithAuth('/notes', {
-            method: 'POST',
-            body: JSON.stringify({ title, content }),
-        }),
-
-    // Groups
-    getGroups: () => fetchWithAuth('/groups'),
-
-    joinGroup: (groupId: number) =>
-        fetchWithAuth(`/groups/${groupId}/join`, { method: 'POST' }),
-};
