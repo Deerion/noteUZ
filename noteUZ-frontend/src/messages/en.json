@@ -1,0 +1,18 @@
+{
+  "Home": {
+    "homeTitle": "Welcome to noteUZ!",
+    "welcome": "This is a note-taking app.",
+    "loginButton": "Log in",
+    "changeLanguage": "Zmień język na"
+  },
+
+  "Login": {
+    "title": "Login",
+    "emailPlaceholder": "Email",
+    "passwordPlaceholder": "Password",
+    "loginButton": "Log in",
+    "loggingIn": "Logging in...",
+    "invalidCredentials": "Invalid email or password",
+    "apiError": "API error:"
+  }
+}

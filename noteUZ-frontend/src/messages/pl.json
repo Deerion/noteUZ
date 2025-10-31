@@ -1,0 +1,17 @@
+{
+  "Home": {
+    "homeTitle": "Witaj w noteUZ!",
+    "welcome": "To jest aplikacja do notatek.",
+    "loginButton": "Zaloguj się",
+    "changeLanguage": "Change language to"
+  },
+  "Login": {
+    "title": "Logowanie",
+    "emailPlaceholder": "E-mail",
+    "passwordPlaceholder": "Hasło",
+    "loginButton": "Zaloguj się",
+    "loggingIn": "Logowanie...",
+    "invalidCredentials": "Nieprawidłowy e-mail lub hasło",
+    "apiError": "Błąd API:"
+  }
+}
