@@ -1,11 +1,8 @@
 import { FormEvent, useState } from 'react';
-import { GetStaticProps } from 'next';
-import { useTranslations } from 'next-intl';
 
 const API = process.env.NEXT_PUBLIC_API_URL!;
 
 export default function LoginPage() {
-    const t = useTranslations('Login');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [err, setErr] = useState<string | null>(null);
@@ -25,9 +22,9 @@ export default function LoginPage() {
 
         if (!res.ok) {
             if (res.status === 401) {
-                setErr(t('invalidCredentials'));
+                setErr('Nieprawidłowy e‑mail lub hasło');
             } else {
-                setErr(`${t('apiError')} ${res.status}`);
+                setErr(`API ${res.status}`);
             }
             setLoading(false);
             return;
@@ -38,34 +35,27 @@ export default function LoginPage() {
 
     return (
         <main style={{ padding: 24 }}>
-            <h1>{t('title')}</h1>
+            <h1>Logowanie</h1>
             <form onSubmit={onSubmit} style={{ display: 'grid', gap: 12, maxWidth: 360 }}>
                 <input
                     type="email"
-                    placeholder={t('emailPlaceholder')}
+                    placeholder="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
                 />
                 <input
                     type="password"
-                    placeholder={t('passwordPlaceholder')}
+                    placeholder="hasło"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
                 />
                 <button type="submit" disabled={loading}>
-                    {loading ? t('loggingIn') : t('loginButton')}
+                    {loading ? 'Logowanie...' : 'Zaloguj'}
                 </button>
                 {err && <p style={{ color: 'crimson' }}>{err}</p>}
             </form>
         </main>
     );
 }
-
-export const getStaticProps: GetStaticProps = async ({ locale }) => ({
-    props: {
-        messages: (await import(`../messages/${locale}.json`)).default,
-        locale
-    }
-});
