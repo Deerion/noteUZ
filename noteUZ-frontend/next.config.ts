@@ -1,10 +1,8 @@
-// next.config.js
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-    i18n: {
-        locales: ['pl', 'en'],
-        defaultLocale: 'pl'
-    }
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  /* config options here */
+  reactStrictMode: true,
 };
 
-module.exports = nextConfig;
+export default nextConfig;
