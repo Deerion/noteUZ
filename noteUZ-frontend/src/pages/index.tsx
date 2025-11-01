@@ -27,30 +27,53 @@ export default function Home() {
             </Head>
 
             <main style={styles.page}>
-                <div style={styles.card}>
-                    <header style={styles.header}>
-                        <div style={styles.logo} aria-hidden>
-                                                <span
-                                                    className="material-symbols-outlined"
-                                                    style={{fontSize: 26, color: 'white', lineHeight: 1}}
-                                                    aria-hidden
-                                                >
-                                                    menu_book
-                                                </span>
-                        </div>
-                        <h1 style={styles.brandTitle}>NoteUZ</h1>
+                <header style={styles.navFull}>
+                    <div style={styles.navInner}>
+                        <div style={styles.leftGroup}>
+                            <button aria-label="menu" style={styles.iconButton}>
+                                                        <span
+                                                            className="material-symbols-outlined"
+                                                            style={{fontSize: 22, color: 'var(--foreground)'}}
+                                                        >
+                                                          menu
+                                                        </span>
+                            </button>
 
-                        <nav style={{marginLeft: 'auto', display: 'flex', gap: 8}}>
-                            <Link
-                                href={router.asPath}
-                                locale={switchLocale}
-                                style={styles.headerLocaleLink}
-                            >
+                            <div style={styles.brandRow}>
+                                <div style={styles.logo} aria-hidden>
+                                                          <span
+                                                              className="material-symbols-outlined"
+                                                              style={{fontSize: 26, color: 'white', lineHeight: 1}}
+                                                              aria-hidden
+                                                          >
+                                                            menu_book
+                                                          </span>
+                                </div>
+                                <h1 style={styles.brandTitle}>NoteUZ</h1>
+                            </div>
+                        </div>
+
+                        <div style={styles.centerGroup}>
+                            <div style={styles.search}>
+                                <input
+                                    placeholder={t('searchPlaceholder') || 'Szukaj'}
+                                    style={styles.searchInput}
+                                />
+                            </div>
+                        </div>
+
+                        <div style={styles.rightGroup}>
+                            <Link href="/login" style={styles.ctaLinkInline}>
+                                {t('loginButton')}
+                            </Link>
+                            <Link href={router.asPath} locale={switchLocale} style={styles.langLink}>
                                 {switchLocale.toUpperCase()}
                             </Link>
-                        </nav>
-                    </header>
+                        </div>
+                    </div>
+                </header>
 
+                <div style={styles.container}>
                     <section style={styles.hero}>
                         <div style={styles.heroLeft}>
                             <h2 style={styles.title}>{t('homeTitle')}</h2>
@@ -60,10 +83,13 @@ export default function Home() {
                                 <Link href="/login" style={styles.ctaLink}>
                                     {t('loginButton')}
                                 </Link>
+                                <a href="#features" style={styles.secondary}>
+                                    {t('featuresTitle') || 'Cechy'}
+                                </a>
                             </div>
                         </div>
 
-                        <div style={styles.heroRight} aria-hidden>
+                        <aside style={styles.heroRight} aria-hidden>
                             <div style={styles.device}>
                                 <div style={styles.deviceHeader}/>
                                 <div style={styles.deviceBody}>
@@ -74,7 +100,7 @@ export default function Home() {
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        </aside>
                     </section>
 
                     <section id="features" style={styles.features}>
@@ -105,15 +131,14 @@ export default function Home() {
                             </div>
                         </div>
                     </section>
-
-                    <footer style={styles.footer}>© {new Date().getFullYear()} NoteUZ</footer>
                 </div>
+
+                <footer style={styles.footer}>© {new Date().getFullYear()} NoteUZ</footer>
             </main>
         </>
     );
 }
 
-// ładowanie tłumaczeń (niezmienione)
 export const getStaticProps: GetStaticProps = async ({locale}) => ({
     props: {
         messages: (await import(`../messages/${locale}.json`)).default,
@@ -125,31 +150,85 @@ const styles: { [k: string]: React.CSSProperties } = {
     page: {
         minHeight: '100vh',
         display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 24,
+        flexDirection: 'column',
+        gap: 32,
+        background: 'var(--background, #ffffff)',
+        color: 'var(--foreground, #171717)',
         fontFamily: `'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial`,
-        background: 'linear-gradient(180deg, #fbfdff 0%, #eef6ff 100%)',
-        color: 'var(--foreground, #0f172a)',
+        padding: 0,
     },
-    card: {
+    /* pełna szerokość nagłówka */
+    navFull: {
         width: '100%',
-        maxWidth: 1100,
-        padding: 28,
-        boxSizing: 'border-box',
-        borderRadius: 14,
-        background: 'white',
-        boxShadow: '0 12px 40px rgba(2,6,23,0.06)',
+        position: 'sticky',
+        top: 0,
+        zIndex: 40,
+        background: 'var(--background)',
+        borderBottom: '1px solid rgba(15,23,42,0.04)',
+        backdropFilter: 'blur(6px)',
     },
-    header: {
+    /* wewnętrzny kontener: rozsuwa elementy do boków */
+    navInner: {
+        width: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 12,
+        padding: '10px 18px', // kontroluj odsunięcie od krawędzi okna
+        boxSizing: 'border-box',
+    },
+    leftGroup: {
         display: 'flex',
         alignItems: 'center',
         gap: 12,
-        marginBottom: 12,
+    },
+    centerGroup: {
+        flex: 1,
+        display: 'flex',
+        justifyContent: 'center',
+        padding: '0 12px',
+    },
+    rightGroup: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        flexShrink: 0,
+    },
+    iconButton: {
+        background: 'transparent',
+        border: 'none',
+        padding: 8,
+        borderRadius: 8,
+        cursor: 'pointer',
+    },
+    search: {
+        width: '100%',
+        maxWidth: 760,
+    },
+    searchInput: {
+        width: '100%',
+        padding: '10px 14px',
+        borderRadius: 12,
+        border: '1px solid rgba(15,23,42,0.06)',
+        background: 'var(--background)',
+        boxShadow: '0 6px 16px rgba(2,6,23,0.04)',
+        outline: 'none',
+    },
+
+    container: {
+        width: 'min(92%, 1100px)',
+        margin: '24px auto',
+        boxSizing: 'border-box',
+    },
+
+    brandRow: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
     },
     logo: {
-        width: 48,
-        height: 48,
+        width: 44,
+        height: 44,
         borderRadius: 10,
         background: 'linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%)',
         display: 'flex',
@@ -162,40 +241,28 @@ const styles: { [k: string]: React.CSSProperties } = {
         margin: 0,
         fontSize: 18,
         fontWeight: 700,
-        color: '#0f172a',
+        color: 'var(--foreground, #0f172a)',
     },
-    headerLocaleLink: {
-        padding: '8px 10px',
-        borderRadius: 10,
-        background: 'transparent',
-        color: '#334155',
-        textDecoration: 'none',
-        border: '1px solid rgba(15,23,42,0.06)',
-    },
+
     hero: {
         display: 'flex',
         gap: 24,
         alignItems: 'center',
         flexWrap: 'wrap',
-        marginTop: 12,
+        padding: 28,
+        borderRadius: 12,
+        background: 'linear-gradient(180deg, #fbfdff 0%, #eef6ff 100%)',
+        boxShadow: '0 8px 30px rgba(2,6,23,0.04)',
     },
     heroLeft: {
         flex: 1,
-        minWidth: 280,
+        minWidth: 260,
     },
-    title: {
-        margin: 0,
-        fontSize: 28,
-        fontWeight: 700,
-        color: '#0f172a',
+    heroRight: {
+        width: 320,
+        minWidth: 220,
     },
-    lead: {
-        marginTop: 10,
-        color: '#334155',
-        fontSize: 15,
-        maxWidth: 560,
-        lineHeight: 1.5,
-    },
+
     ctaRow: {
         marginTop: 18,
         display: 'flex',
@@ -205,7 +272,7 @@ const styles: { [k: string]: React.CSSProperties } = {
     },
     ctaLink: {
         display: 'inline-block',
-        padding: '10px 16px',
+        padding: '12px 18px',
         borderRadius: 10,
         background: '#ff7a18',
         color: 'white',
@@ -213,19 +280,38 @@ const styles: { [k: string]: React.CSSProperties } = {
         textDecoration: 'none',
         boxShadow: '0 8px 22px rgba(255,122,24,0.16)',
     },
-    secondary: {
+    ctaLinkInline: {
         display: 'inline-block',
-        padding: '10px 14px',
+        padding: '8px 12px',
+        borderRadius: 10,
+        background: '#ff7a18',
+        color: 'white',
+        fontWeight: 600,
+        textDecoration: 'none',
+    },
+    langLink: {
+        padding: '8px 10px',
         borderRadius: 10,
         background: 'transparent',
         color: '#334155',
         textDecoration: 'none',
         border: '1px solid rgba(15,23,42,0.06)',
     },
-    heroRight: {
-        width: 300,
-        minWidth: 240,
+
+    title: {
+        margin: 0,
+        fontSize: 34,
+        fontWeight: 700,
+        color: 'var(--foreground, #0f172a)',
     },
+    lead: {
+        marginTop: 10,
+        color: '#334155',
+        fontSize: 16,
+        maxWidth: 640,
+        lineHeight: 1.6,
+    },
+
     device: {
         borderRadius: 12,
         overflow: 'hidden',
@@ -251,15 +337,16 @@ const styles: { [k: string]: React.CSSProperties } = {
         borderRadius: 6,
         marginBottom: 8,
     },
+
     features: {
         marginTop: 22,
-        paddingTop: 14,
+        paddingTop: 6,
     },
     featuresTitle: {
         margin: 0,
-        fontSize: 16,
+        fontSize: 18,
         fontWeight: 700,
-        color: '#0f172a',
+        color: 'var(--foreground, #0f172a)',
         marginBottom: 12,
     },
     featuresGrid: {
@@ -270,7 +357,7 @@ const styles: { [k: string]: React.CSSProperties } = {
     feature: {
         background: 'white',
         borderRadius: 10,
-        padding: 14,
+        padding: 16,
         boxShadow: '0 8px 22px rgba(2,6,23,0.04)',
     },
     featureIcon: {
@@ -289,9 +376,9 @@ const styles: { [k: string]: React.CSSProperties } = {
         lineHeight: 1.4,
     },
     footer: {
-        marginTop: 18,
         textAlign: 'center',
         color: '#94a3b8',
         fontSize: 13,
+        padding: '18px 0',
     },
 };
