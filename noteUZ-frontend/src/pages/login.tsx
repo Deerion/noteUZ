@@ -1,6 +1,6 @@
 import Head from 'next/head';
-import {FormEvent, useState} from 'react';
-import {useRouter} from 'next/router';
+import { FormEvent, useState } from 'react';
+import { useRouter } from 'next/router';
 import s from '../styles/Login.module.css';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? '';
@@ -20,9 +20,9 @@ export default function LoginPage() {
         try {
             const res = await fetch(`${API}/api/auth/login`, {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
+                headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({email, password}),
+                body: JSON.stringify({ email, password }),
             });
 
             if (!res.ok) {
@@ -35,9 +35,11 @@ export default function LoginPage() {
                 return;
             }
 
-            router.push('/notes');
+            setLoading(false);
+            router.push('/'); // przekierowanie na stronę główną po zalogowaniu
         } catch {
-            router.push(`/error?code=503&msg=${encodeURIComponent('Serwis niedostępny. Spróbuj ponownie później.')}`);
+            setErr('Serwis niedostępny. Spróbuj ponownie później.');
+            setLoading(false);
         }
     }
 
@@ -71,6 +73,7 @@ export default function LoginPage() {
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
                                 className={s.input}
+                                autoComplete="email"
                             />
                         </label>
 
@@ -83,6 +86,7 @@ export default function LoginPage() {
                                 onChange={(e) => setPassword(e.target.value)}
                                 required
                                 className={s.input}
+                                autoComplete="current-password"
                             />
                         </label>
 

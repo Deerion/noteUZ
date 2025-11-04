@@ -1,9 +1,50 @@
 import Head from 'next/head';
 import Link from 'next/link';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import s from '../styles/Home.module.css';
 
+const API = process.env.NEXT_PUBLIC_API_URL ?? '';
+
 export default function Home() {
+    const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+    const [busy, setBusy] = useState(false);
+
+    async function refreshSession() {
+        try {
+            const res = await fetch(`${API}/api/auth/me`, { credentials: 'include' });
+            setIsLoggedIn(res.ok);
+            return res.ok;
+        } catch {
+            setIsLoggedIn(false);
+            return false;
+        }
+    }
+
+    useEffect(() => {
+        let mounted = true;
+        (async () => {
+            const ok = await refreshSession();
+            if (!mounted) return;
+        })();
+        return () => { mounted = false; };
+    }, []);
+
+    async function onLogout() {
+        setBusy(true);
+        try {
+            await fetch(`${API}/api/auth/logout`, { method: 'POST', credentials: 'include' });
+            const ok = await refreshSession();
+            if (!ok) {
+                setIsLoggedIn(false);
+                if (typeof window !== 'undefined') {
+                    window.location.reload();
+                }
+            }
+        } finally {
+            setBusy(false);
+        }
+    }
+
     return (
         <>
             <Head>
@@ -23,9 +64,9 @@ export default function Home() {
 
                             <div className={s.brandRow}>
                                 <div className={s.logo} aria-hidden>
-                  <span className="material-symbols-outlined" style={{fontSize: 26, color: 'white', lineHeight: 1}} aria-hidden>
-                    menu_book
-                  </span>
+                                    <span className="material-symbols-outlined" style={{fontSize: 26, color: 'white', lineHeight: 1}} aria-hidden>
+                                        menu_book
+                                    </span>
                                 </div>
                                 <h1 className={s.brandTitle}>NoteUZ</h1>
                             </div>
@@ -38,9 +79,20 @@ export default function Home() {
                         </div>
 
                         <div className={s.rightGroup}>
-                            <Link href="/login" className={s.ctaLinkInline}>
-                                Zaloguj
-                            </Link>
+                            {isLoggedIn ? (
+                                <button className={s.ctaLinkInline} onClick={onLogout} disabled={busy}>
+                                    {busy ? 'Wylogowywanie…' : 'Wyloguj'}
+                                </button>
+                            ) : (
+                                <>
+                                    <Link href="/register" className={s.ctaLinkInline}>
+                                        Zarejestruj
+                                    </Link>
+                                    <Link href="/login" className={s.ctaLinkInline}>
+                                        Zaloguj
+                                    </Link>
+                                </>
+                            )}
                         </div>
                     </div>
                 </header>
@@ -52,14 +104,21 @@ export default function Home() {
                             <p className={s.lead}>Twórz i zarządzaj notatkami szybko i bez komplikacji.</p>
 
                             <div className={s.ctaRow}>
-                                <Link href="/login" className={s.ctaLink}>
-                                    Zaloguj
-                                </Link>
-                                <a href="#features" className={s.secondary}>
-                                    Cechy
-                                </a>
+                                {isLoggedIn ? (
+                                    <Link href="/notes" className={s.ctaLink}>Przejdź do notatek</Link>
+                                ) : (
+                                    <Link href="/register" className={s.ctaLink}>Zarejestruj się</Link>
+                                )}
+                                <a href="#features" className={s.secondary}>Cechy</a>
                             </div>
                         </div>
+
+                        <button onClick={async () => {
+                            const r = await fetch(`${API}/api/auth/me`, { credentials: 'include' });
+                            alert('ME status: ' + r.status);
+                        }}>
+                            Sprawdź sesję
+                        </button>
 
                         <aside className={s.heroRight} aria-hidden>
                             <div className={s.device}>
@@ -81,25 +140,19 @@ export default function Home() {
                             <div className={s.feature}>
                                 <div className={s.featureIcon}>✦</div>
                                 <h4 className={s.featureTitle}>Proste notatki</h4>
-                                <p className={s.featureText}>
-                                    Twórz, edytuj i zarządzaj notatkami szybko i bez komplikacji.
-                                </p>
+                                <p className={s.featureText}>Twórz, edytuj i zarządzaj notatkami szybko i bez komplikacji.</p>
                             </div>
 
                             <div className={s.feature}>
                                 <div className={s.featureIcon}>⚡</div>
                                 <h4 className={s.featureTitle}>Szybkość</h4>
-                                <p className={s.featureText}>
-                                    Lekki interfejs, szybkie ładowanie i płynne działanie.
-                                </p>
+                                <p className={s.featureText}>Lekki interfejs, szybkie ładowanie i płynne działanie.</p>
                             </div>
 
                             <div className={s.feature}>
                                 <div className={s.featureIcon}>🔒</div>
                                 <h4 className={s.featureTitle}>Bezpieczeństwo</h4>
-                                <p className={s.featureText}>
-                                    Twoje notatki pozostają prywatne — kontrolujesz dostęp.
-                                </p>
+                                <p className={s.featureText}>Twoje notatki pozostają prywatne — kontrolujesz dostęp.</p>
                             </div>
                         </div>
                     </section>
