@@ -1,14 +1,19 @@
 import Head from 'next/head';
-import { FormEvent, useState } from 'react';
+import { FormEvent, useState, useRef } from 'react';
 import { useRouter } from 'next/router';
+import HCaptcha from '@hcaptcha/react-hcaptcha';
 import s from '../styles/Login.module.css';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? '';
+const HCAPTCHA_SITE_KEY = process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY ?? '';
 
 export default function LoginPage() {
     const router = useRouter();
+    const captchaRef = useRef<any>(null);
+
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [captchaToken, setCaptchaToken] = useState('');
     const [err, setErr] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
 
@@ -17,17 +22,34 @@ export default function LoginPage() {
         setLoading(true);
         setErr(null);
 
+        // Weryfikacja CAPTCHA
+        if (!captchaToken) {
+            setErr('Musisz potwierdzić, że nie jesteś robotem');
+            setLoading(false);
+            return;
+        }
+
         try {
             const res = await fetch(`${API}/api/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ email, password }),
+                body: JSON.stringify({
+                    email,
+                    password,
+                    captchaToken,
+                }),
             });
 
             if (!res.ok) {
                 if (res.status === 401) {
                     setErr('Nieprawidłowy e‑mail lub hasło');
+                } else if (res.status === 400) {
+                    const data = await res.json();
+                    setErr(data.message || 'Błąd walidacji CAPTCHA');
+                    // Resetuj CAPTCHA
+                    captchaRef.current?.resetCaptcha();  // ← Zmień tutaj też
+                    setCaptchaToken('');
                 } else {
                     setErr(`API ${res.status}`);
                 }
@@ -36,7 +58,7 @@ export default function LoginPage() {
             }
 
             setLoading(false);
-            router.push('/'); // przekierowanie na stronę główną po zalogowaniu
+            router.push('/');
         } catch {
             setErr('Serwis niedostępny. Spróbuj ponownie później.');
             setLoading(false);
@@ -47,20 +69,15 @@ export default function LoginPage() {
         <>
             <Head>
                 <title>NoteUZ — Logowanie</title>
-                <meta name="viewport" content="width=device-width,initial-scale=1"/>
-                <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap"/>
-                <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"/>
             </Head>
 
-            <main className={s.page}>
+            <div className={s.page}>
                 <div className={s.card}>
                     <div className={s.header}>
-                        <div className={s.logo} aria-hidden>
-              <span className="material-symbols-outlined" style={{fontSize: 26, color: 'white', lineHeight: 1}} aria-hidden>
-                menu_book
-              </span>
+                        <div className={s.logo}>
+                            <span style={{ fontSize: '24px', color: 'white' }}>📚</span>
                         </div>
-                        <h1 className={s.brandTitle}>Logowanie</h1>
+                        <h1 className={s.brandTitle}>NoteUZ</h1>
                     </div>
 
                     <form onSubmit={onSubmit} className={s.form}>
@@ -68,7 +85,6 @@ export default function LoginPage() {
                             <span className={s.labelText}>E‑mail</span>
                             <input
                                 type="email"
-                                placeholder="jan@przyklad.pl"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
@@ -81,7 +97,6 @@ export default function LoginPage() {
                             <span className={s.labelText}>Hasło</span>
                             <input
                                 type="password"
-                                placeholder="Twoje hasło"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 required
@@ -90,18 +105,39 @@ export default function LoginPage() {
                             />
                         </label>
 
+                        {/* hCaptcha Widget */}
+                        <div className={s.label} style={{ marginTop: '8px' }}>
+                            <HCaptcha
+                                ref={captchaRef}
+                                sitekey={HCAPTCHA_SITE_KEY}
+                                onVerify={(token) => setCaptchaToken(token)}
+                                onExpire={() => {
+                                    setCaptchaToken('');
+                                    setErr('CAPTCHA wygasła. Spróbuj ponownie.');
+                                }}
+                                onError={() => {
+                                    setCaptchaToken('');
+                                    setErr('Błąd CAPTCHA. Spróbuj ponownie.');
+                                }}
+                            />
+                        </div>
+
                         <button
                             type="submit"
-                            disabled={loading}
-                            className={`${s.button} ${loading ? s.buttonDisabled : ''}`}
+                            className={`${s.button} ${(loading || !captchaToken) ? s.buttonDisabled : ''}`}
+                            disabled={loading || !captchaToken}
                         >
                             {loading ? 'Logowanie…' : 'Zaloguj'}
                         </button>
 
-                        {err && <p role="alert" className={s.error}>{err}</p>}
+                        {err && <p className={s.error}>{err}</p>}
                     </form>
+
+                    <p style={{ marginTop: '16px', textAlign: 'center', fontSize: '14px', color: '#64748b' }}>
+                        Nie masz konta? <a href="/register" style={{ color: '#ff7a18', textDecoration: 'none', fontWeight: '600' }}>Zarejestruj się</a>
+                    </p>
                 </div>
-            </main>
+            </div>
         </>
     );
 }

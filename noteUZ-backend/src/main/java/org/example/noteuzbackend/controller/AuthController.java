@@ -4,35 +4,49 @@ import org.example.noteuzbackend.service.AuthService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
-
     private final AuthService auth;
     private final String cookieName;
+    private final String hcaptchaSecretKey;
 
-    public AuthController(AuthService auth, @Value("${app.jwt.cookie}") String cookieName) {
+    public AuthController(
+            AuthService auth,
+            @Value("${app.jwt.cookie}") String cookieName,
+            @Value("${hcaptcha.secret_key}") String hcaptchaSecretKey
+    ) {
         this.auth = auth;
         this.cookieName = cookieName;
+        this.hcaptchaSecretKey = hcaptchaSecretKey;
     }
 
     @PostMapping("/login")
-    public ResponseEntity<Map<String, Object>> login(@RequestBody Map<String, String> body) {
+    public ResponseEntity<?> login(@RequestBody Map<String, String> body) {
         var email = body.getOrDefault("email", "");
         var password = body.getOrDefault("password", "");
+        var captchaToken = body.getOrDefault("captchaToken", "");
+
+        System.out.println("Login request - email: " + email + ", has token: " + !captchaToken.isBlank());
+
+        // Weryfikuj CAPTCHA
+        ResponseEntity<?> captchaResponse = auth.verifyCaptcha(captchaToken);
+        if (!captchaResponse.getStatusCode().is2xxSuccessful()) {
+            return captchaResponse;
+        }
+
         return auth.signIn(email, password);
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout() {
+    public ResponseEntity<?> logout() {
         return auth.signOut();
     }
 
     @GetMapping("/me")
-    public ResponseEntity<Map<String, Object>> me(
+    public ResponseEntity<?> me(
             @CookieValue(value = "#{@environment.getProperty('app.jwt.cookie')}", required = false)
             String tokenFromCookie
     ) {
@@ -44,10 +58,20 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<Map<String, Object>> register(@RequestBody Map<String, String> body) {
+    public ResponseEntity<?> register(@RequestBody Map<String, String> body) {
         var email = body.getOrDefault("email", "");
         var password = body.getOrDefault("password", "");
         var displayName = body.getOrDefault("displayName", "");
+        var captchaToken = body.getOrDefault("captchaToken", "");
+
+        System.out.println("Register request - email: " + email + ", displayName: " + displayName + ", has token: " + !captchaToken.isBlank());
+
+        // Weryfikuj CAPTCHA
+        ResponseEntity<?> captchaResponse = auth.verifyCaptcha(captchaToken);
+        if (!captchaResponse.getStatusCode().is2xxSuccessful()) {
+            return captchaResponse;
+        }
+
         return auth.register(email, password, displayName);
     }
 }

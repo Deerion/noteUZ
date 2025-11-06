@@ -1,17 +1,22 @@
 import Head from 'next/head';
-import { FormEvent, useState } from 'react';
+import { FormEvent, useState, useRef } from 'react';
 import { useRouter } from 'next/router';
+import HCaptcha from '@hcaptcha/react-hcaptcha';
 import s from '../styles/Register.module.css';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? '';
+const HCAPTCHA_SITE_KEY = process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY ?? '';
 
 export default function RegisterPage() {
     const router = useRouter();
+    const captchaRef = useRef<any>(null);
+
     const [email, setEmail] = useState('');
     const [displayName, setDisplayName] = useState('');
     const [password, setPassword] = useState('');
     const [confirm, setConfirm] = useState('');
     const [accept, setAccept] = useState(false);
+    const [captchaToken, setCaptchaToken] = useState('');
     const [err, setErr] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
 
@@ -19,42 +24,62 @@ export default function RegisterPage() {
         e.preventDefault();
         setErr(null);
 
-        if (!accept) { setErr('Musisz zaakceptować regulamin.'); return; }
-        if (displayName.length < 2) { setErr('Nazwa użytkownika musi mieć min. 2 znaki.'); return; }
-        if (password.length < 8) { setErr('Hasło musi mieć min. 8 znaków.'); return; }
-        if (password !== confirm) { setErr('Hasła nie są takie same.'); return; }
+        if (!accept) {
+            setErr('Musisz zaakceptować regulamin.');
+            return;
+        }
+
+        if (displayName.length < 2) {
+            setErr('Nazwa użytkownika musi mieć min. 2 znaki.');
+            return;
+        }
+
+        if (password.length < 8) {
+            setErr('Hasło musi mieć min. 8 znaków.');
+            return;
+        }
+
+        if (password !== confirm) {
+            setErr('Hasła nie są takie same.');
+            return;
+        }
+
+        if (!captchaToken) {
+            setErr('Musisz potwierdzić, że nie jesteś robotem');
+            return;
+        }
 
         setLoading(true);
+
         try {
-            // 1) rejestracja z display_name
-            const reg = await fetch(`${API}/api/auth/register`, {
+            // Rejestracja z CAPTCHA tokenem
+            const res = await fetch(`${API}/api/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password, displayName }),
+                body: JSON.stringify({
+                    email,
+                    password,
+                    displayName,
+                    captchaToken,
+                }),
             });
-            if (!reg.ok) {
-                const data = await reg.json();
-                setErr(data.message || `Rejestracja nie powiodła się (HTTP ${reg.status}).`);
+
+            if (!res.ok) {
+                const data = await res.json();
+                setErr(data.message || `Rejestracja nie powiodła się (HTTP ${res.status}).`);
                 setLoading(false);
                 return;
             }
 
-            // 2) automatyczne logowanie
-            const login = await fetch(`${API}/api/auth/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ email, password }),
-            });
-            if (!login.ok) {
-                setErr('Zarejestrowano, ale logowanie nie powiodło się. Zaloguj się ręcznie.');
-                setLoading(false);
-                return;
-            }
-
+            // ✅ Rejestracja OK
             setLoading(false);
-            router.push('/');
-        } catch {
+
+            // Przejdź na stronę logowania
+            // Możemy tutaj zachować email w URL-u jako query param, żeby automatycznie wypełnić pole
+            router.push(`/login?email=${encodeURIComponent(email)}`);
+
+        } catch (error) {
+            console.error('Registration error:', error);
             setErr('Serwis niedostępny. Spróbuj ponownie później.');
             setLoading(false);
         }
@@ -64,20 +89,15 @@ export default function RegisterPage() {
         <>
             <Head>
                 <title>NoteUZ — Rejestracja</title>
-                <meta name="viewport" content="width=device-width,initial-scale=1"/>
-                <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap"/>
-                <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"/>
             </Head>
 
-            <main className={s.page}>
+            <div className={s.page}>
                 <div className={s.card}>
                     <div className={s.header}>
-                        <div className={s.logo} aria-hidden>
-                            <span className="material-symbols-outlined" style={{ fontSize: 26, color: 'white', lineHeight: 1 }} aria-hidden>
-                                menu_book
-                            </span>
+                        <div className={s.logo}>
+                            <span style={{ fontSize: '24px', color: 'white' }}>📚</span>
                         </div>
-                        <h1 className={s.brandTitle}>Rejestracja</h1>
+                        <h1 className={s.brandTitle}>NoteUZ</h1>
                     </div>
 
                     <form onSubmit={onSubmit} className={s.form}>
@@ -85,7 +105,6 @@ export default function RegisterPage() {
                             <span className={s.labelText}>E-mail</span>
                             <input
                                 type="email"
-                                placeholder="jan@przyklad.pl"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
@@ -98,7 +117,6 @@ export default function RegisterPage() {
                             <span className={s.labelText}>Nazwa użytkownika</span>
                             <input
                                 type="text"
-                                placeholder="Jan Kowalski"
                                 value={displayName}
                                 onChange={(e) => setDisplayName(e.target.value)}
                                 required
@@ -110,7 +128,6 @@ export default function RegisterPage() {
                             <span className={s.labelText}>Hasło</span>
                             <input
                                 type="password"
-                                placeholder="Min. 8 znaków"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 required
@@ -123,7 +140,6 @@ export default function RegisterPage() {
                             <span className={s.labelText}>Powtórz hasło</span>
                             <input
                                 type="password"
-                                placeholder="Powtórz hasło"
                                 value={confirm}
                                 onChange={(e) => setConfirm(e.target.value)}
                                 required
@@ -132,19 +148,49 @@ export default function RegisterPage() {
                             />
                         </label>
 
-                        <label className={s.label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <input type="checkbox" checked={accept} onChange={(e) => setAccept(e.target.checked)} />
-                            <span className={s.labelText}>Akceptuję regulamin</span>
+                        <label className={s.label} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                            <input
+                                type="checkbox"
+                                checked={accept}
+                                onChange={(e) => setAccept(e.target.checked)}
+                                style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                            />
+                            <span className={s.labelText} style={{ marginBottom: 0 }}>Akceptuję regulamin</span>
                         </label>
 
-                        <button type="submit" disabled={loading} className={`${s.button} ${loading ? s.buttonDisabled : ''}`}>
+                        {/* hCaptcha Widget */}
+                        <div className={s.label} style={{ marginTop: '8px' }}>
+                            <HCaptcha
+                                ref={captchaRef}
+                                sitekey={HCAPTCHA_SITE_KEY}
+                                onVerify={(token) => setCaptchaToken(token)}
+                                onExpire={() => {
+                                    setCaptchaToken('');
+                                    setErr('CAPTCHA wygasła. Spróbuj ponownie.');
+                                }}
+                                onError={() => {
+                                    setCaptchaToken('');
+                                    setErr('Błąd CAPTCHA. Spróbuj ponownie.');
+                                }}
+                            />
+                        </div>
+
+                        <button
+                            type="submit"
+                            className={`${s.button} ${(loading || !captchaToken) ? s.buttonDisabled : ''}`}
+                            disabled={loading || !captchaToken}
+                        >
                             {loading ? 'Rejestrowanie…' : 'Utwórz konto'}
                         </button>
 
-                        {err && <p role="alert" className={s.error}>{err}</p>}
+                        {err && <p className={s.error}>{err}</p>}
                     </form>
+
+                    <p style={{ marginTop: '16px', textAlign: 'center', fontSize: '14px', color: '#64748b' }}>
+                        Masz już konto? <a href="/login" style={{ color: '#ff7a18', textDecoration: 'none', fontWeight: '600' }}>Zaloguj się</a>
+                    </p>
                 </div>
-            </main>
+            </div>
         </>
     );
 }
