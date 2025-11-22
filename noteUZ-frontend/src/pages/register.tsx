@@ -34,8 +34,38 @@ export default function RegisterPage() {
             return;
         }
 
+        if (displayName.length > 32) {
+            setErr('Nazwa użytkownika może mieć max. 32 znaki.');
+            return;
+        }
+
         if (password.length < 8) {
             setErr('Hasło musi mieć min. 8 znaków.');
+            return;
+        }
+
+        if (password.length > 32) {
+            setErr('Hasło może mieć max. 32 znaki.');
+            return;
+        }
+
+        if (password.includes(' ')) {
+            setErr('Hasło nie może zawierać spacji.');
+            return;
+        }
+
+        if (!/\d/.test(password)) {
+            setErr('Hasło musi zawierać co najmniej jedną cyfrę.');
+            return;
+        }
+
+        if (!/[a-z]/.test(password)) {
+            setErr('Hasło musi zawierać co najmniej jedną małą literę.');
+            return;
+        }
+
+        if (!/[A-Z]/.test(password)) {
+            setErr('Hasło musi zawierać co najmniej jedną wielką literę.');
             return;
         }
 
