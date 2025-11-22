@@ -125,13 +125,15 @@ noteUZ-frontend/
 │   │                               # - Layout components
 │   │
 │   ├── lib/                         # Utility functions and helpers
-│   │   └── services/               # API service layer
-│   │                               # - API client configuration
-│   │                               # - Authentication services
-│   │                               # - Notes API calls
-│   │                               # - Groups API calls
-│   │                               # - Email services
-│   │
+│   │   ├── services/               # API service layer
+│   │   │                           # - API client configuration
+│   │   │                           # - Authentication services
+│   │   │                           # - Notes API calls
+│   │   │                           # - Groups API calls
+│   │   │                           # - Email services
+│   │   │
+│   │   └── api.ts                  # API configuration
+│   │   
 │   ├── pages/                       # Next.js page-based routing
 │   │                               # - Authentication pages (login, register)
 │   │                               # - Dashboard pages
@@ -141,16 +143,15 @@ noteUZ-frontend/
 │   │                               # - Admin panel pages
 │   │                               # - Settings page
 │   │
-│   ├── styles/                      # Global and component styles
-│   │                               # - Global CSS
-│   │                               # - Component-specific styles
-│   │                               # - Light/dark theme configuration
-│   │
-│   ├── api.ts                       # API configuration
-│   ├── package.json                 # npm dependencies
-│   ├── tsconfig.json                # TypeScript configuration
-│   ├── next.config.js               # Next.js configuration
-│   └── .env.local                   # Environment variables (local only)
+│   └── styles/                      # Global and component styles
+│                                   # - Global CSS
+│                                   # - Component-specific styles
+│                                   # - Light/dark theme configuration
+│
+├── package.json                    # npm dependencies
+├── tsconfig.json                   # TypeScript configuration
+├── next.config.ts                  # Next.js configuration
+└── .env.local                      # Environment variables (local only)
 ```
 
 **Frontend Directories Overview:**
