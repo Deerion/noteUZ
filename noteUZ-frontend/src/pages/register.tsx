@@ -97,6 +97,8 @@ export default function RegisterPage() {
             if (!res.ok) {
                 const data = await res.json();
                 setErr(data.message || `Rejestracja nie powiodła się (HTTP ${res.status}).`);
+                setCaptchaToken('');
+                captchaRef.current.resetCaptcha();
                 setLoading(false);
                 return;
             }
