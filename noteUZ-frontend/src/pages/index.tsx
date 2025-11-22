@@ -1,6 +1,7 @@
 import Head from 'next/head';
 import Link from 'next/link';
 import React, { useEffect, useState } from 'react';
+import ThemeToggle from '../components/ThemeToggle';
 import s from '../styles/Home.module.css';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? '';
@@ -79,6 +80,7 @@ export default function Home() {
                         </div>
 
                         <div className={s.rightGroup}>
+                            <ThemeToggle />
                             {isLoggedIn ? (
                                 <button className={s.ctaLinkInline} onClick={onLogout} disabled={busy}>
                                     {busy ? 'Wylogowywanie…' : 'Wyloguj'}
@@ -116,6 +118,14 @@ export default function Home() {
                         <button onClick={async () => {
                             const r = await fetch(`${API}/api/auth/me`, { credentials: 'include' });
                             alert('ME status: ' + r.status);
+                        }} style={{
+                            padding: '8px 12px',
+                            borderRadius: '8px',
+                            border: '1px solid var(--border)',
+                            background: 'var(--card-bg)',
+                            color: 'var(--foreground)',
+                            cursor: 'pointer',
+                            transition: 'all 0.3s ease'
                         }}>
                             Sprawdź sesję
                         </button>

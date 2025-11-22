@@ -1,26 +1,87 @@
+/* styles/globals.css */
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+    --background: #ffffff;
+    --foreground: #171717;
+    --card-bg: #f9f9f9;
+    --border: #e5e5e5;
+    --text-secondary: #666666;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
+/* Dark mode - prefers-color-scheme */
 @media (prefers-color-scheme: dark) {
-  :root {
+    :root {
+        --background: #0a0a0a;
+        --foreground: #ededed;
+        --card-bg: #1a1a1a;
+        --border: #333333;
+        --text-secondary: #999999;
+    }
+}
+
+/* Dark mode - data-theme attribute (dla localStorage) */
+[data-theme='dark'] {
     --background: #0a0a0a;
     --foreground: #ededed;
-  }
+    --card-bg: #1a1a1a;
+    --border: #333333;
+    --text-secondary: #999999;
+}
+
+[data-theme='light'] {
+    --background: #ffffff;
+    --foreground: #171717;
+    --card-bg: #f9f9f9;
+    --border: #e5e5e5;
+    --text-secondary: #666666;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+    background: var(--background);
+    color: var(--foreground);
+    font-family: Arial, Helvetica, sans-serif;
+    margin: 0;
+    padding: 0;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Theme Toggle Button */
+.theme-toggle {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--foreground);
+    transition: all 0.3s ease;
+    width: 40px;
+    height: 40px;
+}
+
+.theme-toggle:hover {
+    background: var(--card-bg);
+    border-color: var(--text-secondary);
+}
+
+.theme-toggle:active {
+    transform: scale(0.95);
+}
+
+@theme inline {
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --font-sans: var(--font-geist-sans);
+    --font-mono: var(--font-geist-mono);
 }
