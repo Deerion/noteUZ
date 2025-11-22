@@ -162,6 +162,51 @@ public class AuthService {
                     .body(Map.of("message", "Nazwa użytkownika jest wymagana"));
         }
 
+        if (!email.contains("@") || email.length() < 3) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("message", "Nieprawidłowy adres email"));
+        }
+
+        if (displayName.length() < 2) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("message", "Nazwa użytkownika musi mieć min. 2 znaki."));
+        }
+
+        if (displayName.length() > 32) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("message", "Nazwa użytkownika może mieć max. 32 znaki."));
+        }
+
+        if (password.length() < 8) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("message", "Hasło musi mieć min. 8 znaków."));
+        }
+
+        if (password.length() > 32) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("message", "Hasło może mieć max. 32 znaki."));
+        }
+
+        if (password.contains(" ")) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("message", "Hasło nie może zawierać spacji."));
+        }
+
+        if (password.chars().noneMatch(Character::isDigit)) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("message", "Hasło musi zawierać co najmniej jedną cyfrę."));
+        }
+
+        if (password.chars().noneMatch(Character::isLowerCase)) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("message", "Hasło musi zawierać co najmniej jedną małą literę."));
+        }
+
+        if (password.chars().noneMatch(Character::isUpperCase)) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("message", "Hasło musi zawierać co najmniej jedną wielką literę."));
+        }
+
         try {
             var body = Map.of(
                     "email", email,
