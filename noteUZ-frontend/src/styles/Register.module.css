@@ -58,7 +58,8 @@
     display: block;
     font-size: 13px;
     margin-bottom: 6px;
-    color: #334155;
+    color: var(--text-secondary);
+    font-weight: 500;
 }
 
 .input {

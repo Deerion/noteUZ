@@ -1,15 +1,26 @@
-// pages/_app.tsx
 import type { AppProps } from 'next/app';
+import Head from 'next/head';
 import { useEffect } from 'react';
+import { appWithTranslation } from 'next-i18next';
 import { applyTheme, getTheme } from '../lib/theme';
 import '../styles/globals.css';
 
-export default function App({ Component, pageProps }: AppProps) {
+function App({ Component, pageProps }: AppProps) {
     // Zastosuj motyw przy załadowaniu aplikacji
     useEffect(() => {
         const theme = getTheme();
         applyTheme(theme);
     }, []);
 
-    return <Component {...pageProps} />;
+    return (
+        <>
+            <Head>
+                <link rel="icon" type="image/svg+xml" href="/favicon_NextJS.svg" />
+                <title>NoteUZ</title>
+            </Head>
+            <Component {...pageProps} />
+        </>
+);
 }
+
+export default appWithTranslation(App);
