@@ -1,0 +1,16 @@
+{
+  "welcome": "Witaj w NoteUZ",
+  "description": "Twórz i zarządzaj notatkami szybko i bez komplikacji.",
+  "login": "Zaloguj",
+  "register": "Zarejestruj",
+  "logout": "Wyloguj",
+  "notes": "Przejdź do notatek",
+  "features": "Cechy",
+  "search": "Szukaj",
+  "feature_simple_title": "Proste notatki",
+  "feature_simple_desc": "Twórz, edytuj i zarządzaj notatkami szybko i bez komplikacji.",
+  "feature_speed_title": "Szybkość",
+  "feature_speed_desc": "Lekki interfejs, szybkie ładowanie i płynne działanie.",
+  "feature_security_title": "Bezpieczeństwo",
+  "feature_security_desc": "Twoje notatki pozostają prywatne — kontrolujesz dostęp."
+}
