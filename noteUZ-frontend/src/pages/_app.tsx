@@ -1,10 +1,10 @@
-// pages/_app.tsx
 import type { AppProps } from 'next/app';
 import { useEffect } from 'react';
+import { appWithTranslation } from 'next-i18next';
 import { applyTheme, getTheme } from '../lib/theme';
 import '../styles/globals.css';
 
-export default function App({ Component, pageProps }: AppProps) {
+function App({ Component, pageProps }: AppProps) {
     // Zastosuj motyw przy załadowaniu aplikacji
     useEffect(() => {
         const theme = getTheme();
@@ -13,3 +13,5 @@ export default function App({ Component, pageProps }: AppProps) {
 
     return <Component {...pageProps} />;
 }
+
+export default appWithTranslation(App);

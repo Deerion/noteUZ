@@ -1,15 +1,20 @@
 import Head from 'next/head';
 import Link from 'next/link';
 import React, { useEffect, useState } from 'react';
+import { GetStaticProps } from 'next'; 
+import { useTranslation } from 'next-i18next'; 
+import { serverSideTranslations } from 'next-i18next/serverSideTranslations'; 
 import ThemeToggle from '../components/ThemeToggle';
+import LanguageSwitcher from '../components/LanguageSwitcher'; 
 import s from '../styles/Home.module.css';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? '';
 
 export default function Home() {
+    const { t } = useTranslation('common'); 
     const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
     const [busy, setBusy] = useState(false);
-
+    
     async function refreshSession() {
         try {
             const res = await fetch(`${API}/api/auth/me`, { credentials: 'include' });
@@ -62,7 +67,6 @@ export default function Home() {
                             <button aria-label="menu" className={s.iconButton}>
                                 <span className="material-symbols-outlined" style={{fontSize: 22, color: 'var(--foreground)'}}>menu</span>
                             </button>
-
                             <div className={s.brandRow}>
                                 <div className={s.logo} aria-hidden>
                                     <span className="material-symbols-outlined" style={{fontSize: 26, color: 'white', lineHeight: 1}} aria-hidden>
@@ -75,23 +79,24 @@ export default function Home() {
 
                         <div className={s.centerGroup}>
                             <div className={s.search}>
-                                <input placeholder="Szukaj" className={s.searchInput}/>
+                                <input placeholder={t('search')} className={s.searchInput}/> 
                             </div>
                         </div>
 
                         <div className={s.rightGroup}>
+                            <LanguageSwitcher /> 
                             <ThemeToggle />
                             {isLoggedIn ? (
                                 <button className={s.ctaLinkInline} onClick={onLogout} disabled={busy}>
-                                    {busy ? 'Wylogowywanie…' : 'Wyloguj'}
+                                    {busy ? '...' : t('logout')} 
                                 </button>
                             ) : (
                                 <>
                                     <Link href="/register" className={s.ctaLinkInline}>
-                                        Zarejestruj
+                                        {t('register')} 
                                     </Link>
                                     <Link href="/login" className={s.ctaLinkInline}>
-                                        Zaloguj
+                                        {t('login')} 
                                     </Link>
                                 </>
                             )}
@@ -102,19 +107,18 @@ export default function Home() {
                 <div className={s.container}>
                     <section className={s.hero}>
                         <div className={s.heroLeft}>
-                            <h2 className={s.title}>Witaj w NoteUZ</h2>
-                            <p className={s.lead}>Twórz i zarządzaj notatkami szybko i bez komplikacji.</p>
+                            <h2 className={s.title}>{t('welcome')}</h2> 
+                            <p className={s.lead}>{t('description')}</p> 
 
                             <div className={s.ctaRow}>
                                 {isLoggedIn ? (
-                                    <Link href="/notes" className={s.ctaLink}>Przejdź do notatek</Link>
+                                    <Link href="/notes" className={s.ctaLink}>{t('notes')}</Link>
                                 ) : (
-                                    <Link href="/register" className={s.ctaLink}>Zarejestruj się</Link>
+                                    <Link href="/register" className={s.ctaLink}>{t('register')}</Link>
                                 )}
-                                <a href="#features" className={s.secondary}>Cechy</a>
+                                <a href="#features" className={s.secondary}>{t('features')}</a>
                             </div>
                         </div>
-
                         <button onClick={async () => {
                             const r = await fetch(`${API}/api/auth/me`, { credentials: 'include' });
                             alert('ME status: ' + r.status);
@@ -143,33 +147,40 @@ export default function Home() {
                             </div>
                         </aside>
                     </section>
-
+                    
                     <section id="features" className={s.features}>
-                        <h3 className={s.featuresTitle}>Cechy</h3>
+                        <h3 className={s.featuresTitle}>{t('features')}</h3>
                         <div className={s.featuresGrid}>
                             <div className={s.feature}>
                                 <div className={s.featureIcon}>✦</div>
-                                <h4 className={s.featureTitle}>Proste notatki</h4>
-                                <p className={s.featureText}>Twórz, edytuj i zarządzaj notatkami szybko i bez komplikacji.</p>
+                                <h4 className={s.featureTitle}>{t('feature_simple_title')}</h4> 
+                                <p className={s.featureText}>{t('feature_simple_desc')}</p>     
                             </div>
-
+                            
                             <div className={s.feature}>
                                 <div className={s.featureIcon}>⚡</div>
-                                <h4 className={s.featureTitle}>Szybkość</h4>
-                                <p className={s.featureText}>Lekki interfejs, szybkie ładowanie i płynne działanie.</p>
+                                <h4 className={s.featureTitle}>{t('feature_speed_title')}</h4>  
+                                <p className={s.featureText}>{t('feature_speed_desc')}</p>      
                             </div>
 
                             <div className={s.feature}>
                                 <div className={s.featureIcon}>🔒</div>
-                                <h4 className={s.featureTitle}>Bezpieczeństwo</h4>
-                                <p className={s.featureText}>Twoje notatki pozostają prywatne — kontrolujesz dostęp.</p>
+                                <h4 className={s.featureTitle}>{t('feature_security_title')}</h4> 
+                                <p className={s.featureText}>{t('feature_security_desc')}</p>     
                             </div>
                         </div>
                     </section>
                 </div>
-
                 <footer className={s.footer}>© {new Date().getFullYear()} NoteUZ</footer>
             </main>
         </>
     );
 }
+
+export const getStaticProps: GetStaticProps = async ({ locale }) => {
+    return {
+        props: {
+            ...(await serverSideTranslations(locale ?? 'pl', ['common'])),
+        },
+    };
+};

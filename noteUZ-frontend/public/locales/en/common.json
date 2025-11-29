@@ -1,0 +1,16 @@
+{
+  "welcome": "Welcome to NoteUZ",
+  "description": "Create and manage notes quickly and without complications.",
+  "login": "Login",
+  "register": "Register",
+  "logout": "Logout",
+  "notes": "Go to notes",
+  "features": "Features",
+  "search": "Search",
+  "feature_simple_title": "Simple Notes",
+  "feature_simple_desc": "Create, edit, and manage notes quickly and without complications.",
+  "feature_speed_title": "Speed",
+  "feature_speed_desc": "Lightweight interface, fast loading, and smooth performance.",
+  "feature_security_title": "Security",
+  "feature_security_desc": "Your notes remain private — you control access."
+}
