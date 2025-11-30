@@ -1,4 +1,3 @@
-// components/ThemeToggle.tsx
 import { useEffect, useState } from 'react';
 import { getTheme, setTheme, applyTheme, watchSystemTheme, getEffectiveTheme, type ThemeMode } from '../lib/theme';
 
