@@ -1,4 +1,3 @@
-// lib/theme.ts
 export type ThemeMode = 'light' | 'dark' | 'system';
 
 const STORAGE_KEY = 'theme-preference';

@@ -1,27 +1,39 @@
 package org.example.noteuzbackend.service;
 
-import org.example.noteuzbackend.model.entity.TestNote;
-import org.example.noteuzbackend.repository.TestNoteRepo;
+import org.example.noteuzbackend.model.entity.Note;
+import org.example.noteuzbackend.repository.NoteRepo;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class NoteService {
-    private final TestNoteRepo repo;
+    private final NoteRepo repo;
 
-    public NoteService(TestNoteRepo repo) { this.repo = repo; }
+    public NoteService(NoteRepo repo) { this.repo = repo; }
 
     @Transactional(readOnly = true)
-    public List<String> listTexts() {
-        return repo.findAll().stream().map(TestNote::getText).toList();
+    public List<Note> getUserNotes(UUID userId) {
+        return repo.findAllByUserIdOrderByCreatedAtDesc(userId);
     }
 
     @Transactional
-    public TestNote create(String text) {
-        TestNote n = new TestNote();
-        n.setText(text);
+    public Note create(UUID userId, String title, String content) {
+        Note n = new Note();
+        n.setUserId(userId);
+        n.setTitle((title == null || title.isBlank()) ? "Dokument bez tytułu" : title);
+        n.setContent(content);
         return repo.save(n);
+    }
+
+    @Transactional
+    public void delete(UUID noteId, UUID userId) {
+        repo.findById(noteId).ifPresent(note -> {
+            if (note.getUserId().equals(userId)) {
+                repo.delete(note);
+            }
+        });
     }
 }
