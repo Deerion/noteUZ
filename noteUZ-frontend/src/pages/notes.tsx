@@ -1,4 +1,7 @@
+// src/pages/notes.tsx
 import type { GetServerSideProps, InferGetServerSidePropsType } from 'next';
+// Importy MUI
+import { Box, Typography, List, ListItem } from '@mui/material';
 
 type Props = { notes: string[]; status: number; error?: string };
 
@@ -39,9 +42,15 @@ export default function NotesPage({
                                       status,
                                   }: InferGetServerSidePropsType<typeof getServerSideProps>) {
     return (
-        <div>
-            <p>Status backendu: {status}</p>
-            <ul>{notes.map((n) => <li key={n}>{n}</li>)}</ul>
-        </div>
+        <Box sx={{ padding: 3 }}>
+            <Typography variant="body1">Status backendu: {status}</Typography>
+            <List>
+                {notes.map((n) => (
+                    <ListItem key={n} sx={{ paddingLeft: 0 }}>
+                        <Typography variant="body2">{n}</Typography>
+                    </ListItem>
+                ))}
+            </List>
+        </Box>
     );
 }

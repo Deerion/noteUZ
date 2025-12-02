@@ -12,5 +12,20 @@
   "feature_speed_title": "Szybkość",
   "feature_speed_desc": "Lekki interfejs, szybkie ładowanie i płynne działanie.",
   "feature_security_title": "Bezpieczeństwo",
-  "feature_security_desc": "Twoje notatki pozostają prywatne — kontrolujesz dostęp."
+  "feature_security_desc": "Twoje notatki pozostają prywatne — kontrolujesz dostęp.",
+
+  "email": "E-mail",
+  "password": "Hasło",
+  "username": "Nazwa użytkownika",
+  "repeat_password": "Powtórz hasło",
+  "login_action": "Zaloguj",
+  "login_now": "Zaloguj się",
+  "create_account": "Utwórz konto",
+  "no_account": "Nie masz konta?",
+  "has_account": "Masz już konto?",
+  "register_now": "Zarejestruj się",
+  "accept_terms": "Akceptuję regulamin",
+  "captcha_required": "Musisz potwierdzić, że nie jesteś robotem",
+  "invalid_credentials": "Nieprawidłowy e-mail lub hasło"
 }
+
