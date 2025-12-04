@@ -1,15 +1,25 @@
+// src/pages/register.tsx
 import Head from 'next/head';
+import Link from 'next/link';
 import { FormEvent, useState, useRef } from 'react';
 import { useRouter } from 'next/router';
 import HCaptcha from '@hcaptcha/react-hcaptcha';
-import s from '../styles/Register.module.css';
+import { GetStaticProps } from 'next';
+import { useTranslation } from 'next-i18next';
+import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
+
+// Importy MUI
+import { Box, Paper, Typography, TextField, Button as MuiButton, CircularProgress, useTheme, Checkbox, FormControlLabel } from '@mui/material';
+import MenuBookIcon from '@mui/icons-material/MenuBook';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? '';
 const HCAPTCHA_SITE_KEY = process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY ?? '';
 
 export default function RegisterPage() {
+    const { t } = useTranslation('common'); // <-- Hook
     const router = useRouter();
     const captchaRef = useRef<any>(null);
+    const theme = useTheme();
 
     const [email, setEmail] = useState('');
     const [displayName, setDisplayName] = useState('');
@@ -24,65 +34,16 @@ export default function RegisterPage() {
         e.preventDefault();
         setErr(null);
 
-        if (!accept) {
-            setErr('Musisz zaakceptować regulamin.');
-            return;
-        }
-
-        if (displayName.length < 2) {
-            setErr('Nazwa użytkownika musi mieć min. 2 znaki.');
-            return;
-        }
-
-        if (displayName.length > 32) {
-            setErr('Nazwa użytkownika może mieć max. 32 znaki.');
-            return;
-        }
-
-        if (password.length < 8) {
-            setErr('Hasło musi mieć min. 8 znaków.');
-            return;
-        }
-
-        if (password.length > 32) {
-            setErr('Hasło może mieć max. 32 znaki.');
-            return;
-        }
-
-        if (password.includes(' ')) {
-            setErr('Hasło nie może zawierać spacji.');
-            return;
-        }
-
-        if (!/\d/.test(password)) {
-            setErr('Hasło musi zawierać co najmniej jedną cyfrę.');
-            return;
-        }
-
-        if (!/[a-z]/.test(password)) {
-            setErr('Hasło musi zawierać co najmniej jedną małą literę.');
-            return;
-        }
-
-        if (!/[A-Z]/.test(password)) {
-            setErr('Hasło musi zawierać co najmniej jedną wielką literę.');
-            return;
-        }
-
-        if (password !== confirm) {
-            setErr('Hasła nie są takie same.');
-            return;
-        }
-
-        if (!captchaToken) {
-            setErr('Musisz potwierdzić, że nie jesteś robotem');
-            return;
-        }
+        // Tutaj też warto dodać klucze do tłumaczeń w przyszłości
+        if (!accept) { setErr(t('error_terms') || 'Musisz zaakceptować regulamin.'); return; }
+        if (displayName.length < 2) { setErr(t('error_username_short') || 'Nazwa użytkownika musi mieć min. 2 znaki.'); return; }
+        if (password.length < 8) { setErr(t('error_password_short') || 'Hasło musi mieć min. 8 znaków.'); return; }
+        if (password !== confirm) { setErr(t('error_passwords_match') || 'Hasła nie są takie same.'); return; }
+        if (!captchaToken) { setErr(t('captcha_required') || 'Musisz potwierdzić, że nie jesteś robotem'); return; }
 
         setLoading(true);
 
         try {
-            // Rejestracja z CAPTCHA tokenem
             const res = await fetch(`${API}/api/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -103,16 +64,12 @@ export default function RegisterPage() {
                 return;
             }
 
-            // ✅ Rejestracja OK
             setLoading(false);
-
-            // Przejdź na stronę logowania
-            // Możemy tutaj zachować email w URL-u jako query param, żeby automatycznie wypełnić pole
             router.push(`/login?email=${encodeURIComponent(email)}`);
 
         } catch (error) {
             console.error('Registration error:', error);
-            setErr('Serwis niedostępny. Spróbuj ponownie później.');
+            setErr(t('service_unavailable') || 'Serwis niedostępny. Spróbuj ponownie później.');
             setLoading(false);
         }
     }
@@ -120,109 +77,172 @@ export default function RegisterPage() {
     return (
         <>
             <Head>
-                <title>NoteUZ — Rejestracja</title>
+                <title>NoteUZ — {t('register')}</title>
             </Head>
 
-            <div className={s.page}>
-                <div className={s.card}>
-                    <div className={s.header}>
-                        <div className={s.logo}>
-                            <span style={{ fontSize: '24px', color: 'white' }}>📚</span>
-                        </div>
-                        <h1 className={s.brandTitle}>NoteUZ</h1>
-                    </div>
+            <Box
+                sx={{
+                    minHeight: '100vh',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: 3,
+                    background: 'var(--page-gradient)',
+                }}
+            >
+                <Paper
+                    elevation={3}
+                    sx={{
+                        width: '100%',
+                        maxWidth: 420,
+                        borderRadius: '14px',
+                        padding: 3.5,
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        backgroundColor: 'background.paper',
+                    }}
+                >
+                    {/* Header: Logo i Tytuł */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, marginBottom: 1.5 }}>
+                        <Box sx={{
+                            width: 48,
+                            height: 48,
+                            borderRadius: '10px',
+                            background: 'linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            boxShadow: '0 8px 20px rgba(79, 70, 229, 0.12)',
+                            flexShrink: 0,
+                        }}>
+                            <MenuBookIcon sx={{ fontSize: '26px', color: 'white' }} />
+                        </Box>
+                        <Typography variant="h5" component="h1" fontWeight={700}>
+                            NoteUZ
+                        </Typography>
+                    </Box>
 
-                    <form onSubmit={onSubmit} className={s.form}>
-                        <label className={s.label}>
-                            <span className={s.labelText}>E-mail</span>
-                            <input
-                                type="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                required
-                                className={s.input}
-                                autoComplete="email"
-                            />
-                        </label>
+                    <Box component="form" onSubmit={onSubmit} sx={{ display: 'grid', gap: 1.5 }}>
+                        <TextField
+                            label={t('email') || "E-mail"}
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            required
+                            autoComplete="email"
+                        />
 
-                        <label className={s.label}>
-                            <span className={s.labelText}>Nazwa użytkownika</span>
-                            <input
-                                type="text"
-                                value={displayName}
-                                onChange={(e) => setDisplayName(e.target.value)}
-                                required
-                                className={s.input}
-                            />
-                        </label>
+                        <TextField
+                            label={t('username') || "Nazwa użytkownika"}
+                            type="text"
+                            value={displayName}
+                            onChange={(e) => setDisplayName(e.target.value)}
+                            required
+                        />
 
-                        <label className={s.label}>
-                            <span className={s.labelText}>Hasło</span>
-                            <input
-                                type="password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                required
-                                className={s.input}
-                                autoComplete="new-password"
-                            />
-                        </label>
+                        <TextField
+                            label={t('password') || "Hasło"}
+                            type="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
+                            autoComplete="new-password"
+                        />
 
-                        <label className={s.label}>
-                            <span className={s.labelText}>Powtórz hasło</span>
-                            <input
-                                type="password"
-                                value={confirm}
-                                onChange={(e) => setConfirm(e.target.value)}
-                                required
-                                className={s.input}
-                                autoComplete="new-password"
-                            />
-                        </label>
+                        <TextField
+                            label={t('repeat_password') || "Powtórz hasło"}
+                            type="password"
+                            value={confirm}
+                            onChange={(e) => setConfirm(e.target.value)}
+                            required
+                            autoComplete="new-password"
+                        />
 
-                        <label className={s.label} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
-                            <input
-                                type="checkbox"
-                                checked={accept}
-                                onChange={(e) => setAccept(e.target.checked)}
-                                style={{ width: '16px', height: '16px', cursor: 'pointer' }}
-                            />
-                            <span className={s.labelText} style={{ marginBottom: 0 }}>Akceptuję regulamin</span>
-                        </label>
+                        <FormControlLabel
+                            control={
+                                <Checkbox
+                                    checked={accept}
+                                    onChange={(e) => setAccept(e.target.checked)}
+                                    color="primary"
+                                    sx={{ padding: '0 9px 0 0' }}
+                                />
+                            }
+                            label={
+                                <Typography
+                                    variant="body2"
+                                    sx={{
+                                        fontSize: '13px',
+                                        color: 'text.secondary',
+                                        fontWeight: 500
+                                    }}
+                                >
+                                    {t('accept_terms') || "Akceptuję regulamin"}
+                                </Typography>
+                            }
+                            sx={{
+                                margin: 0,
+                                marginTop: 1,
+                                '& .MuiFormControlLabel-label': { margin: 0 }
+                            }}
+                        />
 
                         {/* hCaptcha Widget */}
-                        <div className={s.label} style={{ marginTop: '8px' }}>
+                        <Box sx={{ marginTop: '8px' }}>
                             <HCaptcha
                                 ref={captchaRef}
                                 sitekey={HCAPTCHA_SITE_KEY}
                                 onVerify={(token) => setCaptchaToken(token)}
                                 onExpire={() => {
                                     setCaptchaToken('');
-                                    setErr('CAPTCHA wygasła. Spróbuj ponownie.');
+                                    setErr(t('captcha_expired') || 'CAPTCHA wygasła. Spróbuj ponownie.');
                                 }}
                                 onError={() => {
                                     setCaptchaToken('');
-                                    setErr('Błąd CAPTCHA. Spróbuj ponownie.');
+                                    setErr(t('captcha_error') || 'Błąd CAPTCHA. Spróbuj ponownie.');
                                 }}
                             />
-                        </div>
+                        </Box>
 
-                        <button
+                        <MuiButton
                             type="submit"
-                            className={`${s.button} ${(loading || !captchaToken) ? s.buttonDisabled : ''}`}
+                            variant="contained"
+                            color="primary"
                             disabled={loading || !captchaToken}
+                            sx={{
+                                marginTop: 1,
+                                padding: '10px 12px',
+                                fontWeight: 600,
+                                fontSize: '15px',
+                            }}
                         >
-                            {loading ? 'Rejestrowanie…' : 'Utwórz konto'}
-                        </button>
+                            {loading ? <CircularProgress size={24} color="inherit" /> : t('create_account') || 'Utwórz konto'}
+                        </MuiButton>
 
-                        {err && <p className={s.error}>{err}</p>}
-                    </form>
+                        {err && (
+                            <Typography variant="body2" sx={{ marginTop: 0.5, color: theme.palette.error.main, fontSize: '13px' }}>
+                                {err}
+                            </Typography>
+                        )}
+                    </Box>
 
-                    <p style={{ marginTop: '16px', textAlign: 'center', fontSize: '14px', color: '#64748b' }}>
-                        Masz już konto? <a href="/login" style={{ color: '#ff7a18', textDecoration: 'none', fontWeight: '600' }}>Zaloguj się</a>
-                    </p>
-                </div>
-            </div>
+                    <Typography variant="body2" sx={{ marginTop: 2, textAlign: 'center', color: 'text.secondary', fontSize: '14px' }}>
+                        {t('has_account') || "Masz już konto?"}
+                        <Link href="/login" legacyBehavior passHref>
+                            <a style={{ color: theme.palette.primary.main, textDecoration: 'none', fontWeight: '600', marginLeft: '4px' }}>
+                                {t('login_now') || "Zaloguj się"}
+                            </a>
+                        </Link>
+                    </Typography>
+                </Paper>
+            </Box>
         </>
     );
 }
+
+export const getStaticProps: GetStaticProps = async ({ locale }) => {
+    return {
+        props: {
+            ...(await serverSideTranslations(locale ?? 'pl', ['common'])),
+        },
+    };
+};

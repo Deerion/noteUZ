@@ -1,7 +1,11 @@
+// src/pages/error.tsx
 import Head from 'next/head';
 import Link from 'next/link';
-import {useRouter} from 'next/router';
-import React from 'react';
+import { useRouter } from 'next/router';
+import React, { AnchorHTMLAttributes } from 'react'; // <-- DODANO AnchorHTMLAttributes
+
+// Importy MUI
+import { Box, Paper, Typography, Button as MuiButton, ButtonProps } from '@mui/material';
 
 const titles: Record<string, string> = {
     '401': 'Brak uprawnień',
@@ -11,7 +15,24 @@ const titles: Record<string, string> = {
     '503': 'Serwis niedostępny',
 };
 
+const PURPLE_ACCENT = '#4f46e5';
 
+// Poprawiony komponent do poprawnej integracji next/link z MUI (fix TS2322)
+type NextLinkProps = {
+    href: string;
+} & Omit<ButtonProps, 'href' | 'component'> & AnchorHTMLAttributes<HTMLAnchorElement>;
+
+const NextLink = React.forwardRef<HTMLAnchorElement, NextLinkProps>(
+    function NextLink({ href, children, ...other }, ref) {
+        return (
+            <Link href={href} legacyBehavior passHref>
+                <a ref={ref} {...other}>
+                    {children}
+                </a>
+            </Link>
+        );
+    }
+);
 
 export default function ErrorPage() {
     const { query, push } = useRouter();
@@ -26,79 +47,92 @@ export default function ErrorPage() {
                 <meta name="viewport" content="width=device-width,initial-scale=1"/>
             </Head>
 
-            <main style={page}>
-                <div style={card}>
-                    <h1 style={h1}>{title} ({code})</h1>
-                    <p style={p}>{msg}</p>
+            <Box
+                component="main"
+                sx={{
+                    minHeight: '100vh',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: 'linear-gradient(180deg, #fbfdff 0%, #eef6ff 100%)', // Stałe tło
+                    padding: 3,
+                    fontFamily: `'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial`,
+                }}
+            >
+                <Paper
+                    elevation={3}
+                    sx={{
+                        width: '100%',
+                        maxWidth: 560,
+                        padding: 3,
+                        borderRadius: '14px',
+                        boxShadow: '0 10px 30px rgba(2,6,23,0.08)',
+                    }}
+                >
+                    <Typography variant="h5" component="h1" fontWeight={700}>
+                        {title} ({code})
+                    </Typography>
+                    <Typography variant="body1" sx={{ marginTop: 1.5, color: '#334155' }}>
+                        {msg}
+                    </Typography>
 
-                    <div style={row}>
+                    <Box sx={{ display: 'flex', gap: 1.5, marginTop: 2, flexWrap: 'wrap' }}>
                         {code === '401' && (
-                            <Link href="/login" style={btnSecondary}>Zaloguj się</Link>
+                            <MuiButton
+                                component={NextLink}
+                                href="/login"
+                                variant="outlined"
+                                sx={{
+                                    textTransform: 'none',
+                                    fontWeight: 600,
+                                    color: '#1e293b',
+                                    backgroundColor: '#eef2ff',
+                                    borderColor: '#c7d2fe',
+                                    '&:hover': {
+                                        backgroundColor: '#eef2ff',
+                                        borderColor: '#c7d2fe',
+                                    }
+                                }}
+                            >
+                                Zaloguj się
+                            </MuiButton>
                         )}
 
                         {code === '503' && (
-                            <button onClick={() => push('/login')} style={btnPrimary}>
+                            <MuiButton
+                                onClick={() => push('/login')}
+                                variant="contained"
+                                color="primary"
+                                sx={{
+                                    textTransform: 'none',
+                                    fontWeight: 600,
+                                }}
+                            >
                                 Spróbuj ponownie
-                            </button>
+                            </MuiButton>
                         )}
 
-                        <Link href="/" style={btnGhost}>Strona główna</Link>
-                    </div>
-                </div>
-            </main>
+                        <MuiButton
+                            component={NextLink}
+                            href="/"
+                            variant="outlined"
+                            sx={{
+                                textTransform: 'none',
+                                fontWeight: 600,
+                                color: 'text.secondary',
+                                borderColor: 'divider',
+                                '&:hover': {
+                                    backgroundColor: 'background.paper',
+                                    borderColor: PURPLE_ACCENT,
+                                    color: PURPLE_ACCENT,
+                                }
+                            }}
+                        >
+                            Strona główna
+                        </MuiButton>
+                    </Box>
+                </Paper>
+            </Box>
         </>
     );
 }
-
-/* proste style lokalne tylko dla tej strony */
-const page: React.CSSProperties = {
-    minHeight: '100vh',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    background: 'linear-gradient(180deg, #fbfdff 0%, #eef6ff 100%)',
-    padding: 24,
-    color: '#0f172a',
-    fontFamily: `'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial`,
-};
-
-const card: React.CSSProperties = {
-    width: '100%',
-    maxWidth: 560,
-    background: 'white',
-    borderRadius: 14,
-    boxShadow: '0 10px 30px rgba(2,6,23,0.08)',
-    padding: 24,
-};
-
-const h1: React.CSSProperties = { margin: 0, fontSize: 22 };
-const p: React.CSSProperties = { marginTop: 10, color: '#334155' };
-
-const row: React.CSSProperties = { display: 'flex', gap: 12, marginTop: 16, flexWrap: 'wrap' };
-const btnPrimary: React.CSSProperties = {
-    padding: '10px 12px',
-    borderRadius: 10,
-    border: 'none',
-    background: '#ff7a18',
-    color: 'white',
-    fontWeight: 600,
-    cursor: 'pointer',
-    textDecoration: 'none',
-};
-const btnSecondary: React.CSSProperties = {
-    padding: '10px 12px',
-    borderRadius: 10,
-    background: '#eef2ff',
-    color: '#1e293b',
-    fontWeight: 600,
-    textDecoration: 'none',
-    border: '1px solid #c7d2fe',
-};
-const btnGhost: React.CSSProperties = {
-    padding: '10px 12px',
-    borderRadius: 10,
-    background: 'transparent',
-    color: '#334155',
-    textDecoration: 'none',
-    border: '1px solid rgba(15,23,42,0.06)',
-};

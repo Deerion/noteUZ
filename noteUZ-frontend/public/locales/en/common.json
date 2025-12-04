@@ -12,5 +12,19 @@
   "feature_speed_title": "Speed",
   "feature_speed_desc": "Lightweight interface, fast loading, and smooth performance.",
   "feature_security_title": "Security",
-  "feature_security_desc": "Your notes remain private — you control access."
+  "feature_security_desc": "Your notes remain private — you control access.",
+
+  "email": "Email",
+  "password": "Password",
+  "username": "Username",
+  "repeat_password": "Repeat password",
+  "login_action": "Log in",
+  "login_now": "Log in",
+  "create_account": "Create account",
+  "no_account": "Don't have an account?",
+  "has_account": "Already have an account?",
+  "register_now": "Register",
+  "accept_terms": "I accept terms and conditions",
+  "captcha_required": "Please verify you are not a robot",
+  "invalid_credentials": "Invalid email or password"
 }
