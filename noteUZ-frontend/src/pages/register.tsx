@@ -1,12 +1,14 @@
 // src/pages/register.tsx
 import Head from 'next/head';
 import Link from 'next/link';
-import { FormEvent, useState, useRef } from 'react';
+import React, { FormEvent, useState } from 'react'; // Usunięto useRef, nie jest już potrzebny
 import { useRouter } from 'next/router';
-import HCaptcha from '@hcaptcha/react-hcaptcha';
+import dynamic from 'next/dynamic';
 import { GetStaticProps } from 'next';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
+
+import type HCaptcha from '@hcaptcha/react-hcaptcha';
 
 // Importy MUI
 import { Box, Paper, Typography, TextField, Button as MuiButton, CircularProgress, useTheme, Checkbox, FormControlLabel } from '@mui/material';
@@ -15,11 +17,29 @@ import MenuBookIcon from '@mui/icons-material/MenuBook';
 const API = process.env.NEXT_PUBLIC_API_URL ?? '';
 const HCAPTCHA_SITE_KEY = process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY ?? '';
 
+// 1. Interfejs propsów
+interface HCaptchaProps {
+    sitekey: string;
+    languageOverride?: string;
+    onVerify: (token: string) => void;
+    onExpire?: () => void;
+    onError?: () => void;
+    theme?: 'light' | 'dark';
+}
+
+// 2. Rzutowanie wyniku dynamic()
+const HCaptchaComponent = dynamic(
+    () => import('@hcaptcha/react-hcaptcha'),
+    { ssr: false }
+) as React.ComponentType<HCaptchaProps & React.RefAttributes<HCaptcha>>;
+
 export default function RegisterPage() {
-    const { t } = useTranslation('common'); // <-- Hook
+    const { t } = useTranslation('common');
     const router = useRouter();
-    const captchaRef = useRef<any>(null);
     const theme = useTheme();
+
+    // Zamiast useRef używamy klucza do resetowania komponentu
+    const [captchaKey, setCaptchaKey] = useState(0);
 
     const [email, setEmail] = useState('');
     const [displayName, setDisplayName] = useState('');
@@ -34,7 +54,6 @@ export default function RegisterPage() {
         e.preventDefault();
         setErr(null);
 
-        // Tutaj też warto dodać klucze do tłumaczeń w przyszłości
         if (!accept) { setErr(t('error_terms') || 'Musisz zaakceptować regulamin.'); return; }
         if (displayName.length < 2) { setErr(t('error_username_short') || 'Nazwa użytkownika musi mieć min. 2 znaki.'); return; }
         if (password.length < 8) { setErr(t('error_password_short') || 'Hasło musi mieć min. 8 znaków.'); return; }
@@ -58,8 +77,12 @@ export default function RegisterPage() {
             if (!res.ok) {
                 const data = await res.json();
                 setErr(data.message || `Rejestracja nie powiodła się (HTTP ${res.status}).`);
+
+                // Resetujemy stan tokena
                 setCaptchaToken('');
-                captchaRef.current.resetCaptcha();
+                // Wymuszamy przerysowanie komponentu Captcha, zmieniając jego klucz
+                setCaptchaKey((prev) => prev + 1);
+
                 setLoading(false);
                 return;
             }
@@ -102,7 +125,6 @@ export default function RegisterPage() {
                         backgroundColor: 'background.paper',
                     }}
                 >
-                    {/* Header: Logo i Tytuł */}
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, marginBottom: 1.5 }}>
                         <Box sx={{
                             width: 48,
@@ -168,29 +190,19 @@ export default function RegisterPage() {
                                 />
                             }
                             label={
-                                <Typography
-                                    variant="body2"
-                                    sx={{
-                                        fontSize: '13px',
-                                        color: 'text.secondary',
-                                        fontWeight: 500
-                                    }}
-                                >
+                                <Typography variant="body2" sx={{ fontSize: '13px', color: 'text.secondary', fontWeight: 500 }}>
                                     {t('accept_terms') || "Akceptuję regulamin"}
                                 </Typography>
                             }
-                            sx={{
-                                margin: 0,
-                                marginTop: 1,
-                                '& .MuiFormControlLabel-label': { margin: 0 }
-                            }}
+                            sx={{ margin: 0, marginTop: 1, '& .MuiFormControlLabel-label': { margin: 0 } }}
                         />
 
-                        {/* hCaptcha Widget */}
                         <Box sx={{ marginTop: '8px' }}>
-                            <HCaptcha
-                                ref={captchaRef}
+                            <HCaptchaComponent
+                                key={captchaKey} // Klucz resetujący
                                 sitekey={HCAPTCHA_SITE_KEY}
+                                languageOverride={router.locale}
+                                theme={theme.palette.mode === 'dark' ? 'dark' : 'light'}
                                 onVerify={(token) => setCaptchaToken(token)}
                                 onExpire={() => {
                                     setCaptchaToken('');

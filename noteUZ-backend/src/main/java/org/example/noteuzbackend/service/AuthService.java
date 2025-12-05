@@ -149,6 +149,29 @@ public class AuthService {
         }
     }
 
+    @SuppressWarnings("unchecked")
+    public ResponseEntity<?> getUser(String accessToken) {
+        try {
+            // Wysyłamy zapytanie do Supabase Auth /user, używając tokena użytkownika
+            var resp = http.get()
+                    .uri("/user")
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken) // Ważne: Token usera
+                    .retrieve()
+                    .toEntity(Map.class);
+
+            int status = resp.getStatusCode().value();
+            var body = resp.getBody();
+
+            if (status >= 200 && status < 300) {
+                return ResponseEntity.ok(body);
+            }
+            return ResponseEntity.status(status).body(Map.of("message", "Nie udało się pobrać danych użytkownika"));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(401).body(Map.of("message", "Token wygasł lub jest nieprawidłowy"));
+        }
+    }
+
     // ========== REJESTRACJA ==========
     @SuppressWarnings("unchecked")
     public ResponseEntity<?> register(String email, String password, String displayName) {
@@ -272,4 +295,6 @@ public class AuthService {
                 .header(HttpHeaders.SET_COOKIE, cookie.toString())
                 .build();
     }
+
+
 }

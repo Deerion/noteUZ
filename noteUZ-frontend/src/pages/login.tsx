@@ -1,12 +1,15 @@
 // src/pages/login.tsx
 import Head from 'next/head';
 import Link from 'next/link';
-import { FormEvent, useState, useRef } from 'react';
+import React, { FormEvent, useState, useRef } from 'react'; // Dodano React
 import { useRouter } from 'next/router';
-import HCaptcha from '@hcaptcha/react-hcaptcha';
+import dynamic from 'next/dynamic';
 import { GetStaticProps } from 'next';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
+
+// Importujemy TYP instancji
+import type HCaptcha from '@hcaptcha/react-hcaptcha';
 
 // Importy MUI
 import { Box, Paper, Typography, TextField, Button as MuiButton, CircularProgress, useTheme } from '@mui/material';
@@ -15,11 +18,29 @@ import MenuBookIcon from '@mui/icons-material/MenuBook';
 const API = process.env.NEXT_PUBLIC_API_URL ?? '';
 const HCAPTCHA_SITE_KEY = process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY ?? '';
 
+// 1. Definiujemy interfejs propsów
+interface HCaptchaProps {
+    sitekey: string;
+    languageOverride?: string;
+    onVerify: (token: string) => void;
+    onExpire?: () => void;
+    onError?: () => void;
+    theme?: 'light' | 'dark';
+}
+
+// 2. NAPRAWA: Rzutujemy wynik dynamic() na ComponentType z odpowiednimi propsami i refem.
+// To omija błąd TS2345 dotyczący niezgodności struktury modułu.
+const HCaptchaComponent = dynamic(
+    () => import('@hcaptcha/react-hcaptcha'),
+    { ssr: false }
+) as React.ComponentType<HCaptchaProps & React.RefAttributes<HCaptcha>>;
+
 export default function LoginPage() {
-    const { t } = useTranslation('common'); // <-- Użycie hooka tłumaczeń
+    const { t } = useTranslation('common');
     const router = useRouter();
-    const captchaRef = useRef<any>(null);
     const theme = useTheme();
+
+    const captchaRef = useRef<HCaptcha>(null);
 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -56,7 +77,9 @@ export default function LoginPage() {
                 } else if (res.status === 400) {
                     const data = await res.json();
                     setErr(data.message || t('captcha_error') || 'Błąd walidacji CAPTCHA');
-                    captchaRef.current?.resetCaptcha();
+                    if (captchaRef.current) {
+                        captchaRef.current.resetCaptcha();
+                    }
                     setCaptchaToken('');
                 } else {
                     setErr(`API ${res.status}`);
@@ -101,7 +124,6 @@ export default function LoginPage() {
                         backgroundColor: 'background.paper',
                     }}
                 >
-                    {/* Header: Logo i Tytuł */}
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, marginBottom: 1.5 }}>
                         <Box sx={{
                             width: 48,
@@ -123,7 +145,7 @@ export default function LoginPage() {
 
                     <Box component="form" onSubmit={onSubmit} sx={{ display: 'grid', gap: 1.5 }}>
                         <TextField
-                            label={t('email') || "E-mail"} // <-- Tłumaczenie
+                            label={t('email') || "E-mail"}
                             type="email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
@@ -132,7 +154,7 @@ export default function LoginPage() {
                         />
 
                         <TextField
-                            label={t('password') || "Hasło"} // <-- Tłumaczenie
+                            label={t('password') || "Hasło"}
                             type="password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
@@ -140,11 +162,12 @@ export default function LoginPage() {
                             autoComplete="current-password"
                         />
 
-                        {/* hCaptcha Widget */}
                         <Box sx={{ marginTop: '8px' }}>
-                            <HCaptcha
+                            <HCaptchaComponent
                                 ref={captchaRef}
                                 sitekey={HCAPTCHA_SITE_KEY}
+                                languageOverride={router.locale}
+                                theme={theme.palette.mode === 'dark' ? 'dark' : 'light'}
                                 onVerify={(token) => setCaptchaToken(token)}
                                 onExpire={() => {
                                     setCaptchaToken('');
@@ -180,10 +203,10 @@ export default function LoginPage() {
                     </Box>
 
                     <Typography variant="body2" sx={{ marginTop: 2, textAlign: 'center', color: 'text.secondary', fontSize: '14px' }}>
-                        {t('no_account') || "Nie masz konta?"} {/* <-- Tłumaczenie */}
+                        {t('no_account') || "Nie masz konta?"}
                         <Link href="/register" legacyBehavior passHref>
                             <a style={{ color: theme.palette.primary.main, textDecoration: 'none', fontWeight: '600', marginLeft: '4px' }}>
-                                {t('register_now') || "Zarejestruj się"} {/* <-- Tłumaczenie */}
+                                {t('register_now') || "Zarejestruj się"}
                             </a>
                         </Link>
                     </Typography>
@@ -193,7 +216,6 @@ export default function LoginPage() {
     );
 }
 
-// WAŻNE: To ładuje pliki językowe na serwerze
 export const getStaticProps: GetStaticProps = async ({ locale }) => {
     return {
         props: {
