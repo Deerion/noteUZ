@@ -16,6 +16,11 @@ public class AuthService {
     private final RestClient hcaptchaHttp;
     private final String cookieName;
     private final int maxAge;
+
+    // NOWE POLA
+    private final String refreshCookieName;
+    private final int refreshMaxAge;
+
     private final String hcaptchaSecretKey;
 
     public AuthService(
@@ -23,10 +28,15 @@ public class AuthService {
             @Value("${supabase.service_key}") String serviceKey,
             @Value("${app.jwt.cookie}") String cookieName,
             @Value("${app.jwt.maxAge}") int maxAge,
+            // Wstrzykujemy nowe wartości z application.properties
+            @Value("${app.jwt.refreshCookie}") String refreshCookieName,
+            @Value("${app.jwt.refreshMaxAge}") int refreshMaxAge,
             @Value("${hcaptcha.secret_key}") String hcaptchaSecretKey
     ) {
         this.cookieName = cookieName;
         this.maxAge = maxAge;
+        this.refreshCookieName = refreshCookieName;
+        this.refreshMaxAge = refreshMaxAge;
         this.hcaptchaSecretKey = hcaptchaSecretKey;
 
         this.http = RestClient.builder()
@@ -41,7 +51,18 @@ public class AuthService {
                 .build();
     }
 
-    // ========== WERYFIKACJA CAPTCHA ==========
+    // Pomocnicza metoda do tworzenia ciasteczek
+    private ResponseCookie createCookie(String name, String value, int age) {
+        return ResponseCookie.from(name, value)
+                .httpOnly(true)
+                .path("/")
+                .maxAge(Duration.ofSeconds(age))
+                .sameSite("Lax")
+                // .secure(true) // Odkomentuj na produkcji (HTTPS)
+                .build();
+    }
+
+    // ========== WERYFIKACJA CAPTCHA (Bez zmian) ==========
     @SuppressWarnings("unchecked")
     public ResponseEntity<?> verifyCaptcha(String token) {
         if (token == null || token.isBlank()) {
@@ -52,7 +73,6 @@ public class AuthService {
 
         try {
             String formBody = "secret=" + hcaptchaSecretKey + "&response=" + token;
-
             System.out.println("📤 Sending CAPTCHA verification to hCaptcha...");
 
             var resp = hcaptchaHttp.post()
@@ -98,7 +118,7 @@ public class AuthService {
         }
     }
 
-    // ========== LOGOWANIE ==========
+    // ========== LOGOWANIE (Zmodyfikowane) ==========
     @SuppressWarnings("unchecked")
     public ResponseEntity<?> signIn(String email, String password) {
         var body = Map.of("email", email, "password", password);
@@ -114,22 +134,25 @@ public class AuthService {
 
             if (status >= 200 && status < 300 && respBody != null) {
                 Object at = respBody.get("access_token");
+                Object rt = respBody.get("refresh_token"); // Pobieramy Refresh Token
+
                 String accessToken = at instanceof String ? (String) at : null;
+                String refreshToken = rt instanceof String ? (String) rt : null;
 
                 if (accessToken == null || accessToken.isBlank()) {
                     return ResponseEntity.status(401)
                             .body(Map.of("message", "Brak access_token"));
                 }
 
-                var cookie = ResponseCookie.from(cookieName, accessToken)
-                        .httpOnly(true)
-                        .path("/")
-                        .maxAge(Duration.ofSeconds(maxAge))
-                        .sameSite("Lax")
-                        .build();
+                // 1. Ciasteczko Access Token (krótkie - 1h)
+                var accessCookie = createCookie(cookieName, accessToken, maxAge);
+
+                // 2. Ciasteczko Refresh Token (długie - 7 dni)
+                var refreshCookie = createCookie(refreshCookieName, refreshToken != null ? refreshToken : "", refreshMaxAge);
 
                 return ResponseEntity.ok()
-                        .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                        .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
+                        .header(HttpHeaders.SET_COOKIE, refreshCookie.toString()) // Dodajemy drugie ciasteczko
                         .body(Map.of("authenticated", true));
             }
 
@@ -149,13 +172,56 @@ public class AuthService {
         }
     }
 
+    // ========== ODŚWIEŻANIE SESJI (Nowa metoda) ==========
+    @SuppressWarnings("unchecked")
+    public ResponseEntity<?> refreshSession(String refreshToken) {
+        if (refreshToken == null || refreshToken.isBlank()) {
+            return ResponseEntity.status(401).body(Map.of("message", "Brak tokena odświeżania"));
+        }
+
+        try {
+            var body = Map.of("refresh_token", refreshToken);
+
+            // Wysyłamy żądanie refresh do Supabase
+            var resp = http.post()
+                    .uri("/token?grant_type=refresh_token")
+                    .body(body)
+                    .retrieve()
+                    .toEntity(Map.class);
+
+            var respBody = resp.getBody();
+            if (resp.getStatusCode().is2xxSuccessful() && respBody != null) {
+                String newAccessToken = (String) respBody.get("access_token");
+                String newRefreshToken = (String) respBody.get("refresh_token");
+
+                if (newAccessToken != null) {
+                    // Odświeżamy Access Token (na kolejną 1h)
+                    var accessCookie = createCookie(cookieName, newAccessToken, maxAge);
+
+                    // Odświeżamy Refresh Token (jeśli przyszedł nowy, to go ustawiamy, jak nie - przedłużamy stary)
+                    String rtToSet = (newRefreshToken != null) ? newRefreshToken : refreshToken;
+                    var refreshCookie = createCookie(refreshCookieName, rtToSet, refreshMaxAge);
+
+                    return ResponseEntity.ok()
+                            .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
+                            .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
+                            .body(Map.of("refreshed", true));
+                }
+            }
+            return ResponseEntity.status(401).body(Map.of("message", "Nie udało się odświeżyć sesji"));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(401).body(Map.of("message", "Sesja wygasła lub błąd API"));
+        }
+    }
+
+    // ========== POBIERANIE DANYCH UŻYTKOWNIKA (Bez zmian) ==========
     @SuppressWarnings("unchecked")
     public ResponseEntity<?> getUser(String accessToken) {
         try {
-            // Wysyłamy zapytanie do Supabase Auth /user, używając tokena użytkownika
             var resp = http.get()
                     .uri("/user")
-                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken) // Ważne: Token usera
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
                     .retrieve()
                     .toEntity(Map.class);
 
@@ -172,62 +238,35 @@ public class AuthService {
         }
     }
 
-    // ========== REJESTRACJA ==========
+    // ========== REJESTRACJA (Bez zmian) ==========
     @SuppressWarnings("unchecked")
     public ResponseEntity<?> register(String email, String password, String displayName) {
         if (email == null || email.isBlank() || password == null || password.isBlank()) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("message", "Email i hasło są wymagane"));
+            return ResponseEntity.badRequest().body(Map.of("message", "Email i hasło są wymagane"));
         }
-
         if (displayName == null || displayName.isBlank()) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("message", "Nazwa użytkownika jest wymagana"));
+            return ResponseEntity.badRequest().body(Map.of("message", "Nazwa użytkownika jest wymagana"));
         }
-
         if (!email.contains("@") || email.length() < 3) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("message", "Nieprawidłowy adres email"));
+            return ResponseEntity.badRequest().body(Map.of("message", "Nieprawidłowy adres email"));
         }
-
-        if (displayName.length() < 2) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("message", "Nazwa użytkownika musi mieć min. 2 znaki."));
+        if (displayName.length() < 2 || displayName.length() > 32) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Nazwa użytkownika musi mieć od 2 do 32 znaków."));
         }
-
-        if (displayName.length() > 32) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("message", "Nazwa użytkownika może mieć max. 32 znaki."));
+        if (password.length() < 8 || password.length() > 32) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Hasło musi mieć od 8 do 32 znaków."));
         }
-
-        if (password.length() < 8) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("message", "Hasło musi mieć min. 8 znaków."));
-        }
-
-        if (password.length() > 32) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("message", "Hasło może mieć max. 32 znaki."));
-        }
-
         if (password.contains(" ")) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("message", "Hasło nie może zawierać spacji."));
+            return ResponseEntity.badRequest().body(Map.of("message", "Hasło nie może zawierać spacji."));
         }
-
         if (password.chars().noneMatch(Character::isDigit)) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("message", "Hasło musi zawierać co najmniej jedną cyfrę."));
+            return ResponseEntity.badRequest().body(Map.of("message", "Hasło musi zawierać co najmniej jedną cyfrę."));
         }
-
         if (password.chars().noneMatch(Character::isLowerCase)) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("message", "Hasło musi zawierać co najmniej jedną małą literę."));
+            return ResponseEntity.badRequest().body(Map.of("message", "Hasło musi zawierać małą literę."));
         }
-
         if (password.chars().noneMatch(Character::isUpperCase)) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("message", "Hasło musi zawierać co najmniej jedną wielką literę."));
+            return ResponseEntity.badRequest().body(Map.of("message", "Hasło musi zawierać wielką literę."));
         }
 
         try {
@@ -249,7 +288,6 @@ public class AuthService {
             var respBody = resp.getBody();
 
             System.out.println("Register response status: " + status);
-            System.out.println("Register response body: " + respBody);
 
             if (status >= 200 && status < 300) {
                 return ResponseEntity.ok(Map.of("registered", true));
@@ -263,13 +301,10 @@ public class AuthService {
             }
 
             if (status == 400 && msg.toLowerCase().contains("already")) {
-                return ResponseEntity.status(409)
-                        .body(Map.of("message", "Użytkownik już istnieje"));
+                return ResponseEntity.status(409).body(Map.of("message", "Użytkownik już istnieje"));
             }
-
             if (status == 422 && msg.toLowerCase().contains("already")) {
-                return ResponseEntity.status(409)
-                        .body(Map.of("message", "Użytkownik już istnieje"));
+                return ResponseEntity.status(409).body(Map.of("message", "Użytkownik już istnieje"));
             }
 
             return ResponseEntity.status(status).body(Map.of("message", msg));
@@ -277,24 +312,19 @@ public class AuthService {
         } catch (Exception e) {
             e.printStackTrace();
             System.out.println("Register exception: " + e.getMessage());
-            return ResponseEntity.status(502)
-                    .body(Map.of("message", "Błąd połączenia z Auth API"));
+            return ResponseEntity.status(502).body(Map.of("message", "Błąd połączenia z Auth API"));
         }
     }
 
-    // ========== WYLOGOWANIE ==========
+    // ========== WYLOGOWANIE (Zmodyfikowane) ==========
     public ResponseEntity<?> signOut() {
-        var cookie = ResponseCookie.from(cookieName, "")
-                .httpOnly(true)
-                .path("/")
-                .maxAge(Duration.ZERO)
-                .sameSite("Lax")
-                .build();
+        // Czyścimy OBA ciasteczka
+        var c1 = createCookie(cookieName, "", 0);
+        var c2 = createCookie(refreshCookieName, "", 0);
 
         return ResponseEntity.noContent()
-                .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                .header(HttpHeaders.SET_COOKIE, c1.toString())
+                .header(HttpHeaders.SET_COOKIE, c2.toString())
                 .build();
     }
-
-
 }

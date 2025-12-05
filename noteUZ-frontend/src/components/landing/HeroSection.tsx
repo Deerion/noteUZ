@@ -1,3 +1,4 @@
+// src/components/landing/HeroSection.tsx
 import React from 'react';
 import Link from 'next/link';
 import { useTranslation } from 'next-i18next';
@@ -15,11 +16,11 @@ export const HeroSection = ({ isLoggedIn }: HeroSectionProps) => {
 
     return (
         <Grid container spacing={6} alignItems="center" sx={{ mb: 10 }}>
-            {/* WAŻNE: Używamy 'size' zamiast 'item xs'. To jest składnia z Twojego oryginału. */}
+            {/* Lewa kolumna */}
             <Grid size={{ xs: 12, md: 6 }}>
                 <Box>
                     <Chip
-                        label="Nowość: NoteUZ v2.0"
+                        label={t('hero_new_tag')} // <--- ZMIANA
                         size="small"
                         color="secondary"
                         variant="outlined"
@@ -42,11 +43,11 @@ export const HeroSection = ({ isLoggedIn }: HeroSectionProps) => {
                             WebkitBackgroundClip: 'text',
                             WebkitTextFillColor: 'transparent',
                         }}>
-                            Prościej i Szybciej.
+                            {t('hero_slogan_highlight')} {/* <--- ZMIANA */}
                         </Box>
                     </Typography>
                     <Typography variant="h6" color="text.secondary" sx={{ mb: 4, lineHeight: 1.6, maxWidth: 500, fontWeight: 400 }}>
-                        {t('description') || "Odkryj nowoczesny sposób na organizację swoich myśli. NoteUZ to bezpieczna przestrzeń dla Twoich pomysłów, dostępna gdziekolwiek jesteś."}
+                        {t('description')}
                     </Typography>
 
                     <Stack direction="row" spacing={2}>
@@ -84,7 +85,7 @@ export const HeroSection = ({ isLoggedIn }: HeroSectionProps) => {
                                     boxShadow: `0 10px 25px -5px ${alpha(theme.palette.primary.main, 0.4)}`
                                 }}
                             >
-                                Rozpocznij za darmo
+                                {t('start_free')} {/* <--- ZMIANA */}
                             </MuiButton>
                         )}
                         <MuiButton
@@ -102,7 +103,7 @@ export const HeroSection = ({ isLoggedIn }: HeroSectionProps) => {
                                 '&:hover': { borderColor: 'text.primary', bgcolor: 'transparent' }
                             }}
                         >
-                            Dowiedz się więcej
+                            {t('learn_more')} {/* <--- ZMIANA */}
                         </MuiButton>
                     </Stack>
                 </Box>

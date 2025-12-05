@@ -3,14 +3,18 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import React, { FormEvent, useState } from 'react';
 import { Box, Typography, TextField, Button as MuiButton, CircularProgress, Paper, useTheme } from '@mui/material';
+import { useTranslation } from 'next-i18next'; // <--- ZMIANA
+import { GetStaticProps } from 'next';
+import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
+
 import { NotesLayout } from '@/components/NotesPage/NotesLayout';
 import { apiFetch } from '@/lib/api';
 import { Note } from '@/types/Note';
 
-// Interfejs dla danych zwracanych po pomyślnym utworzeniu notatki
 interface CreateNoteResponse extends Note {}
 
 export default function NewNotePage() {
+    const { t } = useTranslation('common'); // <--- ZMIANA
     const router = useRouter();
     const theme = useTheme();
 
@@ -25,13 +29,12 @@ export default function NewNotePage() {
         setError(null);
 
         if (!title.trim() && !content.trim()) {
-            setError('Notatka musi mieć tytuł lub treść.');
+            setError(t('error_required_fields')); // <--- ZMIANA
             setLoading(false);
             return;
         }
 
         try {
-            // Wysyłamy dane do back-endu (POST /api/notes)
             await apiFetch<CreateNoteResponse>('/api/notes', {
                 method: 'POST',
                 body: JSON.stringify({
@@ -40,12 +43,11 @@ export default function NewNotePage() {
                 }),
             });
 
-            // Sukces! Przekierowanie do strony z notatkami
             router.push('/notes');
 
         } catch (err: any) {
             console.error('Błąd tworzenia notatki:', err);
-            setError(err.message || 'Nie udało się utworzyć notatki. Spróbuj ponownie.');
+            setError(err.message || t('error_create_failed')); // <--- ZMIANA
             setLoading(false);
         }
     }
@@ -53,11 +55,11 @@ export default function NewNotePage() {
     return (
         <>
             <Head>
-                <title>Nowa Notatka — NoteUZ</title>
+                <title>{t('new_note_page_title')} — NoteUZ</title> {/* <--- ZMIANA */}
             </Head>
 
             <NotesLayout
-                title="Utwórz Nową Notatkę"
+                title={t('create_new_note_header')} // <--- ZMIANA
                 actionButton={
                     <MuiButton
                         variant="outlined"
@@ -66,7 +68,7 @@ export default function NewNotePage() {
                         disabled={loading}
                         sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 700 }}
                     >
-                        Anuluj
+                        {t('btn_cancel')} {/* <--- ZMIANA */}
                     </MuiButton>
                 }
             >
@@ -83,7 +85,7 @@ export default function NewNotePage() {
                     <Box component="form" onSubmit={onSubmit} sx={{ display: 'grid', gap: 2 }}>
 
                         <TextField
-                            label="Tytuł"
+                            label={t('label_title')} // <--- ZMIANA
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
                             size="medium"
@@ -92,7 +94,7 @@ export default function NewNotePage() {
                         />
 
                         <TextField
-                            label="Treść Notatki"
+                            label={t('label_content')} // <--- ZMIANA
                             value={content}
                             onChange={(e) => setContent(e.target.value)}
                             multiline
@@ -119,7 +121,7 @@ export default function NewNotePage() {
                                 borderRadius: '12px'
                             }}
                         >
-                            {loading ? <CircularProgress size={24} color="inherit" /> : 'Zapisz Notatkę'}
+                            {loading ? <CircularProgress size={24} color="inherit" /> : t('btn_save_note')} {/* <--- ZMIANA */}
                         </MuiButton>
                     </Box>
                 </Paper>
@@ -127,3 +129,12 @@ export default function NewNotePage() {
         </>
     );
 }
+
+// Dodajemy getStaticProps dla tłumaczeń
+export const getStaticProps: GetStaticProps = async ({ locale }) => {
+    return {
+        props: {
+            ...(await serverSideTranslations(locale ?? 'pl', ['common'])),
+        },
+    };
+};

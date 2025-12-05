@@ -5,27 +5,30 @@ import { useRouter } from 'next/router';
 import { GetServerSideProps } from 'next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import Link from 'next/link';
+import { useTranslation } from 'next-i18next';
 import {
     Box, Container, Typography, Grid, Button, CircularProgress, useTheme
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import LogoutIcon from '@mui/icons-material/Logout';
 
-// Import nowych komponentów i typów
 import { ProfileCard } from '@/components/Dashboard/ProfileCard';
 import { AccountDetailsCard } from '@/components/Dashboard/AccountDetailsCard';
 import { FriendsSection } from '@/components/Dashboard/FriendsSection';
 import { UserData } from '@/types/User';
 
+import ThemeToggle from '@/components/ThemeToggle';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
+
 const API = process.env.NEXT_PUBLIC_API_URL ?? '';
 
 export default function Dashboard() {
+    const { t } = useTranslation('common');
     const router = useRouter();
     const theme = useTheme();
     const [user, setUser] = useState<UserData | null>(null);
     const [loading, setLoading] = useState(true);
 
-    // Pobieranie usera
     useEffect(() => {
         fetch(`${API}/api/auth/me`, { credentials: 'include' })
             .then(async (res) => {
@@ -58,7 +61,7 @@ export default function Dashboard() {
     return (
         <>
             <Head>
-                <title>Mój Profil — NoteUZ</title>
+                <title>{t('dashboard_title')} — NoteUZ</title>
             </Head>
 
             <Box sx={{
@@ -66,7 +69,6 @@ export default function Dashboard() {
                 background: 'var(--page-gradient)',
                 pb: 8
             }}>
-                {/* Navbar */}
                 <Box component="nav" sx={{
                     position: 'sticky', top: 0, zIndex: 100, px: { xs: 2, md: 4 }, py: 2,
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -76,33 +78,42 @@ export default function Dashboard() {
                 }}>
                     <Link href="/" legacyBehavior passHref>
                         <Button startIcon={<ArrowBackIcon />} sx={{ color: 'text.secondary', '&:hover': { color: 'text.primary', bgcolor: 'transparent' } }}>
-                            Wróć na stronę główną
+                            {t('back_home')}
                         </Button>
                     </Link>
-                    <Button onClick={handleLogout} color="error" variant="outlined" size="small" startIcon={<LogoutIcon />} sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 600 }}>
-                        Wyloguj się
-                    </Button>
+
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                        <ThemeToggle />
+                        <LanguageSwitcher />
+
+                        <Button
+                            onClick={handleLogout}
+                            color="error"
+                            variant="outlined"
+                            size="small"
+                            startIcon={<LogoutIcon />}
+                            sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 600, ml: 1 }}
+                        >
+                            {t('logout')}
+                        </Button>
+                    </Box>
                 </Box>
 
                 <Container maxWidth="lg" sx={{ mt: 4 }}>
                     <Typography variant="h4" component="h1" fontWeight={800} sx={{ mb: 4, px: 1 }}>
-                        Twój Panel
+                        {t('your_panel')}
                     </Typography>
 
                     <Grid container spacing={3}>
-                        {/* Lewa kolumna: Profil */}
-                        {/* POPRAWKA: Grid v2 używa 'size' zamiast 'item xs' */}
                         <Grid size={{ xs: 12, md: 4 }}>
                             <ProfileCard user={user} />
                         </Grid>
 
-                        {/* Prawa kolumna: Szczegóły */}
                         <Grid size={{ xs: 12, md: 8 }}>
                             <AccountDetailsCard user={user} />
                         </Grid>
                     </Grid>
 
-                    {/* Sekcja Znajomych (zawiera własny Grid w środku) */}
                     <FriendsSection user={user} />
 
                 </Container>

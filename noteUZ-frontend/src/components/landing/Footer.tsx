@@ -1,7 +1,10 @@
+// src/components/landing/Footer.tsx
 import React from 'react';
 import { Box, Typography, useTheme } from '@mui/material';
+import { useTranslation } from 'next-i18next'; // <--- DODANO
 
 export const Footer = () => {
+    const { t } = useTranslation('common'); // <--- DODANO
     const theme = useTheme();
 
     return (
@@ -15,7 +18,7 @@ export const Footer = () => {
             textAlign: 'center'
         }}>
             <Typography variant="body2" color="text.secondary">
-                © {new Date().getFullYear()} NoteUZ. Designed for efficiency.
+                © {new Date().getFullYear()} NoteUZ. {t('footer_copyright')} {/* <--- ZMIANA */}
             </Typography>
         </Box>
     );

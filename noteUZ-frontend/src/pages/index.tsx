@@ -3,6 +3,7 @@ import Head from 'next/head';
 import React, { useEffect, useState } from 'react';
 import { GetStaticProps } from 'next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
+import { useTranslation } from 'next-i18next';
 import { Box, Container } from '@mui/material';
 
 // Import komponentów
@@ -10,20 +11,29 @@ import { Navbar } from '../components/landing/Navbar';
 import { HeroSection } from '../components/landing/HeroSection';
 import { FeaturesSection } from '../components/landing/FeaturesSection';
 import { Footer } from '../components/landing/Footer';
+import { UserData } from '@/types/User'; // <--- DODANY IMPORT
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? '';
 
 export default function Home() {
-    const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+    const { t } = useTranslation('common');
+    // Zmieniamy boolean na obiekt użytkownika
+    const [user, setUser] = useState<UserData | null>(null);
     const [busy, setBusy] = useState(false);
 
     async function refreshSession() {
         try {
             const res = await fetch(`${API}/api/auth/me`, { credentials: 'include' });
-            setIsLoggedIn(res.ok);
-            return res.ok;
+            if (res.ok) {
+                const data = await res.json();
+                setUser(data); // Zapisujemy dane użytkownika
+                return true;
+            } else {
+                setUser(null);
+                return false;
+            }
         } catch {
-            setIsLoggedIn(false);
+            setUser(null);
             return false;
         }
     }
@@ -43,7 +53,7 @@ export default function Home() {
             await fetch(`${API}/api/auth/logout`, { method: 'POST', credentials: 'include' });
             const sessionOk = await refreshSession();
             if (!sessionOk) {
-                setIsLoggedIn(false);
+                setUser(null);
                 if (typeof window !== 'undefined') {
                     window.location.reload();
                 }
@@ -56,7 +66,7 @@ export default function Home() {
     return (
         <>
             <Head>
-                <title>NoteUZ — Twoje Notatki</title>
+                <title>NoteUZ — {t('welcome')}</title>
                 <meta name="viewport" content="width=device-width,initial-scale=1"/>
             </Head>
 
@@ -67,10 +77,12 @@ export default function Home() {
                 background: 'var(--page-gradient)',
                 overflowX: 'hidden'
             }}>
-                <Navbar isLoggedIn={isLoggedIn} onLogout={onLogout} busy={busy} />
+                {/* Przekazujemy teraz obiekt 'user' zamiast 'isLoggedIn' */}
+                <Navbar user={user} onLogout={onLogout} busy={busy} />
 
                 <Container maxWidth="lg" sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', pt: 4, pb: 8 }}>
-                    <HeroSection isLoggedIn={isLoggedIn} />
+                    {/* HeroSection nadal potrzebuje boolean, więc rzutujemy !!user */}
+                    <HeroSection isLoggedIn={!!user} />
                     <FeaturesSection />
                 </Container>
 

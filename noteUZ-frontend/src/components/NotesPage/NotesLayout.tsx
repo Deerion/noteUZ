@@ -1,13 +1,15 @@
+// src/components/NotesPage/NotesLayout.tsx
 import React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import { useTranslation } from 'next-i18next'; // <--- ZMIANA
 import { Box, Typography, Button, useTheme, List, ListItemButton, ListItemIcon, ListItemText, Divider, alpha, Paper } from '@mui/material';
 
 // Ikony
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
 import PeopleOutlineIcon from '@mui/icons-material/PeopleOutline';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import MenuBookIcon from '@mui/icons-material/MenuBook'; // <--- DODANO BRAKUJĄCY IMPORT
+import MenuBookIcon from '@mui/icons-material/MenuBook';
 
 interface NotesLayoutProps {
     children: React.ReactNode;
@@ -16,6 +18,7 @@ interface NotesLayoutProps {
 }
 
 export const NotesLayout: React.FC<NotesLayoutProps> = ({ children, title, actionButton }) => {
+    const { t } = useTranslation('common'); // <--- ZMIANA
     const theme = useTheme();
     const router = useRouter();
 
@@ -23,13 +26,13 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({ children, title, actio
 
     const menuItems = [
         {
-            text: 'Moje notatki',
+            text: t('my_notes'), // <--- ZMIANA
             icon: <DescriptionOutlinedIcon />,
             path: '/notes',
             disabled: false
         },
         {
-            text: 'Udostępnione (Wkrótce)',
+            text: t('shared_notes_soon'), // <--- ZMIANA
             icon: <PeopleOutlineIcon />,
             path: '/notes/shared',
             disabled: true
@@ -58,17 +61,16 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({ children, title, actio
                     backdropFilter: 'blur(10px)',
                 }}
             >
-                {/* Nagłówek Sidebara z poprawionym LOGO */}
+                {/* Nagłówek Sidebara */}
                 <Box sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 1.5 }}>
                     <Box sx={{
                         width: 32, height: 32, borderRadius: '8px',
                         background: 'linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%)',
-                        display: 'flex',               // <--- Centrowanie
-                        alignItems: 'center',          // <--- Centrowanie
-                        justifyContent: 'center',      // <--- Centrowanie
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                         boxShadow: '0 4px 12px rgba(79,70,229,0.2)'
                     }}>
-                        {/* Wstawiamy ikonkę książki, tak jak na stronie głównej */}
                         <MenuBookIcon sx={{ fontSize: 18, color: 'white' }} />
                     </Box>
                     <Typography variant="h6" fontWeight={700} sx={{ letterSpacing: '-0.5px' }}>
@@ -79,7 +81,7 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({ children, title, actio
                 {/* Lista Menu */}
                 <List sx={{ px: 2 }}>
                     {menuItems.map((item) => (
-                        <Link href={item.disabled ? '#' : item.path} key={item.text} legacyBehavior passHref>
+                        <Link href={item.disabled ? '#' : item.path} key={item.path} legacyBehavior passHref>
                             <ListItemButton
                                 component="a"
                                 disabled={item.disabled}
@@ -120,7 +122,7 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({ children, title, actio
                             <ListItemIcon sx={{ minWidth: 40 }}>
                                 <ArrowBackIcon />
                             </ListItemIcon>
-                            <ListItemText primary="Wróć do Dashboardu" />
+                            <ListItemText primary={t('back_to_dashboard')} /> {/* <--- ZMIANA */}
                         </ListItemButton>
                     </Link>
                 </Box>
@@ -141,7 +143,7 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({ children, title, actio
                         <Box sx={{ display: { md: 'none' }, mb: 2 }}>
                             <Link href="/dashboard" legacyBehavior>
                                 <Button startIcon={<ArrowBackIcon />} size="small" color="inherit">
-                                    Dashboard
+                                    {t('dashboard')} {/* <--- ZMIANA */}
                                 </Button>
                             </Link>
                         </Box>

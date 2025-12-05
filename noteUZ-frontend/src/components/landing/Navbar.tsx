@@ -1,36 +1,37 @@
+// src/components/landing/Navbar.tsx
 import React from 'react';
 import Link from 'next/link';
 import { useTranslation } from 'next-i18next';
-import { AppBar, Toolbar, Box, Typography, InputBase, Button as MuiButton, useTheme, alpha } from '@mui/material';
+import { AppBar, Toolbar, Box, Typography, InputBase, Button as MuiButton, useTheme, alpha, IconButton, Avatar, Tooltip } from '@mui/material'; // <--- Dodano Avatar, IconButton, Tooltip
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import SearchIcon from '@mui/icons-material/Search';
+import { UserData } from '@/types/User'; // <--- Import typu
 
-// Zakładam, że te komponenty istnieją, skoro były importowane w oryginale
 import ThemeToggle from '../ThemeToggle';
 import LanguageSwitcher from '../LanguageSwitcher';
 
 interface NavbarProps {
-    isLoggedIn: boolean | null;
+    user: UserData | null; // <--- Zmieniono z isLoggedIn na user
     onLogout: () => void;
     busy: boolean;
 }
 
-export const Navbar = ({ isLoggedIn, onLogout, busy }: NavbarProps) => {
+export const Navbar = ({ user, onLogout, busy }: NavbarProps) => {
     const { t } = useTranslation('common');
     const theme = useTheme();
+
+    // Obliczamy dane do avatara tylko gdy user istnieje
+    const displayName = user?.user_metadata?.display_name || 'U';
+    const initial = displayName.charAt(0).toUpperCase();
+    const avatarUrl = user ? `/api/proxy-avatar/${user.id}` : undefined;
 
     return (
         <AppBar
             position="sticky"
             elevation={0}
             sx={{
-                // Tło (zachowane z Twojego kodu)
                 backgroundColor: theme.palette.mode === 'light' ? 'rgba(255,255,255,0.7)' : 'rgba(10,10,10,0.7)',
-
-                // POPRAWKA: Wymuszamy kolor tekstu/ikon zależny od motywu.
-                // W trybie light będzie czarny, w dark biały.
                 color: 'text.primary',
-
                 backdropFilter: 'blur(12px)',
                 borderBottom: '1px solid',
                 borderColor: 'divider',
@@ -72,31 +73,56 @@ export const Navbar = ({ isLoggedIn, onLogout, busy }: NavbarProps) => {
                 </Box>
 
                 {/* Actions */}
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    {/* Teraz ThemeToggle odziedziczy kolor 'text.primary' z AppBar */}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                     <ThemeToggle />
                     <LanguageSwitcher />
 
-
-                    {isLoggedIn ? (
+                    {user ? (
                         <>
-                            <MuiButton
-                                component={Link}
-                                href="/dashboard"
-                                variant="outlined"
-                                color="inherit"
-                                size="small"
-                                sx={{ borderRadius: '8px', borderColor: 'divider', textTransform: 'none', fontWeight: 600 }}
-                            >
-                                Mój Profil
-                            </MuiButton>
+                            {/* Avatar zamiast przycisku tekstowego */}
+                            <Tooltip title={t('my_profile') || "Mój Profil"}>
+                                <IconButton
+                                    component={Link}
+                                    href="/dashboard"
+                                    sx={{
+                                        p: 0,
+                                        border: '2px solid',
+                                        borderColor: 'divider', // Ramka wokół avatara
+                                        transition: 'all 0.2s',
+                                        '&:hover': { borderColor: theme.palette.primary.main }
+                                    }}
+                                >
+                                    <Avatar
+                                        src={avatarUrl}
+                                        alt={displayName}
+                                        sx={{
+                                            width: 40,
+                                            height: 40,
+                                            bgcolor: theme.palette.primary.main,
+                                            color: theme.palette.primary.contrastText,
+                                            fontWeight: 700,
+                                            fontSize: '1.1rem'
+                                        }}
+                                    >
+                                        {/* Fallback: Jeśli src nie załaduje obrazka, pokaże literkę */}
+                                        {initial}
+                                    </Avatar>
+                                </IconButton>
+                            </Tooltip>
+
                             <MuiButton
                                 onClick={onLogout}
                                 variant="contained"
                                 color="primary"
                                 disabled={busy}
                                 size="small"
-                                sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 600, boxShadow: 'none' }}
+                                sx={{
+                                    borderRadius: '8px',
+                                    textTransform: 'none',
+                                    fontWeight: 600,
+                                    boxShadow: 'none',
+                                    ml: 1 // Odstęp od avatara
+                                }}
                             >
                                 {busy ? '...' : t('logout')}
                             </MuiButton>

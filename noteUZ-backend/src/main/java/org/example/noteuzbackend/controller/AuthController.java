@@ -45,6 +45,15 @@ public class AuthController {
         return auth.signOut();
     }
 
+    // NOWY ENDPOINT: Odświeżanie tokena
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refresh(
+            @CookieValue(value = "${app.jwt.refreshCookie}", required = false) String refreshToken
+    ) {
+        // Przekazujemy ciasteczko refresh do serwisu
+        return auth.refreshSession(refreshToken);
+    }
+
     @GetMapping("/me")
     public ResponseEntity<?> me(
             @CookieValue(value = "${app.jwt.cookie}", required = false) String tokenFromCookie

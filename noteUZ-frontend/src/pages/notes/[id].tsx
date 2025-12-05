@@ -6,6 +6,9 @@ import React, { useState, FormEvent } from 'react';
 import { Box, TextField, Button as MuiButton, Paper, Grid, Alert } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { useTranslation } from 'next-i18next'; // <--- ZMIANA
+import { serverSideTranslations } from 'next-i18next/serverSideTranslations'; // <--- ZMIANA
+
 import { NotesLayout } from '@/components/NotesPage/NotesLayout';
 import { Note } from '@/types/Note';
 
@@ -14,10 +17,13 @@ interface Props {
 }
 
 // SERVER SIDE
-export const getServerSideProps: GetServerSideProps<Props> = async ({ params, req }) => {
+export const getServerSideProps: GetServerSideProps<Props> = async ({ params, req, locale }) => {
     const noteId = params?.id;
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
     const cookie = req.headers.cookie;
+
+    // Pobierz tłumaczenia serwerowe
+    const translations = await serverSideTranslations(locale ?? 'pl', ['common']);
 
     if (!noteId) return { notFound: true };
 
@@ -34,13 +40,19 @@ export const getServerSideProps: GetServerSideProps<Props> = async ({ params, re
         if (!res.ok) throw new Error('Błąd pobierania');
 
         const note = (await res.json()) as Note;
-        return { props: { note } };
+        return {
+            props: {
+                note,
+                ...translations // <--- Przekazujemy tłumaczenia
+            }
+        };
     } catch (e) {
         return { notFound: true };
     }
 };
 
 export default function SingleNotePage({ note: initialNote }: InferGetServerSidePropsType<typeof getServerSideProps>) {
+    const { t } = useTranslation('common'); // <--- ZMIANA
     const router = useRouter();
     const [title, setTitle] = useState(initialNote.title || '');
     const [content, setContent] = useState(initialNote.content || '');
@@ -61,15 +73,15 @@ export default function SingleNotePage({ note: initialNote }: InferGetServerSide
                 body: JSON.stringify({ title, content }),
             });
 
-            if (!res.ok) throw new Error('Nie udało się zapisać zmian');
+            if (!res.ok) throw new Error(t('error_save_failed')); // <--- ZMIANA
 
             setIsEditing(false);
             router.reload();
-        } catch (err: unknown) { // POPRAWKA: 'unknown' zamiast 'any'
+        } catch (err: unknown) {
             if (err instanceof Error) {
                 setError(err.message);
             } else {
-                setError('Wystąpił nieznany błąd podczas zapisu.');
+                setError(t('error_unknown')); // <--- ZMIANA
             }
         } finally {
             setLoading(false);
@@ -77,7 +89,7 @@ export default function SingleNotePage({ note: initialNote }: InferGetServerSide
     }
 
     async function handleDelete() {
-        if (!confirm('Czy na pewno usunąć?')) return;
+        if (!confirm(t('confirm_delete'))) return; // <--- ZMIANA
         setLoading(true);
         setError(null);
 
@@ -85,13 +97,13 @@ export default function SingleNotePage({ note: initialNote }: InferGetServerSide
             const res = await fetch(`/api/notes/${initialNote.id}`, {
                 method: 'DELETE',
             });
-            if (!res.ok) throw new Error('Błąd usuwania');
+            if (!res.ok) throw new Error(t('error_delete_failed')); // <--- ZMIANA
             router.push('/notes');
-        } catch (err: unknown) { // POPRAWKA: 'unknown' zamiast 'any'
+        } catch (err: unknown) {
             if (err instanceof Error) {
                 setError(err.message);
             } else {
-                setError('Wystąpił nieznany błąd podczas usuwania.');
+                setError(t('error_unknown')); // <--- ZMIANA
             }
             setLoading(false);
         }
@@ -101,9 +113,11 @@ export default function SingleNotePage({ note: initialNote }: InferGetServerSide
         <>
             <Head><title>{title} — NoteUZ</title></Head>
             <NotesLayout
-                title={isEditing ? 'Edycja notatki' : 'Podgląd notatki'}
+                title={isEditing ? t('edit_note_header') : t('view_note_header')} // <--- ZMIANA
                 actionButton={
-                    <MuiButton startIcon={<ArrowBackIcon />} onClick={() => router.push('/notes')}>Wróć</MuiButton>
+                    <MuiButton startIcon={<ArrowBackIcon />} onClick={() => router.push('/notes')}>
+                        {t('btn_back')} {/* <--- ZMIANA */}
+                    </MuiButton>
                 }
             >
                 <Paper sx={{ p: 4, borderRadius: 4 }}>
@@ -111,32 +125,31 @@ export default function SingleNotePage({ note: initialNote }: InferGetServerSide
 
                     <Box component="form" onSubmit={handleSave} sx={{ display: 'grid', gap: 2 }}>
                         <TextField
-                            label="Tytuł"
+                            label={t('label_title')} // <--- ZMIANA
                             value={title}
                             onChange={e => setTitle(e.target.value)}
                             disabled={!isEditing}
                             fullWidth
                         />
                         <TextField
-                            label="Treść"
+                            label={t('label_content')} // <--- ZMIANA
                             value={content}
                             onChange={e => setContent(e.target.value)}
                             disabled={!isEditing}
                             multiline rows={8} fullWidth
                         />
 
-                        {/* POPRAWKA: Usunięto prop 'item' z Grid */}
                         <Grid container spacing={2} justifyContent="flex-end">
                             {!isEditing ? (
                                 <>
                                     <Grid>
                                         <MuiButton onClick={() => setIsEditing(true)} variant="contained">
-                                            Edytuj
+                                            {t('btn_edit')} {/* <--- ZMIANA */}
                                         </MuiButton>
                                     </Grid>
                                     <Grid>
                                         <MuiButton onClick={handleDelete} color="error" variant="outlined" startIcon={<DeleteIcon />}>
-                                            Usuń
+                                            {t('btn_delete')} {/* <--- ZMIANA */}
                                         </MuiButton>
                                     </Grid>
                                 </>
@@ -144,12 +157,12 @@ export default function SingleNotePage({ note: initialNote }: InferGetServerSide
                                 <>
                                     <Grid>
                                         <MuiButton onClick={() => setIsEditing(false)} disabled={loading}>
-                                            Anuluj
+                                            {t('btn_cancel')} {/* <--- ZMIANA */}
                                         </MuiButton>
                                     </Grid>
                                     <Grid>
                                         <MuiButton type="submit" variant="contained" disabled={loading}>
-                                            Zapisz
+                                            {t('btn_save')} {/* <--- ZMIANA */}
                                         </MuiButton>
                                     </Grid>
                                 </>
