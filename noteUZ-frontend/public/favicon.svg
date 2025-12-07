@@ -1,0 +1,21 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <linearGradient id="noteuzGradient" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#4F46E5"/>
+            <stop offset="1" stop-color="#06B6D4"/>
+        </linearGradient>
+        <linearGradient id="spineGradient" x1="0" y1="0" x2="16" y2="0" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#3730a3"/>
+            <stop offset="1" stop-color="#4F46E5"/>
+        </linearGradient>
+    </defs>
+
+    <rect x="0" y="0" width="64" height="64" rx="14" fill="url(#noteuzGradient)"/>
+
+    <path d="M14 0H4C1.79086 0 0 1.79086 0 4V60C0 62.2091 1.79086 64 4 64H14V0Z" fill="url(#spineGradient)"/>
+
+    <rect x="4" y="10" width="6" height="2" rx="1" fill="white" fill-opacity="0.3"/>
+    <rect x="4" y="52" width="6" height="2" rx="1" fill="white" fill-opacity="0.3"/>
+
+    <path d="M30 44V20H34.5L42 32.5V20H46V44H41.5L34 31.5V44H30Z" fill="white"/>
+</svg>

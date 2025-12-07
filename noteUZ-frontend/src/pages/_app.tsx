@@ -1,14 +1,24 @@
-// src/pages/_app.tsx
-import '../styles/globals.css'; // <--- DODAJ TĘ LINIJKĘ NA SAMEJ GÓRZE
 import type { AppProps } from 'next/app';
+import Head from 'next/head';
+import { useEffect } from 'react';
 import { appWithTranslation } from 'next-i18next';
-import { ThemeContextProvider } from '../lib/ThemeContext';
+import { applyTheme, getTheme } from '../lib/theme';
+import '../styles/globals.css';
 
 function App({ Component, pageProps }: AppProps) {
+    useEffect(() => {
+        const theme = getTheme();
+        applyTheme(theme);
+    }, []);
+
     return (
-        <ThemeContextProvider>
+        <>
+            <Head> 
+                <link rel="icon" type="image/svg+xml" href="/favicon.svg" /> 
+                <title>NoteUZ</title> 
+            </Head> 
             <Component {...pageProps} />
-        </ThemeContextProvider>
+        </> 
     );
 }
 
