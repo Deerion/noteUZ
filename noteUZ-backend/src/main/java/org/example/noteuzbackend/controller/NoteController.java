@@ -2,6 +2,7 @@ package org.example.noteuzbackend.controller;
 
 import org.example.noteuzbackend.service.AuthService;
 import org.example.noteuzbackend.service.NoteService;
+import org.example.noteuzbackend.service.EmailService;
 import org.example.noteuzbackend.model.entity.Note;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
@@ -16,33 +17,39 @@ import java.util.UUID;
 public class NoteController {
 
     private final NoteService service;
-    private final AuthService authService; // Potrzebny do sprawdzania tokena
-    private final String cookieName;       // Nazwa ciasteczka z konfiguracji
+    private final AuthService authService;
+    private final EmailService emailService;
+    private final String cookieName;
 
     public NoteController(NoteService service,
                           AuthService authService,
+                          EmailService emailService,
                           @Value("${app.jwt.cookie}") String cookieName) {
         this.service = service;
         this.authService = authService;
+        this.emailService = emailService;
         this.cookieName = cookieName;
     }
 
     // Metoda pomocnicza do wyciągania ID użytkownika z tokena
-    private UUID getUserIdFromToken(String token) {
+    private Map<String, Object> getUserDataFromToken(String token) {
         if (token == null || token.isBlank()) return null;
-
-        // Pytamy Supabase o dane użytkownika na podstawie tokena
         ResponseEntity<?> response = authService.getUser(token);
-
         if (response.getStatusCode().is2xxSuccessful() && response.getBody() instanceof Map) {
-            Map<?, ?> body = (Map<?, ?>) response.getBody();
-            String idStr = (String) body.get("id");
-            return UUID.fromString(idStr);
+            return (Map<String, Object>) response.getBody();
         }
         return null;
     }
 
-    // GET /api/notes - Teraz pobiera tylko notatki zalogowanego usera
+    private UUID getUserIdFromToken(String token) {
+        Map<String, Object> userData = getUserDataFromToken(token);
+        if (userData != null && userData.get("id") instanceof String) {
+            return UUID.fromString((String) userData.get("id"));
+        }
+        return null;
+    }
+
+    // GET /api/notes
     @GetMapping
     public ResponseEntity<?> list(@CookieValue(value = "${app.jwt.cookie}", required = false) String token) {
         UUID userId = getUserIdFromToken(token);
@@ -60,7 +67,6 @@ public class NoteController {
         if (userId == null) return ResponseEntity.status(401).build();
 
         Note note = service.getNoteById(id);
-        // Opcjonalne zabezpieczenie: sprawdź czy notatka należy do usera
         if (!note.getUser_id().equals(userId)) {
             return ResponseEntity.status(403).body(Map.of("message", "Brak dostępu do tej notatki"));
         }
@@ -79,7 +85,6 @@ public class NoteController {
         var title = String.valueOf(body.getOrDefault("title", ""));
         var content = String.valueOf(body.getOrDefault("content", ""));
 
-        // Używamy prawdziwego ID zamiast placeholdera
         var saved = service.create(userId, title, content);
 
         return ResponseEntity.ok(saved);
@@ -93,7 +98,6 @@ public class NoteController {
         UUID userId = getUserIdFromToken(token);
         if (userId == null) return ResponseEntity.status(401).build();
 
-        // Sprawdzenie uprawnień przed edycją
         Note existing = service.getNoteById(id);
         if (!existing.getUser_id().equals(userId)) {
             return ResponseEntity.status(403).body(Map.of("message", "To nie Twoja notatka"));
@@ -112,7 +116,6 @@ public class NoteController {
         UUID userId = getUserIdFromToken(token);
         if (userId == null) return ResponseEntity.status(401).build();
 
-        // Sprawdzenie uprawnień przed usunięciem
         Note existing = service.getNoteById(id);
         if (!existing.getUser_id().equals(userId)) {
             return ResponseEntity.status(403).body(Map.of("message", "To nie Twoja notatka"));
@@ -120,5 +123,40 @@ public class NoteController {
 
         service.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    // --- NOWA METODA: WYSYŁANIE E-MAILEM (POPRAWIONA) ---
+    @PostMapping("/{id}/email")
+    public ResponseEntity<?> sendEmail(@PathVariable UUID id,
+                                       @RequestBody Map<String, String> body,
+                                       @CookieValue(value = "${app.jwt.cookie}", required = false) String token) {
+
+        // 1. Pobierz pełne dane zalogowanego użytkownika (nadawcy)
+        Map<String, Object> userData = getUserDataFromToken(token);
+        if (userData == null) return ResponseEntity.status(401).build();
+
+        UUID userId = UUID.fromString((String) userData.get("id"));
+        String senderEmail = (String) userData.get("email"); // E-mail nadawcy!
+
+        // 2. Pobierz notatkę i sprawdź uprawnienia
+        Note note = service.getNoteById(id);
+        if (!note.getUser_id().equals(userId)) {
+            return ResponseEntity.status(403).body(Map.of("message", "To nie Twoja notatka"));
+        }
+
+        // 3. Pobierz email docelowy (adresata)
+        String targetEmail = body.get("email");
+        if (targetEmail == null || !targetEmail.contains("@")) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Nieprawidłowy adres e-mail"));
+        }
+
+        // 4. Wyślij e-mail (przekazujemy e-mail nadawcy, aby wstawić go w treść)
+        try {
+            emailService.sendNote(targetEmail, note.getTitle(), note.getContent(), senderEmail);
+            return ResponseEntity.noContent().build();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body(Map.of("message", "Błąd wysyłania e-maila: " + e.getMessage()));
+        }
     }
 }
