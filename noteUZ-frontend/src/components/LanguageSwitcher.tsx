@@ -8,7 +8,11 @@ export default function LanguageSwitcher() {
     const { pathname, asPath, query, locale } = router;
 
     const nextLocale = locale === 'pl' ? 'en' : 'pl';
-    const label = locale === 'pl' ? 'PL' : 'EN';
+
+    // ZMIANA LOGIKI:
+    // Jeśli aktualny to PL -> pokaż 'EN' (jako cel)
+    // Jeśli aktualny to EN -> pokaż 'PL' (jako cel)
+    const label = locale === 'pl' ? 'EN' : 'PL';
 
     return (
         <Link
@@ -19,8 +23,8 @@ export default function LanguageSwitcher() {
             legacyBehavior
         >
             <Button
-                component="a" // Ważne: renderuje jako <a>, aby przyjąć href
-                title={locale === 'pl' ? 'Switch to English' : 'Zmień na Polski'}
+                component="a"
+                title={locale === 'pl' ? 'Przełącz na angielski' : 'Switch to Polish'}
                 variant="outlined"
                 color="inherit"
                 sx={{

@@ -45,16 +45,34 @@ public class AuthController {
         return auth.signOut();
     }
 
+    // NOWY ENDPOINT: Odświeżanie tokena
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refresh(
+            @CookieValue(value = "${app.jwt.refreshCookie}", required = false) String refreshToken
+    ) {
+        // Przekazujemy ciasteczko refresh do serwisu
+        return auth.refreshSession(refreshToken);
+    }
+
     @GetMapping("/me")
     public ResponseEntity<?> me(
-            @CookieValue(value = "#{@environment.getProperty('app.jwt.cookie')}", required = false)
-            String tokenFromCookie
+            @CookieValue(value = "${app.jwt.cookie}", required = false) String tokenFromCookie
     ) {
-        boolean authenticated = tokenFromCookie != null && !tokenFromCookie.isBlank();
-        if (!authenticated) {
+        if (tokenFromCookie == null || tokenFromCookie.isBlank()) {
             return ResponseEntity.status(401).body(Map.of("authenticated", false));
         }
-        return ResponseEntity.ok(Map.of("authenticated", true));
+
+        // Pobieramy pełne dane usera z Supabase
+        ResponseEntity<?> userResponse = auth.getUser(tokenFromCookie);
+
+        if (userResponse.getStatusCode().is2xxSuccessful()) {
+            // Doklejamy flagę authenticated dla frontendu
+            Map<String, Object> userData = (Map<String, Object>) userResponse.getBody();
+            // Możesz tu opakować odpowiedź, ale zwrócenie całego obiektu User z Supabase jest ok
+            return ResponseEntity.ok(userData);
+        }
+
+        return ResponseEntity.status(401).body(Map.of("authenticated", false));
     }
 
     @PostMapping("/register")
