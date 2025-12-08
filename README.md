@@ -1,452 +1,295 @@
 # NoteUZ
 
-A modern full-stack note management application combining a robust Spring Boot backend with a sleek Next.js frontend. NoteUZ enables seamless note creation, storage, and management with secure user authentication through Supabase, complete with group management, calendar integration, and collaborative features.
+**NoteUZ** to nowoczesna, pełnostackowa aplikacja do zarządzania notatkami, grupową współpracą, integracją kalendarza oraz zaawansowanym udostępnianiem. Łączy solidny backend oparty o **Spring Boot** z szybkim frontendem w **Next.js**. Bezpieczne uwierzytelnianie i zarządzanie danymi zapewniają **PostgreSQL** i **Supabase**.
 
 ---
 
-## 🚀 Core Features
+## 🚀 Najważniejsze funkcjonalności
 
-### 1. 🔐 Authentication & Security
-- User registration with email verification
-- Secure user login with JWT tokens
-- CAPTCHA verification for protection
-- Supabase integration for user management
+### 1. 🔐 Uwierzytelnianie i bezpieczeństwo
+- Rejestracja i logowanie użytkownika z weryfikacją e-mail
+- Bezpieczna autoryzacja JWT (ciasteczka HttpOnly)
+- Weryfikacja CAPTCHA podczas logowania/rejestracji
+- Integracja z Supabase dla zarządzania użytkownikami
 
-### 2. 🎨 Theme Management
-- Light mode interface
-- Dark mode interface
-- Theme persistence
-- Seamless theme switching
+### 2. 🎨 Zarządzanie motywem
+- Interfejs w trybie jasnym i ciemnym
+- Zapamiętywanie wybranego motywu
+- Łatwe przełączanie motywów
 
-### 3. 🌍 Multi-language Support
-- Polish language interface
-- English language interface
-- Language switcher in settings
-- Persistent language selection
+### 3. 🌍 Obsługa wielu języków
+- Interfejs polski
+- Interfejs angielski
+- Przełącznik języka w ustawieniach
+- Zapamiętywanie wybranego języka
 
-### 4. 👨‍💼 Admin Panel
-- User management and moderation
-- System statistics and analytics
-- Role-based access control
-- Activity logging and monitoring
-- Content moderation tools
+### 4. 👨‍💼 Panel administracyjny
+- Zarządzanie i moderacja użytkowników
+- Statystyki systemowe i analizy
+- Uprawnienia oparte o role
+- Rejestrowanie aktywności
+- Moderacja treści
 
-### 5. 👥 Group Management
-- Create and manage collaborative groups
-- Group settings customization
-- Member management and invitations
-- Role assignment (Owner, Admin, Member)
-- Group-based permissions
+### 5. 👥 Zarządzanie grupami
+- Tworzenie i edytowanie grup współpracy
+- Personalizacja ustawień grup
+- Zarządzanie członkami i zaproszeniami
+- Przypisywanie ról grupowych (Właściciel, Admin, Uczestnik)
+- Uprawnienia zależne od roli w grupie
 
-### 6. 📝 Notes Management
-- Create and edit notes
-- Organize notes with tags and folders
-- Full-text search functionality
-- Pin/favorite important notes
-- Share notes with other users
+### 6. 📝 Zarządzanie notatkami
+- Tworzenie i edycja notatki w edytorze Markdown
+- Organizacja notatek za pomocą tagów i folderów
+- Wyszukiwanie pełnotekstowe
+- Przypinanie/ulubione notatki
+- Udostępnianie notatek innym użytkownikom/grupom
 
-### 7. 📄 PDF Export
-- Export notes to PDF format
-- Custom formatting options
-- Batch export functionality
-- File management and download
+### 7. 📄 Eksport PDF
+- Eksport notatek do formatu PDF
+- Opcje formatowania eksportowanych plików
+- Grupowy eksport
+- Zarządzanie wygenerowanymi plikami
 
-### 8. 📧 Email Notifications
-- Send notes via email
-- Bulk email distribution
-- Professional email templates
-- Delivery tracking
-- Scheduled sending
+### 8. 📧 Powiadomienia e-mail
+- Wysyłanie notatek e-mailem
+- Masowe wysyłanie
+- Profesjonalne szablony wiadomości
+- Śledzenie dostarczenia
+- Zaplanowane powiadomienia
 
-### 9. 📅 Calendar & Events
-- Visual calendar interface
-- Create and manage events
-- Link notes to calendar events
-- Event categories and color coding
-- Event reminders and notifications
+### 9. 📅 Kalendarz i wydarzenia
+- Wizualny interfejs kalendarza
+- Tworzenie i edycja wydarzeń
+- Powiązywanie notatek z wydarzeniem
+- Kategorie i kolorystyka wydarzeń
+- Przypomnienia oraz powiadomienia o wydarzeniach
 
-### 10. 🗳️ Group Voting System
-- Vote on notes within groups
-- Leaderboard with rankings
-- Voting statistics and analytics
-- Anonymous voting option
-- Voting campaign periods
+### 10. 🗳️ System głosowania w grupach
+- Głosowanie na notatki w obrębie grup
+- Tablica wyników, rankingi
+- Statystyki i analizy głosowań
+- Głosowanie anonimowe
+- Kampanie głosowań
 
 ---
 
-## 📋 Tech Stack
+## 📋 Stos technologiczny
 
 ### Backend
-- **Framework**: Spring Boot
-- **Language**: Java 17+
-- **IDE**: IntelliJ IDEA
-- **Database**: PostgreSQL (via Supabase)
-- **Authentication**: Supabase Auth + JWT
-- **Email Service**: SendGrid / SMTP
-- **PDF Generation**: Apache PDFBox / iText
-- **Security**: Spring Security, reCAPTCHA
+- **Framework:** Spring Boot 3.x
+- **Język:** Java 17+
+- **IDE:** IntelliJ IDEA
+- **Baza danych:** PostgreSQL (Supabase)
+- **Uwierzytelnianie:** Supabase Auth + JWT
+- **Serwis e-mail:** JavaMailSender / SendGrid / SMTP
+- **Generowanie PDF:** Apache PDFBox / iText
+- **Bezpieczeństwo:** Spring Security, hCaptcha
 
 ### Frontend
-- **Framework**: Next.js
-- **Language**: TypeScript (TSX)
-- **IDE**: WebStorm
-- **UI Library**: Material-UI
-- **State Management**: React Context
-- **Internationalization**: next-i18next
-- **Calendar Library**: React Big Calendar
-- **Rich Text Editor**: TipTap
+- **Framework:** Next.js 14+
+- **Język:** TypeScript
+- **IDE:** WebStorm
+- **Biblioteka UI:** Material UI / Mantine UI / Tailwind CSS
+- **Zarządzanie stanem:** React Context, SWR/React Query
+- **Międzynarodowość:** next-i18next
+- **Kalendarz:** React Big Calendar
+- **Edytor Markdown:** TipTap / react-markdown
 
-### Infrastructure
-- **Database**: PostgreSQL (Supabase)
-- **Authentication Provider**: Supabase Auth
-- **File Storage**: Supabase Storage
-- **CAPTCHA**: Google reCAPTCHA v3
-- **Email Provider**: SendGrid
+### Infrastruktura
+- **Przechowywanie plików:** Supabase Storage
+- **Uwierzytelnianie:** Supabase Auth
+- **CAPTCHA:** hCaptcha
+- **Dostawca e-mail:** Gmail SMTP / SendGrid
 
 ---
 
-## 🏗️ Project Structure
+## 🏗️ Struktura projektu
 
-### Frontend Structure (`noteUZ-frontend`)
+### Frontend (`noteUZ-frontend`)
 
 ```
 noteUZ-frontend/
-├── .idea/                           # WebStorm IDE configuration
-├── .next/                           # Next.js build output
-├── node_modules/                    # npm packages
-├── public/                          # Static assets (images, icons, fonts)
+├── public/                  # Statyczne pliki (obrazy, ikony, tłumaczenia)
 ├── src/
-│   ├── components/                  # Reusable React components
-│   │                               # - Authentication forms
-│   │                               # - Note editor and display
-│   │                               # - Group management UI
-│   │                               # - Calendar components
-│   │                               # - Admin panel components
-│   │                               # - Layout components
-│   │
-│   ├── lib/                         # Utility functions and helpers
-│   │   ├── services/               # API service layer
-│   │   │                           # - API client configuration
-│   │   │                           # - Authentication services
-│   │   │                           # - Notes API calls
-│   │   │                           # - Groups API calls
-│   │   │                           # - Email services
-│   │   │
-│   │   └── api.ts                  # API configuration
-│   │   
-│   ├── pages/                       # Next.js page-based routing
-│   │                               # - Authentication pages (login, register)
-│   │                               # - Dashboard pages
-│   │                               # - Notes management pages
-│   │                               # - Groups pages
-│   │                               # - Calendar page
-│   │                               # - Admin panel pages
-│   │                               # - Settings page
-│   │
-│   └── styles/                      # Global and component styles
-│                                   # - Global CSS
-│                                   # - Component-specific styles
-│                                   # - Light/dark theme configuration
-│
-├── package.json                    # npm dependencies
-├── tsconfig.json                   # TypeScript configuration
-├── next.config.ts                  # Next.js configuration
-└── .env.local                      # Environment variables (local only)
+│   ├── components/          # Komponenty Reacta (notatki, grupy, kalendarz, panel admina itd.)
+│   ├── lib/                 # Warstwa usług/API, funkcje pomocnicze
+│   ├── pages/               # Routing Next.js (login, dashboard, notatki, grupy...)
+│   └── styles/              # Style globalne i motywy
+├── package.json
+├── tsconfig.json
+├── next.config.ts
+├── .env.local               # Zmienne środowiskowe
 ```
 
-**Frontend Directories Overview:**
-
-| Directory | Purpose |
-|-----------|---------|
-| `components/` | Reusable UI building blocks - forms, cards, buttons, modals, navigation |
-| `lib/services/` | Communication layer with backend API - handles all HTTP requests |
-| `pages/` | Application routes - each page corresponds to a URL path |
-| `styles/` | Styling and theming - CSS files, theme configuration, design tokens |
-| `public/` | Static files - directly served without processing |
-
----
-
-### Backend Structure (`noteUZ-backend`)
+### Backend (`noteUZ-backend`)
 
 ```
 noteUZ-backend/
-├── .idea/                           # IntelliJ IDEA IDE configuration
-├── .mvn/                            # Maven wrapper configuration
 ├── src/
 │   ├── main/
 │   │   ├── java/
 │   │   │   └── org/example/noteuzbackend/
-│   │   │       ├── config/          # Spring configuration classes
-│   │   │                           # - Security configuration
-│   │   │                           # - CORS settings
-│   │   │                           # - Database connection
-│   │   │                           # - Email service setup
-│   │   │
-│   │   │       ├── controller/      # REST API endpoints
-│   │   │                           # - Authentication endpoints
-│   │   │                           # - Notes endpoints
-│   │   │                           # - Groups endpoints
-│   │   │                           # - Events endpoints
-│   │   │                           # - Voting endpoints
-│   │   │                           # - Admin endpoints
-│   │   │                           # - Export endpoints
-│   │   │
-│   │   │       ├── service/         # Business logic layer
-│   │   │                           # - Authentication logic
-│   │   │                           # - Notes management
-│   │   │                           # - Groups management
-│   │   │                           # - Event scheduling
-│   │   │                           # - Voting system logic
-│   │   │                           # - Email handling
-│   │   │                           # - PDF generation
-│   │   │                           # - Admin operations
-│   │   │                           # - CAPTCHA verification
-│   │   │
-│   │   │       ├── repository/      # Database access layer
-│   │   │                           # - User queries
-│   │   │                           # - Notes queries
-│   │   │                           # - Groups queries
-│   │   │                           # - Events queries
-│   │   │                           # - Voting queries
-│   │   │                           # - Audit logs queries
-│   │   │
-│   │   │       ├── model/           # Data models
-│   │   │       │   ├── entity/      # JPA entities (database models)
-│   │   │       │   │               # - User entity
-│   │   │       │   │               # - Note entity
-│   │   │       │   │               # - Group entity
-│   │   │       │   │               # - Group member entity
-│   │   │       │   │               # - Event entity
-│   │   │       │   │               # - Vote entity
-│   │   │       │   │
-│   │   │       │   └── dto/         # Data Transfer Objects
-│   │   │                           # - Request DTOs (from frontend)
-│   │   │                           # - Response DTOs (to frontend)
-│   │   │
-│   │   │       ├── exception/       # Error handling
-│   │   │                           # - Custom exceptions
-│   │   │                           # - Global exception handler
-│   │   │
-│   │   │       ├── security/        # Security utilities
-│   │   │                           # - JWT token handling
-│   │   │                           # - Authentication filters
-│   │   │
-│   │   │       ├── util/            # Utility classes
-│   │   │                           # - Date/time utilities
-│   │   │                           # - Input validation
-│   │   │                           # - Helper functions
-│   │   │
-│   │   │       └── NoteUzBackendApplication.java  # Main application class
-│   │   │
+│   │   │       ├── config/          # Konfiguracje Springa (security, baza, CORS itd.)
+│   │   │       ├── controller/      # Endpointy REST API
+│   │   │       ├── service/         # Logika biznesowa
+│   │   │       ├── repository/      # Dostęp do bazy
+│   │   │       ├── model/           # Modele danych (JPA, DTO)
+│   │   │       ├── exception/       # Obsługa błędów
+│   │   │       ├── security/        # JWT, filtry uwierzytelniania
+│   │   │       ├── util/            # Narzędzia i pomocnicze funkcje
+│   │   │       └── NoteUzBackendApplication.java   # Klasa startowa
 │   │   └── resources/
-│   │       ├── static/              # Static files
-│   │       ├── templates/           # Email templates
-│   │       ├── application.properties        # Main configuration
-│   │       ├── application-dev.properties   # Development config
-│   │       └── application-prod.properties  # Production config
-│   │
-│   └── test/
-│       └── java/
-│           └── org/example/noteuzbackend/
-│                                   # Unit and integration tests
-│
-├── pom.xml                          # Maven dependencies and build config
-└── .gitignore                       # Git ignore rules
+│   │       ├── static/              # Statyczne pliki
+│   │       ├── templates/           # Szablony e-mail
+│   │       ├── application.properties (.dev/.prod) # Konfiguracja
+│   └── test/                        # Testy jednostkowe i integracyjne
+├── pom.xml                          # Konfiguracja Maven
+└── .gitignore
 ```
-
-**Backend Directories Overview:**
-
-| Directory | Purpose |
-|-----------|---------|
-| `config/` | Spring framework configuration - security, database, external services |
-| `controller/` | HTTP API endpoints - handles incoming requests and sends responses |
-| `service/` | Business logic - processes data, implements features, handles calculations |
-| `repository/` | Database access - performs queries and data operations |
-| `model/entity/` | Database models - Java classes mapped to database tables |
-| `model/dto/` | Data transfer objects - communication format between frontend and backend |
-| `exception/` | Error handling - custom exceptions and error responses |
-| `security/` | Authentication and authorization - JWT tokens, security filters |
-| `util/` | Helper functions - utilities for common tasks |
 
 ---
 
-## ⚙️ Installation
+## 🛠️ Instalacja
 
-### Prerequisites
+### Wymagania wstępne
 
-- **Java 17+** (for backend)
-- **Node.js 18+** and npm (for frontend)
-- **Git** for version control
-- **IntelliJ IDEA** or **WebStorm** (recommended IDEs)
-- **Supabase Account** with project configured
+- **Java 17+** (backend)
+- **Node.js 18+** (frontend)
+- **PostgreSQL** (baza danych)
+- **Supabase** (autoryzacja i przechowywanie)
+- **npm/Yarn** (zarządzanie pakietami)
+- **IntelliJ/WebStorm** (zalecane IDE)
 
-### Backend Setup
+### Backend
 
-1. **Navigate to the backend directory**
+1. Przejdź do katalogu backend:
    ```bash
    cd noteUZ-backend
    ```
-
-2. **Configure environment** in `src/main/resources/application-dev.properties`
-   ```properties
-   spring.datasource.url=jdbc:postgresql://[HOST]/[DATABASE]
-   spring.datasource.username=postgres
-   spring.datasource.password=[PASSWORD]
-   
-   supabase.url=[SUPABASE_URL]
-   jwt.secret=[YOUR_JWT_SECRET]
-   captcha.secret-key=[RECAPTCHA_SECRET]
-   spring.mail.password=[EMAIL_PASSWORD]
-   ```
-
-3. **Install dependencies and run**
+2. Skonfiguruj plik `application.properties` zgodnie z danymi środowiskowymi (baza, Supabase, e-mail, JWT, hCaptcha).
+3. Zainstaluj zależności i uruchom aplikację:
    ```bash
    mvn clean install
    mvn spring-boot:run
    ```
-   Backend will run on `http://localhost:8080`
+   Backend uruchomi się na `http://localhost:8080`
 
-### Frontend Setup
+### Frontend
 
-1. **Navigate to the frontend directory**
+1. Przejdź do katalogu frontend:
    ```bash
    cd noteUZ-frontend
    ```
-
-2. **Install dependencies**
+2. Skonfiguruj plik `.env.local`, podając klucze Supabase, adres backendu i klucz hCaptcha.
+3. Zainstaluj zależności oraz uruchom aplikację:
    ```bash
    npm install
-   ```
-
-3. **Configure environment** in `.env.local`
-   ```env
-   NEXT_PUBLIC_SUPABASE_URL=https://[PROJECT_ID].supabase.co
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=[ANON_KEY]
-   NEXT_PUBLIC_API_URL=http://localhost:8080/api
-   NEXT_PUBLIC_RECAPTCHA_SITE_KEY=[SITE_KEY]
-   ```
-
-4. **Run development server**
-   ```bash
    npm run dev
    ```
-   Frontend will run on `http://localhost:3000`
+   Frontend uruchomi się na `http://localhost:3000`
 
 ---
 
-## 🔐 Environment Variables
+## 🔐 Zmienne środowiskowe
 
-### Backend (`application-dev.properties`)
+### Backend (`application.properties`)
 ```properties
 spring.datasource.url=jdbc:postgresql://localhost:5432/noteuz
 spring.datasource.username=postgres
-spring.datasource.password=your_password
+spring.datasource.password=twoje_haslo
 
-supabase.url=your_supabase_url
-supabase.key=your_supabase_key
-
-jwt.secret=your_jwt_secret_key
-jwt.expiration=86400000
-
-captcha.secret-key=your_recaptcha_secret
-
-spring.mail.host=smtp.sendgrid.net
-spring.mail.username=apikey
-spring.mail.password=your_sendgrid_key
-
+supabase.url=https://twoj-projekt.supabase.co
+supabase.key=twoj_service_role_key
+jwt.secret=twoj_jwt_secret
+captcha.secret-key=twoj_hcaptcha_secret
+spring.mail.username=twoj_email@gmail.com
+spring.mail.password=twoje_haslo_aplikacji
 server.port=8080
 server.servlet.context-path=/api
 ```
 
 ### Frontend (`.env.local`)
 ```env
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
 NEXT_PUBLIC_API_URL=http://localhost:8080/api
-NEXT_PUBLIC_RECAPTCHA_SITE_KEY=your_site_key
+NEXT_PUBLIC_SUPABASE_URL=https://twoj-projekt.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=twoj_anon_key
+NEXT_PUBLIC_HCAPTCHA_SITE_KEY=twoj_public_key
 NEXT_PUBLIC_APP_NAME=NoteUZ
 ```
 
 ---
 
-## 🛠️ Development
+## 🛠️ Rozwój aplikacji
 
-### Backend Development
+### Backend
 ```bash
-cd noteUZ-backend
-
-# Build project
+# Instalacja i start
 mvn clean install
-
-# Run development server
 mvn spring-boot:run
 
-# Run tests
+# Testy
 mvn test
 
-# Code formatting
+# Formatowanie kodu
 mvn formatter:format
 ```
 
-### Frontend Development
+### Frontend
 ```bash
-cd noteUZ-frontend
-
-# Install dependencies
+# Instalacja i start
 npm install
-
-# Run development server with hot reload
 npm run dev
 
-# Run tests
+# Testy
 npm run test
 
-# Lint code
+# Lintowanie
 npm run lint
 
-# Build for production
+# Budowa do produkcji
 npm run build
 ```
 
 ---
 
-## 📦 Production Deployment
+## 📦 Wdrożenie produkcyjne
 
 ### Backend
 ```bash
-# Build production JAR
 mvn clean package -DskipTests
-
-# Run
 java -jar target/noteUZ-backend.jar
 ```
 
 ### Frontend
 ```bash
-# Build production bundle
 npm run build
-
-# Run production server
 npm start
 ```
 
 ---
 
-## 👥 Team
+## 🌍 Tłumaczenia (i18n)
 
-**NoteUZ Development Team**
+Aplikacja korzysta z biblioteki `next-i18next` (frontend).  
+Pliki tłumaczeń w formacie JSON znajdują się w:
+
+- Polski: `noteUZ-frontend/public/locales/pl/common.json`
+- Angielski: `noteUZ-frontend/public/locales/en/common.json`
+
+Aby dodać nowy tekst:
+1. Dodaj nowy klucz do pliku `common.json` w obu językach.
+2. Skorzystaj z `useTranslation` w komponencie Reacta (`t('key')`).
+
+*Więcej szczegółów w [`docs/translations.md`](docs/translations.md).*
 
 ---
 
-## 🗓️ Changelog
+## 👥 Zespół
 
-### Version 1.0.0 (Initial Release)
-- ✅ Core project structure setup
-- ✅ Frontend and Backend integration
-- ✅ Basic configurations
+**NoteUZ Backend & Frontend Team**
 
 ---
 
-**Built with ❤️ by NoteUZ Team**
+**Stworzone z ❤️ przez zespół NoteUZ**
 
-**Happy note-taking! 📝**
+Miłego notowania! 📝
