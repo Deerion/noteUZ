@@ -8,8 +8,8 @@ Frontowa część aplikacji **NoteUZ** — nowoczesnej platformy do zarządzania
 
 - **Język:** TypeScript 5.x
 - **Framework:** Next.js 14+
-- **UI:** React, Tailwind CSS / Mantine UI *(dostosować powyższe jeśli używasz innego systemu komponentów)*
-- **Zarządzanie stanem:** React Context, SWR/React Query *(doprecyzować w razie potrzeby)*
+- **UI:** React, MUI
+- **Zarządzanie stanem:** React Context, SWR/React Query 
 - **Autoryzacja:** Supabase Auth (JWT, SSR/CSR cookies)
 - **Networking:** REST API do backendu Spring Boot (`/api/`)
 - **Calendar Integration:** (jeśli istnieje, np. Google Calendar)
