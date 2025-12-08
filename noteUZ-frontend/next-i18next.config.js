@@ -5,7 +5,7 @@ const path = require('path');
 module.exports = {
     i18n: {
         defaultLocale: 'pl',
-        locales: ['pl', 'en'],
+        locales: ['pl', 'en', 'zh'],
     },
     localePath: path.resolve('./public/locales'),
     reloadOnPrerender: process.env.NODE_ENV === 'development',
