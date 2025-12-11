@@ -2,7 +2,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { useTranslation } from 'next-i18next'; // <--- ZMIANA
+import { useTranslation } from 'next-i18next';
 import { Box, Typography, Button, useTheme, List, ListItemButton, ListItemIcon, ListItemText, Divider, alpha, Paper } from '@mui/material';
 
 // Ikony
@@ -18,7 +18,7 @@ interface NotesLayoutProps {
 }
 
 export const NotesLayout: React.FC<NotesLayoutProps> = ({ children, title, actionButton }) => {
-    const { t } = useTranslation('common'); // <--- ZMIANA
+    const { t } = useTranslation('common');
     const theme = useTheme();
     const router = useRouter();
 
@@ -26,13 +26,20 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({ children, title, actio
 
     const menuItems = [
         {
-            text: t('my_notes'), // <--- ZMIANA
+            text: t('my_notes'),
             icon: <DescriptionOutlinedIcon />,
             path: '/notes',
             disabled: false
         },
+        // POPRAWKA: Usunięto "|| 'Grupy'", teraz nazwa pochodzi w 100% z JSON-a
         {
-            text: t('shared_notes_soon'), // <--- ZMIANA
+            text: t('groups_nav'),
+            icon: <PeopleOutlineIcon />,
+            path: '/groups',
+            disabled: false
+        },
+        {
+            text: t('shared_notes_soon'),
             icon: <PeopleOutlineIcon />,
             path: '/notes/shared',
             disabled: true
@@ -122,7 +129,7 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({ children, title, actio
                             <ListItemIcon sx={{ minWidth: 40 }}>
                                 <ArrowBackIcon />
                             </ListItemIcon>
-                            <ListItemText primary={t('back_to_dashboard')} /> {/* <--- ZMIANA */}
+                            <ListItemText primary={t('back_to_dashboard')} />
                         </ListItemButton>
                     </Link>
                 </Box>
@@ -143,7 +150,7 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({ children, title, actio
                         <Box sx={{ display: { md: 'none' }, mb: 2 }}>
                             <Link href="/dashboard" legacyBehavior>
                                 <Button startIcon={<ArrowBackIcon />} size="small" color="inherit">
-                                    {t('dashboard')} {/* <--- ZMIANA */}
+                                    {t('dashboard')}
                                 </Button>
                             </Link>
                         </Box>

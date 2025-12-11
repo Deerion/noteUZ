@@ -8,7 +8,10 @@ import java.util.UUID;
 
 public interface NoteRepo extends JpaRepository<Note, UUID> {
 
-    // Zapytanie, które pobiera notatki tylko dla konkretnego userId
-    @Query("SELECT n FROM Note n WHERE n.user_id = :userId")
+    // Notatki prywatne (gdzie groupId jest NULL)
+    @Query("SELECT n FROM Note n WHERE n.userId = :userId AND n.groupId IS NULL")
     List<Note> findByUserId(UUID userId);
+
+    // NOWE: Notatki grupowe
+    List<Note> findByGroupIdOrderByCreatedAtDesc(UUID groupId);
 }

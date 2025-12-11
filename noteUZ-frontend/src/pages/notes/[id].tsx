@@ -2,7 +2,7 @@
 import type { GetServerSideProps, InferGetServerSidePropsType } from 'next';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import React, { useState, FormEvent, useRef } from 'react';
+import React, { useState, FormEvent, useRef, useEffect } from 'react';
 // Importy UI
 import {
     Box, TextField, Button as MuiButton, Paper, Grid, Alert, Divider,
@@ -16,7 +16,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import CloseIcon from '@mui/icons-material/Close';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
-import EmailIcon from '@mui/icons-material/Email'; // <--- NOWA IKONA
+import EmailIcon from '@mui/icons-material/Email';
 
 // i18n
 import { useTranslation } from 'next-i18next';
@@ -30,6 +30,8 @@ import remarkGfm from 'remark-gfm';
 import { NotesLayout } from '@/components/NotesPage/NotesLayout';
 import { MarkdownEditor } from '@/components/MarkdownEditor';
 import { Note } from '@/types/Note';
+import { UserData } from '@/types/User';
+import { apiFetch } from '@/lib/api'; // <--- IMPORT apiFetch
 
 interface Props { note: Note; }
 
@@ -65,6 +67,8 @@ export default function SingleNotePage({ note: initialNote }: InferGetServerSide
     const router = useRouter();
     const theme = useTheme();
 
+    const isGroupNote = Boolean(initialNote.groupId);
+
     // Stan notatki
     const [title, setTitle] = useState(initialNote.title || '');
     const [content, setContent] = useState(initialNote.content || '');
@@ -77,50 +81,102 @@ export default function SingleNotePage({ note: initialNote }: InferGetServerSide
     const [error, setError] = useState<string | null>(null);
     const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
+    // Stan uprawnień
+    const [canDelete, setCanDelete] = useState(false);
+
     // Stan modala email
     const [emailDialogOpen, setEmailDialogOpen] = useState(false);
     const [targetEmail, setTargetEmail] = useState('');
 
-    // Ref do elementu, który będzie drukowany do PDF
     const printRef = useRef<HTMLDivElement>(null);
 
-    // --- ZAPIS ---
+    // --- POPRAWIONE SPRAWDZANIE UPRAWNIEŃ (apiFetch) ---
+    useEffect(() => {
+        const checkPermissions = async () => {
+            try {
+                // 1. Pobierz dane zalogowanego użytkownika (apiFetch wyśle ciasteczka poprawnie)
+                const me = await apiFetch<UserData>('/api/auth/me');
+                if (!me) return;
+
+                // 2. Sprawdź czy jestem autorem
+                // Backend może zwracać userId (camelCase) lub user_id (snake_case)
+                const noteAuthorId = (initialNote as any).userId || initialNote.user_id;
+                const isAuthor = me.id === noteAuthorId;
+
+                if (isAuthor) {
+                    setCanDelete(true);
+                    return;
+                }
+
+                // 3. Jeśli to notatka grupowa -> sprawdź rolę w grupie
+                if (initialNote.groupId) {
+                    // Pobieramy szczegóły grupy
+                    const groupData = await apiFetch<any>(`/api/groups/${initialNote.groupId}`);
+
+                    if (groupData && groupData.members) {
+                        // Znajdź mnie na liście członków
+                        const myMember = groupData.members.find((m: any) => m.userId === me.id);
+
+                        if (myMember) {
+                            // Pozwól usuwać tylko ADMIN i OWNER
+                            if (myMember.role === 'OWNER' || myMember.role === 'ADMIN') {
+                                setCanDelete(true);
+                            }
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error("Błąd sprawdzania uprawnień:", e);
+            }
+        };
+
+        checkPermissions();
+    }, [initialNote]);
+
+    // --- RESZTA KODU BEZ ZMIAN ---
+    const handleBack = () => {
+        if (isGroupNote) {
+            router.push(`/groups/${initialNote.groupId}`);
+        } else {
+            router.push('/notes');
+        }
+    };
+
     async function handleSave(e: FormEvent) {
         e.preventDefault();
         setLoading(true);
         setError(null);
         try {
-            const res = await fetch(`/api/notes/${initialNote.id}`, {
+            await apiFetch(`/api/notes/${initialNote.id}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ title, content }),
             });
-            if (!res.ok) throw new Error(t('error_save_failed'));
-
             setIsEditing(false);
             router.reload();
-        } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : t('error_unknown'));
+        } catch (err: any) {
+            setError(err.message || t('error_save_failed'));
         } finally {
             setLoading(false);
         }
     }
 
-    // --- USUWANIE ---
     async function handleDelete() {
         if (!confirm(t('confirm_delete'))) return;
         setLoading(true);
         try {
-            const res = await fetch(`/api/notes/${initialNote.id}`, { method: 'DELETE' });
-            if (!res.ok) throw new Error(t('error_delete_failed'));
-            router.push('/notes');
-        } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : t('error_unknown'));
+            await apiFetch(`/api/notes/${initialNote.id}`, { method: 'DELETE' });
+
+            if (isGroupNote) {
+                router.push(`/groups/${initialNote.groupId}`);
+            } else {
+                router.push('/notes');
+            }
+        } catch (err: any) {
+            setError(err.message || t('error_delete_failed'));
             setLoading(false);
         }
     }
 
-    // --- EKSPORT PDF (POPRAWIONY) ---
     async function handleExportPdf() {
         if (!printRef.current) return;
         setExporting(true);
@@ -133,35 +189,27 @@ export default function SingleNotePage({ note: initialNote }: InferGetServerSide
             const JsPDF = jsPDFModule.jsPDF || jsPDFModule.default;
 
             const element = printRef.current;
-
-            // Pobieramy kolor tła (jasny/ciemny)
             let bgColor = '#ffffff';
             let textColor = '#000000';
 
             if (typeof window !== 'undefined') {
                 const computed = getComputedStyle(document.body);
-                // Jeśli jesteśmy w trybie ciemnym, wymuszamy biały papier do PDF (lepiej wygląda w druku)
-                // lub zostawiamy ciemny, jeśli wolisz. Tu wymuszam biały dla estetyki dokumentu.
                 const isDark = theme.palette.mode === 'dark';
                 bgColor = isDark ? '#ffffff' : computed.getPropertyValue('--paper').trim() || '#ffffff';
                 textColor = isDark ? '#000000' : computed.getPropertyValue('--foreground').trim() || '#000000';
             }
 
-            // Tymczasowo zmieniamy style elementu, żeby na PDF wyglądał jak dokument
             const originalStyle = element.style.cssText;
             element.style.backgroundColor = bgColor;
             element.style.color = textColor;
-            element.style.padding = '20px'; // Więcej oddechu
-            // Jeśli dark mode, musimy zmienić kolory dzieci (tekstu) na chwilę, bo canvas to złapie
-            // (To uproszczenie - w idealnym świecie klonujemy element, ale tu działamy na żywym)
+            element.style.padding = '20px';
 
             const canvas = await html2canvas(element, {
-                scale: 3, // Wysoka jakość (3x)
+                scale: 3,
                 useCORS: true,
                 backgroundColor: bgColor
             });
 
-            // Przywracamy style
             element.style.cssText = originalStyle;
 
             const imgData = canvas.toDataURL('image/png');
@@ -169,45 +217,29 @@ export default function SingleNotePage({ note: initialNote }: InferGetServerSide
 
             const pdfWidth = pdf.internal.pageSize.getWidth();
             const pdfHeight = pdf.internal.pageSize.getHeight();
-
-            // Marginesy
             const marginX = 15;
             const marginY = 20;
             const contentWidth = pdfWidth - (2 * marginX);
-
-            // Obliczamy wysokość obrazka zachowując proporcje
             const imgProps = pdf.getImageProperties(imgData);
             const imgHeight = (imgProps.height * contentWidth) / imgProps.width;
 
-            // --- NAGŁÓWEK PDF ---
             pdf.setFont("helvetica", "bold");
             pdf.setFontSize(22);
-            // Usuwamy polskie znaki z nagłówka (jsPDF standard fonts nie mają UTF-8)
             const safeTitle = title.replace(/[^\x00-\x7F]/g, "");
             pdf.text(safeTitle || "Note", marginX, marginY);
 
-            // Data
             pdf.setFont("helvetica", "normal");
             pdf.setFontSize(10);
             pdf.setTextColor(100);
             const dateStr = new Date().toLocaleDateString();
             pdf.text(`NoteUZ | ${dateStr}`, marginX, marginY + 6);
 
-            // Linia oddzielająca
             pdf.setDrawColor(200);
             pdf.line(marginX, marginY + 10, pdfWidth - marginX, marginY + 10);
 
-            // --- TREŚĆ NOTATKI (OBRAZEK) ---
-            // Jeśli notatka jest dłuższa niż jedna strona, jsPDF sam jej nie podzieli idealnie przy addImage.
-            // Tutaj robimy prosty wariant: wstawiamy obrazek pod nagłówkiem.
-
-            let heightLeft = imgHeight;
-            let position = marginY + 15; // Start pod linią
-
-            // Pierwsza strona
+            let position = marginY + 15;
             pdf.addImage(imgData, 'PNG', marginX, position, contentWidth, imgHeight);
 
-            // --- STOPKA ---
             pdf.setFontSize(8);
             pdf.setTextColor(150);
             pdf.text("Wygenerowano przez NoteUZ", pdfWidth / 2, pdfHeight - 10, { align: 'center' });
@@ -215,49 +247,39 @@ export default function SingleNotePage({ note: initialNote }: InferGetServerSide
             const safeFilename = title.replace(/[^a-z0-9żźćńółęśąŻŹĆŃÓŁĘŚĄ \-]/gi, '_');
             pdf.save(`NoteUZ_${safeFilename || 'notatka'}.pdf`);
 
-        } catch (e) {
+        } catch (e: any) {
             console.error(e);
-            const msg = e instanceof Error ? e.message : 'Wystąpił nieznany błąd';
-            alert((t('error_export_failed') || 'Błąd eksportu') + ': ' + msg);
+            alert((t('error_export_failed') || 'Błąd eksportu') + ': ' + e.message);
         } finally {
             setExporting(false);
         }
     }
-    // --- WYSYŁANIE MAILA ---
+
     async function handleSendEmail() {
         if (!targetEmail || !targetEmail.includes('@')) {
             alert(t('invalid_email') || 'Podaj poprawny adres e-mail');
             return;
         }
-
         setSendingEmail(true);
-        setEmailDialogOpen(false); // Zamykamy modal, pokazujemy loader/stan
+        setEmailDialogOpen(false);
         setError(null);
         setSuccessMsg(null);
 
         try {
-            // Wywołujemy nasz endpoint w API (który przekaże do backendu)
-            const res = await fetch(`/api/notes/${initialNote.id}/email`, {
+            await apiFetch(`/api/notes/${initialNote.id}/email`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: targetEmail })
             });
 
-            if (!res.ok) {
-                const data = await res.json();
-                throw new Error(data.message || t('error_send_email_failed'));
-            }
-
             setSuccessMsg(t('email_sent_success') || 'Notatka została wysłana!');
-            setTargetEmail(''); // Czyścimy pole
-        } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : t('error_unknown'));
+            setTargetEmail('');
+        } catch (err: any) {
+            setError(err.message || t('error_unknown'));
         } finally {
             setSendingEmail(false);
         }
     }
 
-    // Style Markdown
     const markdownStyles = {
         '& h1, & h2, & h3': { color: 'text.primary', fontWeight: 800, mt: 3, mb: 1.5 },
         '& h1': { fontSize: '2rem', borderBottom: '1px solid', borderColor: 'divider', pb: 1 },
@@ -281,7 +303,11 @@ export default function SingleNotePage({ note: initialNote }: InferGetServerSide
             <Head><title>{title} — NoteUZ</title></Head>
             <NotesLayout
                 title={isEditing ? t('edit_note_header') : t('view_note_header')}
-                actionButton={<MuiButton startIcon={<ArrowBackIcon />} onClick={() => router.push('/notes')}>{t('btn_back')}</MuiButton>}
+                actionButton={
+                    <MuiButton startIcon={<ArrowBackIcon />} onClick={handleBack}>
+                        {t('btn_back')}
+                    </MuiButton>
+                }
             >
                 <Paper sx={{ p: { xs: 3, md: 5 }, borderRadius: 4 }}>
                     {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
@@ -314,17 +340,19 @@ export default function SingleNotePage({ note: initialNote }: InferGetServerSide
                         <Grid container spacing={2} justifyContent="flex-end">
                             {!isEditing ? (
                                 <>
-                                    <Grid>
-                                        <MuiButton
-                                            onClick={() => setEmailDialogOpen(true)}
-                                            variant="outlined" color="primary"
-                                            disabled={sendingEmail}
-                                            startIcon={sendingEmail ? <CircularProgress size={20} /> : <EmailIcon />}
-                                            sx={{ borderRadius: '10px' }}
-                                        >
-                                            {t('btn_email') || "Wyślij"}
-                                        </MuiButton>
-                                    </Grid>
+                                    {!isGroupNote && (
+                                        <Grid>
+                                            <MuiButton
+                                                onClick={() => setEmailDialogOpen(true)}
+                                                variant="outlined" color="primary"
+                                                disabled={sendingEmail}
+                                                startIcon={sendingEmail ? <CircularProgress size={20} /> : <EmailIcon />}
+                                                sx={{ borderRadius: '10px' }}
+                                            >
+                                                {t('btn_email') || "Wyślij"}
+                                            </MuiButton>
+                                        </Grid>
+                                    )}
                                     <Grid>
                                         <MuiButton
                                             onClick={handleExportPdf}
@@ -337,7 +365,15 @@ export default function SingleNotePage({ note: initialNote }: InferGetServerSide
                                         </MuiButton>
                                     </Grid>
                                     <Grid><MuiButton onClick={() => setIsEditing(true)} variant="contained" startIcon={<EditIcon />} sx={{ borderRadius: '10px' }}>{t('btn_edit')}</MuiButton></Grid>
-                                    <Grid><MuiButton onClick={handleDelete} color="error" variant="outlined" startIcon={<DeleteIcon />} sx={{ borderRadius: '10px' }}>{t('btn_delete')}</MuiButton></Grid>
+
+                                    {/* --- PRZYCISK USUWANIA --- */}
+                                    {canDelete && (
+                                        <Grid>
+                                            <MuiButton onClick={handleDelete} color="error" variant="outlined" startIcon={<DeleteIcon />} sx={{ borderRadius: '10px' }}>
+                                                {t('btn_delete')}
+                                            </MuiButton>
+                                        </Grid>
+                                    )}
                                 </>
                             ) : (
                                 <>
@@ -349,7 +385,6 @@ export default function SingleNotePage({ note: initialNote }: InferGetServerSide
                     </Box>
                 </Paper>
 
-                {/* MODAL DO WPISYWANIA MAILA */}
                 <Dialog open={emailDialogOpen} onClose={() => setEmailDialogOpen(false)}>
                     <DialogTitle>{t('email_modal_title') || "Wyślij notatkę"}</DialogTitle>
                     <DialogContent>

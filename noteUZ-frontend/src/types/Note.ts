@@ -5,6 +5,6 @@ export interface Note {
     title: string;
     content: string;
     created_at: string;
-    // Opcjonalnie dodaj user_id, jeśli chcesz go używać we front-endzie
     user_id?: string;
+    groupId?: string; // <--- NOWE
 }
