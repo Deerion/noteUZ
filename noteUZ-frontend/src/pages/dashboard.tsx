@@ -15,6 +15,7 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import { ProfileCard } from '@/components/Dashboard/ProfileCard';
 import { AccountDetailsCard } from '@/components/Dashboard/AccountDetailsCard';
 import { FriendsSection } from '@/components/Dashboard/FriendsSection';
+import { GroupInvitationsSection } from '@/components/Dashboard/GroupInvitationsSection'; // <--- NOWY IMPORT
 import { UserData } from '@/types/User';
 
 import ThemeToggle from '@/components/ThemeToggle';
@@ -113,6 +114,11 @@ export default function Dashboard() {
                             <AccountDetailsCard user={user} />
                         </Grid>
                     </Grid>
+
+                    {/* NOWA SEKCJA ZAPROSZEŃ */}
+                    <Box sx={{ mt: 3 }}>
+                        <GroupInvitationsSection />
+                    </Box>
 
                     <FriendsSection user={user} />
 

@@ -1,29 +1,33 @@
 package org.example.noteuzbackend.model.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import jakarta.persistence.PrePersist; // NOWY IMPORT
+import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "notes") // Używamy nazwy tabeli 'notes'
+@Table(name = "notes")
 public class Note {
 
     @Id
     private UUID id;
 
     private String title;
+
+    // Zmiana na TEXT, aby zmieścić długie notatki
+    @Column(columnDefinition = "TEXT")
     private String content;
 
     @CreationTimestamp
-    private Instant created_at;
+    @Column(name = "created_at")
+    private Instant createdAt;
 
-    private UUID user_id;
+    @Column(name = "user_id")
+    private UUID userId; // Autor notatki
 
-    // FIX: Metoda Jaby do automatycznego ustawiania ID przed zapisem
+    @Column(name = "group_id")
+    private UUID groupId; // NOWE POLE: Przypisanie do grupy (opcjonalne)
+
     @PrePersist
     public void ensureId() {
         if (this.id == null) {
@@ -41,9 +45,12 @@ public class Note {
     public String getContent() { return content; }
     public void setContent(String content) { this.content = content; }
 
-    public Instant getCreated_at() { return created_at; }
-    public void setCreated_at(Instant created_at) { this.created_at = created_at; }
+    public Instant getCreatedAt() { return createdAt; }
+    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
 
-    public UUID getUser_id() { return user_id; }
-    public void setUser_id(UUID user_id) { this.user_id = user_id; }
+    public UUID getUserId() { return userId; }
+    public void setUserId(UUID userId) { this.userId = userId; }
+
+    public UUID getGroupId() { return groupId; }
+    public void setGroupId(UUID groupId) { this.groupId = groupId; }
 }
