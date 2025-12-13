@@ -1,19 +1,26 @@
-// src/pages/notes.tsx
-import type { GetServerSideProps, InferGetServerSidePropsType } from 'next';
+import React, {useState, useEffect} from 'react';
+import type {GetServerSideProps, InferGetServerSidePropsType} from 'next';
 import Head from 'next/head';
-import { useTranslation } from 'next-i18next'; // <--- ZMIANA
-import { serverSideTranslations } from 'next-i18next/serverSideTranslations'; // <--- ZMIANA (Ważne dla SSR!)
+import {useTranslation} from 'next-i18next';
+import {serverSideTranslations} from 'next-i18next/serverSideTranslations';
 
 // Importy MUI
-import { Box, Typography, Grid } from '@mui/material';
+import {Box, Typography, Grid, Divider, Chip} from '@mui/material';
+import ShareIcon from '@mui/icons-material/Share';
 
 // Importy Komponentów
-import { NotesLayout } from '@/components/NotesPage/NotesLayout';
-import { NoteCard } from '@/components/NotesPage/NoteCard';
-import { CreateNoteButton } from '@/components/NotesPage/CreateNoteButton';
+import {NotesLayout} from '@/components/NotesPage/NotesLayout';
+import {NoteCard} from '@/components/NotesPage/NoteCard';
+import {CreateNoteButton} from '@/components/NotesPage/CreateNoteButton';
+import {apiFetch} from '@/lib/api';
 
 // Import typu
-import { Note } from '@/types/Note';
+import {Note} from '@/types/Note';
+
+// Rozszerzamy typ Note o opcjonalne pole permission (dla udostępnionych)
+interface SharedNote extends Note {
+    permission?: string;
+}
 
 type Props = {
     notes: Note[];
@@ -21,11 +28,11 @@ type Props = {
     error?: string;
 };
 
-export const getServerSideProps: GetServerSideProps<Props> = async ({ req, locale }) => {
+// --- SSR: Pobiera MOJE notatki ---
+export const getServerSideProps: GetServerSideProps<Props> = async ({req, locale}) => {
     const API = process.env.NEXT_PUBLIC_API_URL!;
     const cookie = req.headers.cookie;
 
-    // Pobierz tłumaczenia serwerowe (konieczne dla next-i18next na stronach SSR)
     const translations = await serverSideTranslations(locale ?? 'pl', ['common']);
 
     try {
@@ -33,7 +40,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async ({ req, local
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
-                ...(cookie && { 'Cookie': cookie }),
+                ...(cookie && {'Cookie': cookie}),
             },
             cache: 'no-store',
         });
@@ -41,7 +48,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async ({ req, local
         if (res.status === 401) {
             return {
                 redirect: {
-                    destination: `/error?code=401`, // Wiadomość obsłużymy na stronie błędu
+                    destination: `/error?code=401`,
                     permanent: false,
                 },
             };
@@ -52,7 +59,8 @@ export const getServerSideProps: GetServerSideProps<Props> = async ({ req, local
             try {
                 const data = await res.json();
                 errorMsg = data.message || errorMsg;
-            } catch (e) { /* ignore */ }
+            } catch (e) { /* ignore */
+            }
 
             return {
                 redirect: {
@@ -62,16 +70,18 @@ export const getServerSideProps: GetServerSideProps<Props> = async ({ req, local
             };
         }
 
-        const notes = (await res.json()) as Note[];
+        const data = await res.json();
+        // ZABEZPIECZENIE: Upewniamy się, że to tablica
+        const notes = Array.isArray(data) ? data : [];
 
         return {
             props: {
                 notes: notes,
                 status: res.status,
-                ...translations, // <--- Przekazujemy tłumaczenia
+                ...translations,
             },
         };
-    } catch (e: any) {
+    } catch (e: unknown) {
         return {
             redirect: {
                 destination: `/error?code=503`,
@@ -82,38 +92,87 @@ export const getServerSideProps: GetServerSideProps<Props> = async ({ req, local
 };
 
 export default function NotesPage({
-                                      notes,
+                                      notes = [], // ZABEZPIECZENIE: Domyślna wartość
                                   }: InferGetServerSidePropsType<typeof getServerSideProps>) {
-    const { t } = useTranslation('common'); // <--- ZMIANA
+    const {t} = useTranslation('common');
+
+    // Stan dla udostępnionych notatek
+    const [sharedNotes, setSharedNotes] = useState<SharedNote[]>([]);
+
+    // Pobieramy notatki udostępnione po załadowaniu strony
+    useEffect(() => {
+        const fetchShared = async () => {
+            try {
+                const data = await apiFetch<SharedNote[]>('/api/notes/shared');
+                setSharedNotes(Array.isArray(data) ? data : []);
+            } catch (e) {
+                console.error("Błąd pobierania udostępnionych notatek", e);
+            }
+        };
+        fetchShared();
+    }, []);
 
     return (
         <>
             <Head>
-                <title>{t('my_notes')} — NoteUZ</title> {/* <--- ZMIANA */}
+                <title>{t('my_notes')} — NoteUZ</title>
             </Head>
 
             <NotesLayout
-                title={t('my_notes')} // <--- ZMIANA
-                actionButton={<CreateNoteButton />}
+                title={t('my_notes')}
+                actionButton={<CreateNoteButton/>}
             >
+                {/* --- SEKCJA: MOJE NOTATKI --- */}
                 {notes.length === 0 ? (
-                    <Box sx={{ textAlign: 'center', py: 8 }}>
+                    <Box sx={{textAlign: 'center', py: 8}}>
                         <Typography variant="h6" color="text.secondary" fontWeight={600} gutterBottom>
-                            {t('notes_empty_title')} {/* <--- ZMIANA */}
+                            {t('notes_empty_title')}
                         </Typography>
                         <Typography variant="body1" color="text.secondary">
-                            {t('notes_empty_desc')} {/* <--- ZMIANA */}
+                            {t('notes_empty_desc')}
                         </Typography>
                     </Box>
                 ) : (
                     <Grid container spacing={3}>
                         {notes.map((note) => (
-                            <Grid key={note.id} size={{ xs: 12, sm: 6, md: 4 }}>
-                                <NoteCard note={note} />
+                            // POPRAWKA GRID: Używamy 'size' zamiast 'item xs={...}'
+                            <Grid key={note.id} size={{xs: 12, sm: 6, md: 4}}>
+                                <NoteCard note={note}/>
                             </Grid>
                         ))}
                     </Grid>
                 )}
+
+                {/* --- SEKCJA: UDOSTĘPNIONE DLA MNIE (NOWA) --- */}
+                <Box sx={{mt: 6}}>
+                    <Divider sx={{mb: 4}}>
+                        <Chip icon={<ShareIcon/>} label="Udostępnione dla mnie"/>
+                    </Divider>
+
+                    {sharedNotes.length > 0 ? (
+                        <Grid container spacing={3}>
+                            {sharedNotes.map((note) => (
+                                // POPRAWKA GRID: Używamy 'size' zamiast 'item xs={...}'
+                                <Grid key={note.id} size={{xs: 12, sm: 6, md: 4}}>
+                                    <Box sx={{position: 'relative'}}>
+                                        <NoteCard note={note}/>
+                                        {/* Opcjonalnie: Badge z uprawnieniami */}
+                                        <Chip
+                                            label={note.permission === 'WRITE' ? 'Edycja' : 'Wgląd'}
+                                            size="small"
+                                            color={note.permission === 'WRITE' ? 'secondary' : 'default'}
+                                            sx={{position: 'absolute', top: 10, right: 10, zIndex: 1}}
+                                        />
+                                    </Box>
+                                </Grid>
+                            ))}
+                        </Grid>
+                    ) : (
+                        <Typography color="text.secondary" textAlign="center">
+                            Brak udostępnionych notatek.
+                        </Typography>
+                    )}
+                </Box>
             </NotesLayout>
         </>
     );

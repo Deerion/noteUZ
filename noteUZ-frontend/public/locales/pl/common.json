@@ -12,7 +12,6 @@
   "dashboard_title": "Mój Profil",
   "back_home": "Wróć na stronę główną",
   "your_panel": "Twój Panel",
-
   "account_info_title": "Informacje o koncie",
   "account_info_desc": "Szczegóły techniczne Twojego profilu w NoteUZ",
   "email_label": "Adres E-mail",
@@ -21,13 +20,11 @@
   "auth_method_label": "Metoda autoryzacji",
   "security_title": "Bezpieczeństwo",
   "security_desc": "Twoje konto jest zabezpieczone standardami OAuth2 i JWT.",
-
   "verified_account": "Konto zweryfikowane",
   "manage_notes_desc": "Zarządzaj swoimi notatkami i ustawieniami konta w jednym miejscu.",
   "file_too_big": "Plik jest zbyt duży (max 2MB).",
   "upload_error": "Wystąpił błąd podczas wgrywania.",
   "connection_error": "Błąd połączenia.",
-
   "friends_section_title": "Znajomi i Zaproszenia",
   "your_friends": "Twoi Znajomi",
   "no_friends_alert": "Nie masz jeszcze znajomych. Wyślij komuś zaproszenie!",
@@ -44,7 +41,6 @@
   "invalid_email_format": "Podaj poprawny adres e-mail.",
   "invite_sent_success": "Zaproszenie wysłane!",
   "error_sending": "Błąd wysyłania.",
-
   "my_profile": "Mój Profil",
   "start_free": "Rozpocznij za darmo",
   "learn_more": "Dowiedz się więcej",
@@ -53,20 +49,17 @@
   "features_title": "Wszystko czego potrzebujesz",
   "features_subtitle": "Skup się na treści, my zajmiemy się resztą. Oto dlaczego warto wybrać NoteUZ.",
   "footer_copyright": "Designed for efficiency.",
-
   "notes_empty_title": "Jeszcze nie masz żadnych notatek!",
   "notes_empty_desc": "Kliknij \"Utwórz Notatkę\", aby zacząć.",
   "my_notes": "Moje Notatki",
-  "shared_notes_soon": "Udostępnione (Wkrótce)",
+  "shared_notes": "Udostępnione",
   "back_to_dashboard": "Wróć do Dashboardu",
   "dashboard": "Dashboard",
-
   "create_note_btn": "Utwórz Notatkę",
   "new_note_page_title": "Nowa Notatka",
   "create_new_note_header": "Utwórz Nową Notatkę",
   "edit_note_header": "Edycja notatki",
   "view_note_header": "Podgląd notatki",
-
   "label_title": "Tytuł",
   "label_content": "Treść Notatki",
   "btn_cancel": "Anuluj",
@@ -78,7 +71,6 @@
   "btn_open": "Otwórz",
   "btn_try_again": "Spróbuj ponownie",
   "btn_home": "Strona główna",
-
   "btn_email": "Wyślij e-mail",
   "btn_export_pdf": "Eksportuj PDF",
   "btn_send": "Wyślij",
@@ -88,7 +80,11 @@
   "error_send_email_failed": "Nie udało się wysłać e-maila.",
   "error_export_failed": "Błąd eksportu PDF",
   "invalid_email": "Nieprawidłowy adres e-mail.",
-
+  "notes.share": "Udostępnij",
+  "notes.share_note": "Udostępnij notatkę",
+  "notes.recipient_email": "Adres e-mail",
+  "notes.error_sharing": "Błąd udostępniania",
+  "common.cancel": "Anuluj",
   "note_untitled": "Notatka bez tytułu",
   "note_no_content": "Brak treści.",
   "confirm_delete": "Czy na pewno usunąć?",
@@ -99,19 +95,16 @@
   "error_unknown": "Wystąpił nieznany błąd.",
   "error_login_required": "Aby zobaczyć notatki, musisz być zalogowany.",
   "error_backend": "Backend niedostępny lub błąd sieciowy.",
-
   "err_401": "Brak uprawnień",
   "err_403": "Dostęp zabroniony",
   "err_404": "Nie znaleziono",
   "err_500": "Błąd serwera",
   "err_503": "Serwis niedostępny",
   "err_default": "Wystąpił błąd",
-
   "registration_success_title": "Sprawdź swoją skrzynkę!",
   "registration_success_desc": "Wysłaliśmy wiadomość na podany adres e-mail. Kliknij w link aktywacyjny, aby dokończyć rejestrację.",
   "spam_warning": "Nie widzisz maila? Sprawdź folder Spam.",
   "go_to_login": "Przejdź do logowania",
-
   "email": "E-mail",
   "password": "Hasło",
   "repeat_password": "Powtórz hasło",
@@ -131,7 +124,6 @@
   "error_password_short": "Hasło jest za krótkie.",
   "error_passwords_match": "Hasła nie są takie same.",
   "markdown_placeholder": "Treść notatki (obsługuje Markdown)...",
-
   "groups_nav": "Grupy",
   "groups_title": "Grupy",
   "groups_owned": "Moje Grupy",
