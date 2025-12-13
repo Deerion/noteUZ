@@ -1,3 +1,4 @@
+// src/pages/notes/shared.tsx
 import React, {useState, useEffect} from 'react';
 import {useRouter} from 'next/router';
 import Head from 'next/head';
@@ -111,7 +112,7 @@ export default function SharedNotesPage() {
 
                                     <Grid container spacing={3}>
                                         {pendingNotes.map((note) => (
-                                            <Grid item key={note.id} xs={12} sm={6} md={4} lg={3}>
+                                            <Grid key={note.id} size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
                                                 <Box sx={{position: 'relative', height: '100%'}}>
                                                     {/* Rozmyta karta */}
                                                     <Box sx={{
@@ -177,7 +178,7 @@ export default function SharedNotesPage() {
                                 ) : (
                                     <Grid container spacing={3}>
                                         {acceptedNotes.map((note) => (
-                                            <Grid item key={note.id} xs={12} sm={6} md={4} lg={3}>
+                                            <Grid key={note.id} size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
                                                 <Box sx={{position: 'relative', height: '100%'}}>
                                                     <NoteCard note={note} />
                                                     <Chip

@@ -12,7 +12,6 @@
   "dashboard_title": "我的资料",
   "back_home": "返回首页",
   "your_panel": "您的仪表板",
-
   "account_info_title": "账户信息",
   "account_info_desc": "您的 NoteUZ 个人资料技术详情",
   "email_label": "电子邮件地址",
@@ -21,13 +20,11 @@
   "auth_method_label": "认证方式",
   "security_title": "安全",
   "security_desc": "您的账户受 OAuth2 和 JWT 标准保护。",
-
   "verified_account": "已验证账户",
   "manage_notes_desc": "在一处管理您的笔记和账户设置。",
   "file_too_big": "文件太大 (最大 2MB)。",
   "upload_error": "上传时发生错误。",
   "connection_error": "连接错误。",
-
   "friends_section_title": "好友与邀请",
   "your_friends": "您的好友",
   "no_friends_alert": "您还没有好友。发送邀请吧！",
@@ -44,7 +41,6 @@
   "invalid_email_format": "请输入有效的电子邮件地址。",
   "invite_sent_success": "邀请已发送！",
   "error_sending": "发送错误。",
-
   "my_profile": "我的资料",
   "start_free": "免费开始",
   "learn_more": "了解更多",
@@ -53,20 +49,17 @@
   "features_title": "您所需的一切",
   "features_subtitle": "专注于内容，剩下的交给我们。为什么选择 NoteUZ。",
   "footer_copyright": "为效率而设计。",
-
   "notes_empty_title": "您还没有任何笔记！",
   "notes_empty_desc": "点击“创建笔记”开始。",
   "my_notes": "我的笔记",
   "shared_notes_soon": "共享 (即将推出)",
   "back_to_dashboard": "返回仪表板",
   "dashboard": "仪表板",
-
   "create_note_btn": "创建笔记",
   "new_note_page_title": "新笔记",
   "create_new_note_header": "创建新笔记",
   "edit_note_header": "编辑笔记",
   "view_note_header": "查看笔记",
-
   "label_title": "标题",
   "label_content": "笔记内容",
   "btn_cancel": "取消",
@@ -78,7 +71,6 @@
   "btn_open": "打开",
   "btn_try_again": "重试",
   "btn_home": "首页",
-
   "btn_email": "通过邮件发送",
   "btn_export_pdf": "导出 PDF",
   "btn_send": "发送",
@@ -88,7 +80,6 @@
   "error_send_email_failed": "发送邮件失败。",
   "error_export_failed": "PDF 导出失败",
   "invalid_email": "无效的电子邮件地址。",
-
   "note_untitled": "无标题笔记",
   "note_no_content": "无内容。",
   "confirm_delete": "您确定要删除吗？",
@@ -99,19 +90,16 @@
   "error_unknown": "发生未知错误。",
   "error_login_required": "您必须登录才能查看笔记。",
   "error_backend": "后台不可用或网络错误。",
-
   "err_401": "未经授权",
   "err_403": "禁止访问",
   "err_404": "未找到",
   "err_500": "服务器错误",
   "err_503": "服务不可用",
   "err_default": "发生错误",
-
   "registration_success_title": "检查您的收件箱！",
   "registration_success_desc": "我们已向提供的地址发送了一封电子邮件。点击激活链接完成注册。",
   "spam_warning": "没看到邮件？检查垃圾邮件文件夹。",
   "go_to_login": "前往登录",
-
   "email": "电子邮件",
   "password": "密码",
   "repeat_password": "重复密码",

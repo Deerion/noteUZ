@@ -133,11 +133,9 @@ public class NoteController {
         Note note = service.getNoteById(id);
 
         if (note.getUserId().equals(userId)) {
-            // Właściciel usuwa notatkę
             service.delete(id);
             return ResponseEntity.noContent().build();
         } else {
-            // Użytkownik usuwa dostęp
             Optional<NoteShare> share = service.findShare(id, userEmail);
             if (share.isPresent()) {
                 service.revokeShare(share.get().getId());
@@ -160,9 +158,22 @@ public class NoteController {
         String permissionStr = body.getOrDefault("permission", "READ");
         NoteShare.Permission permission = NoteShare.Permission.valueOf(permissionStr);
 
-        String shareUrl = service.createShare(id, ownerId, recipientEmail, permission);
-        emailService.sendShareInvitation(recipientEmail, ownerEmail, note.getTitle(), shareUrl, permissionStr);
-        return ResponseEntity.ok(Map.of("message", "Wysłano"));
+        try {
+            // Service zwraca link lub rzuca błąd
+            String shareUrl = service.createShare(id, ownerId, recipientEmail, permission);
+
+            // Próba wysyłki maila (nie przerywa działania w razie błędu SMTP)
+            try {
+                emailService.sendShareInvitation(recipientEmail, ownerEmail, note.getTitle(), shareUrl, permissionStr);
+            } catch (Exception e) {
+                System.err.println("Błąd wysyłania maila: " + e.getMessage());
+            }
+
+            return ResponseEntity.ok(Map.of("message", "Wysłano", "shareUrl", shareUrl));
+
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
     }
 
     @GetMapping("/{id}/shares")

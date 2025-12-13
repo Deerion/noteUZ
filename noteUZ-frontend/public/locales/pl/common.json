@@ -84,7 +84,7 @@
   "notes.share_note": "Udostępnij notatkę",
   "notes.recipient_email": "Adres e-mail",
   "notes.error_sharing": "Błąd udostępniania",
-  "common.cancel": "Anuluj",
+  "common.cancel": "Zamknij",
   "note_untitled": "Notatka bez tytułu",
   "note_no_content": "Brak treści.",
   "confirm_delete": "Czy na pewno usunąć?",
@@ -157,5 +157,14 @@
   "menu_make_admin": "Mianuj Adminem",
   "menu_make_member": "Zdegraduj do Członka",
   "menu_remove_from_group": "Usuń z grupy",
-  "btn_confirm": "Potwierdź"
+  "btn_confirm": "Potwierdź",
+  "share_desc": "Wpisz adres e-mail, aby udostępnić notatkę.",
+  "status_pending": "Oczekuje",
+  "status_accepted": "Zaakceptowano",
+  "status_rejected": "Odrzucono",
+  "perm_read": "Wgląd",
+  "perm_write": "Edycja",
+  "share_link_copied": "Skopiowano link do schowka!",
+  "share_manual_link_label": "Lub wyślij ten link ręcznie:",
+  "share_self_error": "Nie możesz udostępnić notatki samemu sobie."
 }

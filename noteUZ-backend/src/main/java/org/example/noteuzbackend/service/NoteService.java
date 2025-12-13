@@ -4,6 +4,8 @@ import org.example.noteuzbackend.model.entity.Note;
 import org.example.noteuzbackend.model.entity.NoteShare;
 import org.example.noteuzbackend.repository.NoteRepo;
 import org.example.noteuzbackend.repository.NoteShareRepo;
+import org.example.noteuzbackend.repository.AppUserRepo;
+import org.example.noteuzbackend.model.entity.AppUser;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,18 +17,18 @@ public class NoteService {
 
     private final NoteRepo noteRepo;
     private final NoteShareRepo shareRepo;
+    private final AppUserRepo userRepo;
 
-    public NoteService(NoteRepo noteRepo, NoteShareRepo shareRepo) {
+    public NoteService(NoteRepo noteRepo, NoteShareRepo shareRepo, AppUserRepo userRepo) {
         this.noteRepo = noteRepo;
         this.shareRepo = shareRepo;
+        this.userRepo = userRepo;
     }
 
-    // 1. Notatki prywatne - TYLKO dla konkretnego userId (bez grupowych)
     public List<Note> listNotes(UUID userId) {
         return noteRepo.findByUserIdAndGroupIdIsNull(userId);
     }
 
-    // 2. Notatki grupowe - TYLKO dla danej grupy
     public List<Note> listGroupNotes(UUID groupId) {
         return noteRepo.findByGroupIdOrderByCreatedAtDesc(groupId);
     }
@@ -44,7 +46,6 @@ public class NoteService {
         return noteRepo.save(note);
     }
 
-    // --- TO JEST METODA, KTÓREJ BRAKOWAŁO ---
     public Note createGroupNote(UUID groupId, UUID userId, String title, String content) {
         var note = new Note();
         note.setGroupId(groupId);
@@ -53,7 +54,6 @@ public class NoteService {
         note.setContent(content);
         return noteRepo.save(note);
     }
-    // ----------------------------------------
 
     public Note update(UUID id, String title, String content) {
         var note = getNoteById(id);
@@ -62,27 +62,31 @@ public class NoteService {
         return noteRepo.save(note);
     }
 
-    // Usuwanie notatki (usuwa też wszystkie udostępnienia)
     @Transactional
     public void delete(UUID id) {
-        // Ręczne usuwanie powiązań NoteShare, bo w encji jest samo UUID
         List<NoteShare> shares = shareRepo.findAll().stream()
                 .filter(s -> s.getNoteId().equals(id))
                 .collect(Collectors.toList());
         shareRepo.deleteAll(shares);
-
         noteRepo.deleteById(id);
     }
 
     @Transactional
     public String createShare(UUID noteId, UUID ownerId, String recipientEmail, NoteShare.Permission permission) {
-        // Sprawdzamy czy już udostępniono temu mailowi
+        // 1. Walidacja: Właściciel nie może udostępnić sobie
+        Optional<AppUser> ownerOpt = userRepo.findById(ownerId);
+        if (ownerOpt.isPresent()) {
+            if (ownerOpt.get().getEmail().equalsIgnoreCase(recipientEmail)) {
+                throw new IllegalArgumentException("Nie możesz udostępnić notatki samemu sobie.");
+            }
+        }
+
+        // 2. Sprawdź czy już istnieje
         Optional<NoteShare> existing = shareRepo.findByNoteIdAndRecipientEmail(noteId, recipientEmail);
 
         if (existing.isPresent()) {
             NoteShare share = existing.get();
             share.setPermission(permission);
-            // Jeśli było odrzucone, resetujemy do PENDING, żeby dać drugą szansę
             if (share.getStatus() == NoteShare.ShareStatus.REJECTED) {
                 share.setStatus(NoteShare.ShareStatus.PENDING);
             }
@@ -90,6 +94,7 @@ public class NoteService {
             return "http://localhost:3000/notes/shared?token=" + share.getToken();
         }
 
+        // 3. Utwórz nowe
         NoteShare share = new NoteShare();
         share.setNoteId(noteId);
         share.setOwnerId(ownerId);
@@ -128,11 +133,9 @@ public class NoteService {
         shareRepo.save(share);
     }
 
-    // 3. Notatki udostępnione - TYLKO dla danego maila odbiorcy
     public List<Map<String, Object>> getSharedNotes(String recipientEmail) {
         List<NoteShare> shares = shareRepo.findAll().stream()
                 .filter(s -> s.getRecipientEmail().equals(recipientEmail))
-                // Pokazujemy PENDING i ACCEPTED
                 .filter(s -> s.getStatus() != NoteShare.ShareStatus.REJECTED)
                 .collect(Collectors.toList());
 
@@ -141,22 +144,17 @@ public class NoteService {
             try {
                 Note note = getNoteById(share.getNoteId());
                 Map<String, Object> map = new HashMap<>();
-
-                // Dane notatki
                 map.put("id", note.getId());
                 map.put("title", note.getTitle());
                 map.put("content", note.getContent());
                 map.put("createdAt", note.getCreatedAt());
-
-                // Dane udziału
                 map.put("permission", share.getPermission().toString());
                 map.put("ownerId", share.getOwnerId());
                 map.put("status", share.getStatus().toString());
                 map.put("token", share.getToken());
-
                 result.add(map);
             } catch (Exception e) {
-                // Jeśli notatka została usunięta przez właściciela, pomijamy
+                // Ignore if note deleted
             }
         }
         return result;

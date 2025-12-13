@@ -1,3 +1,4 @@
+// src/pages/notes/[id].tsx
 import type {GetServerSideProps, InferGetServerSidePropsType} from 'next';
 import Head from 'next/head';
 import {useRouter} from 'next/router';
@@ -7,8 +8,9 @@ import {
     Typography, useTheme, CircularProgress, Dialog, DialogTitle,
     DialogContent, DialogActions, DialogContentText,
     FormControl, InputLabel, Select, MenuItem, List, ListItem, ListItemText,
-    ListItemSecondaryAction, IconButton, Chip
+    ListItemSecondaryAction, IconButton, Chip, Avatar, Tooltip, InputAdornment, Collapse
 } from '@mui/material';
+// Icons
 import DeleteIcon from '@mui/icons-material/Delete';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import EditIcon from '@mui/icons-material/Edit';
@@ -18,6 +20,8 @@ import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import ShareIcon from '@mui/icons-material/Share';
 import LockIcon from '@mui/icons-material/Lock';
 import PersonRemoveIcon from '@mui/icons-material/PersonRemove';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import MarkEmailReadIcon from '@mui/icons-material/MarkEmailRead';
 
 import {useTranslation} from 'next-i18next';
 import {serverSideTranslations} from 'next-i18next/serverSideTranslations';
@@ -27,7 +31,6 @@ import remarkGfm from 'remark-gfm';
 import {NotesLayout} from '@/components/NotesPage/NotesLayout';
 import {MarkdownEditor} from '@/components/MarkdownEditor';
 import {Note} from '@/types/Note';
-import {UserData} from '@/types/User';
 import {apiFetch} from '@/lib/api';
 
 interface ExtendedNote extends Note {
@@ -40,6 +43,12 @@ interface NoteShareInfo {
     email: string;
     status: string;
     permission: 'READ' | 'WRITE';
+    token?: string;
+}
+
+interface ShareResponse {
+    message: string;
+    shareUrl?: string; // Backend zwraca teraz URL
 }
 
 interface Props { note: ExtendedNote; }
@@ -90,14 +99,27 @@ export default function SingleNotePage({note: initialNote}: InferGetServerSidePr
     const [sharePermission, setSharePermission] = useState('READ');
     const [shareLoading, setShareLoading] = useState(false);
     const [shares, setShares] = useState<NoteShareInfo[]>([]);
+    const [generatedLink, setGeneratedLink] = useState<string | null>(null); // Nowy stan dla linku
+    const [shareError, setShareError] = useState<string | null>(null); // Błędy w modalu
+
+    // Własny mail (do sprawdzenia w frontendzie, opcjonalnie)
+    const [myEmail, setMyEmail] = useState<string>('');
 
     const printRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        // Pobierz mój email, żeby zablokować wpisywanie go w polu udostępniania
+        apiFetch<{ email: string }>('/api/auth/me').then(data => setMyEmail(data.email)).catch(() => {});
+    }, []);
 
     const handleBack = () => router.push(isGroupNote ? `/groups/${initialNote.groupId}` : '/notes');
 
     // Pobierz listę osób (tylko właściciel)
     useEffect(() => {
         if (shareDialogOpen && isOwner) {
+            setGeneratedLink(null);
+            setShareError(null);
+            setShareEmail('');
             apiFetch<NoteShareInfo[]>(`/api/notes/${initialNote.id}/shares`)
                 .then(data => setShares(data || []))
                 .catch(console.error);
@@ -133,19 +155,39 @@ export default function SingleNotePage({note: initialNote}: InferGetServerSidePr
     }
 
     async function handleShare() {
-        if (!shareEmail.includes('@')) { alert(t('invalid_email')); return; }
+        setShareError(null);
+        setGeneratedLink(null);
+
+        if (!shareEmail.includes('@')) { setShareError(t('invalid_email')); return; }
+        if (shareEmail.trim().toLowerCase() === myEmail.trim().toLowerCase()) {
+            setShareError(t('share_self_error') || "Nie możesz udostępnić samemu sobie.");
+            return;
+        }
+
         setShareLoading(true);
         try {
-            await apiFetch(`/api/notes/${initialNote.id}/share`, {
+            const res = await apiFetch<ShareResponse>(`/api/notes/${initialNote.id}/share`, {
                 method: 'POST',
                 body: JSON.stringify({email: shareEmail, permission: sharePermission})
             });
-            setSuccessMsg(t('share_success'));
-            setShareEmail('');
+
+            // Sukces - pokaż link
+            if (res.shareUrl) {
+                setGeneratedLink(res.shareUrl);
+            }
+
+            setShareEmail(''); // Wyczyść pole
             // Odśwież listę
             const updatedShares = await apiFetch<NoteShareInfo[]>(`/api/notes/${initialNote.id}/shares`);
             setShares(updatedShares || []);
-        } catch (error) { setError(t('error_sharing')); }
+        } catch (error: unknown) {
+            // Fix: Specify error type as unknown and cast or check
+            let errMsg = t('error_sharing');
+            if (error instanceof Error) {
+                errMsg = error.message;
+            }
+            setShareError(errMsg);
+        }
         finally { setShareLoading(false); }
     }
 
@@ -201,6 +243,13 @@ export default function SingleNotePage({note: initialNote}: InferGetServerSidePr
         finally { setExporting(false); }
     }
 
+    const copyLink = () => {
+        if (generatedLink) {
+            navigator.clipboard.writeText(generatedLink);
+            alert(t('share_link_copied') || "Link skopiowany!");
+        }
+    }
+
     return (
         <>
             <Head><title>{title} — NoteUZ</title></Head>
@@ -244,25 +293,25 @@ export default function SingleNotePage({note: initialNote}: InferGetServerSidePr
                             {!isEditing ? (
                                 <>
                                     {!isGroupNote && isOwner && (
-                                        <Grid item>
+                                        <Grid>
                                             <MuiButton onClick={() => setShareDialogOpen(true)} variant="outlined" startIcon={<ShareIcon/>}>
                                                 {t('notes.share')}
                                             </MuiButton>
                                         </Grid>
                                     )}
-                                    <Grid item>
+                                    <Grid>
                                         <MuiButton onClick={handleExportPdf} variant="outlined" color="secondary" disabled={exporting} startIcon={exporting ? <CircularProgress size={20}/> : <PictureAsPdfIcon/>}>
                                             {t('btn_export_pdf')}
                                         </MuiButton>
                                     </Grid>
                                     {canEdit && (
-                                        <Grid item>
+                                        <Grid>
                                             <MuiButton onClick={() => setIsEditing(true)} variant="contained" startIcon={<EditIcon/>}>
                                                 {t('btn_edit')}
                                             </MuiButton>
                                         </Grid>
                                     )}
-                                    <Grid item>
+                                    <Grid>
                                         <MuiButton onClick={handleDelete} color="error" variant="outlined" startIcon={<DeleteIcon/>}>
                                             {isOwner ? t('btn_delete') : "Usuń z listy"}
                                         </MuiButton>
@@ -270,19 +319,26 @@ export default function SingleNotePage({note: initialNote}: InferGetServerSidePr
                                 </>
                             ) : (
                                 <>
-                                    <Grid item><MuiButton onClick={() => setIsEditing(false)} disabled={loading} startIcon={<CloseIcon/>} color="inherit">{t('btn_cancel')}</MuiButton></Grid>
-                                    <Grid item><MuiButton type="submit" variant="contained" disabled={loading} startIcon={<SaveIcon/>}>{t('btn_save')}</MuiButton></Grid>
+                                    <Grid><MuiButton onClick={() => setIsEditing(false)} disabled={loading} startIcon={<CloseIcon/>} color="inherit">{t('btn_cancel')}</MuiButton></Grid>
+                                    <Grid><MuiButton type="submit" variant="contained" disabled={loading} startIcon={<SaveIcon/>}>{t('btn_save')}</MuiButton></Grid>
                                 </>
                             )}
                         </Grid>
                     </Box>
                 </Paper>
 
+                {/* --- MODAL UDOSTĘPNIANIA --- */}
                 <Dialog open={shareDialogOpen} onClose={() => setShareDialogOpen(false)} fullWidth maxWidth="sm">
-                    <DialogTitle>{t('notes.share_note')}</DialogTitle>
+                    <DialogTitle sx={{ fontWeight: 700 }}>
+                        {t('notes.share_note')}
+                    </DialogTitle>
                     <DialogContent>
-                        <DialogContentText sx={{mb: 2}}>{t('share_desc')}</DialogContentText>
-                        <Box sx={{display: 'flex', gap: 2, alignItems: 'flex-end', mb: 4}}>
+                        <DialogContentText sx={{mb: 2}}>
+                            {t('share_desc')}
+                        </DialogContentText>
+
+                        {/* FORMULARZ */}
+                        <Box sx={{display: 'flex', gap: 1, alignItems: 'flex-start', mb: 1}}>
                             <TextField
                                 fullWidth
                                 label={t('notes.recipient_email')}
@@ -292,8 +348,10 @@ export default function SingleNotePage({note: initialNote}: InferGetServerSidePr
                                 placeholder="user@example.com"
                                 variant="outlined"
                                 size="small"
+                                error={!!shareError}
+                                helperText={shareError}
                             />
-                            <FormControl size="small" sx={{minWidth: 120}}>
+                            <FormControl size="small" sx={{minWidth: 110}}>
                                 <InputLabel>{t('permission')}</InputLabel>
                                 <Select
                                     value={sharePermission}
@@ -304,20 +362,87 @@ export default function SingleNotePage({note: initialNote}: InferGetServerSidePr
                                     <MenuItem value="WRITE">{t('perm_write')}</MenuItem>
                                 </Select>
                             </FormControl>
-                            <MuiButton onClick={handleShare} variant="contained" disabled={shareLoading} sx={{height: 40}}>
-                                {shareLoading ? "..." : t('notes.share')}
+                        </Box>
+                        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 3 }}>
+                            <MuiButton
+                                onClick={handleShare}
+                                variant="contained"
+                                disabled={shareLoading || !shareEmail}
+                                endIcon={shareLoading ? <CircularProgress size={16} /> : <MarkEmailReadIcon />}
+                            >
+                                {t('notes.share')}
                             </MuiButton>
                         </Box>
 
-                        {shares.length > 0 && (
-                            <>
-                                <Divider sx={{mb: 2}}><Typography variant="caption">OSOBY Z DOSTĘPEM</Typography></Divider>
-                                <List dense>
-                                    {shares.map(s => (
-                                        <ListItem key={s.id} divider>
+                        {/* LINK MANUALNY (JEŚLI WYGENEROWANY) */}
+                        <Collapse in={!!generatedLink}>
+                            <Alert severity="success" sx={{ mb: 3, alignItems: 'center' }}>
+                                <Typography variant="subtitle2" fontWeight={700} gutterBottom>
+                                    {t('email_sent_success')}
+                                </Typography>
+                                <Typography variant="body2" sx={{ mb: 1 }}>
+                                    {t('share_manual_link_label') || "Jeśli e-mail nie dotrze, wyślij ten link:"}
+                                </Typography>
+                                <TextField
+                                    fullWidth
+                                    size="small"
+                                    value={generatedLink || ''}
+                                    InputProps={{
+                                        readOnly: true,
+                                        endAdornment: (
+                                            <InputAdornment position="end">
+                                                <IconButton edge="end" onClick={copyLink}>
+                                                    <ContentCopyIcon />
+                                                </IconButton>
+                                            </InputAdornment>
+                                        ),
+                                        sx: { bgcolor: 'background.paper', fontSize: '0.85rem' }
+                                    }}
+                                />
+                            </Alert>
+                        </Collapse>
+
+                        <Divider sx={{my: 2}} />
+
+                        {/* LISTA UDOSTĘPNIEŃ */}
+                        <Typography variant="overline" color="text.secondary" fontWeight={700}>
+                            Osoby z dostępem ({shares.length})
+                        </Typography>
+
+                        {shares.length === 0 ? (
+                            <Typography variant="body2" color="text.secondary" fontStyle="italic" sx={{ mt: 1 }}>
+                                Nikt jeszcze nie ma dostępu.
+                            </Typography>
+                        ) : (
+                            <List dense sx={{ mt: 1 }}>
+                                {shares.map(s => {
+                                    const initial = s.email.charAt(0).toUpperCase();
+                                    return (
+                                        <ListItem
+                                            key={s.id}
+                                            divider
+                                            sx={{
+                                                bgcolor: theme.palette.action.hover,
+                                                borderRadius: 2,
+                                                mb: 1
+                                            }}
+                                        >
+                                            <Avatar sx={{ width: 32, height: 32, mr: 2, bgcolor: theme.palette.secondary.main, fontSize: '0.9rem' }}>
+                                                {initial}
+                                            </Avatar>
                                             <ListItemText
-                                                primary={s.email}
-                                                secondary={s.status === 'PENDING' ? 'Oczekuje...' : null}
+                                                primary={<Typography fontWeight={500}>{s.email}</Typography>}
+                                                secondary={
+                                                    <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                        <Chip
+                                                            label={s.status === 'ACCEPTED' ? t('status_accepted') : (s.status === 'REJECTED' ? t('status_rejected') : t('status_pending'))}
+                                                            size="small"
+                                                            color={s.status === 'ACCEPTED' ? 'success' : 'warning'}
+                                                            variant="outlined"
+                                                            sx={{ height: 20, fontSize: '0.65rem' }}
+                                                        />
+                                                    </Box>
+                                                }
                                             />
                                             <ListItemSecondaryAction sx={{display: 'flex', alignItems: 'center', gap: 1}}>
                                                 <Select
@@ -326,19 +451,21 @@ export default function SingleNotePage({note: initialNote}: InferGetServerSidePr
                                                     variant="standard"
                                                     disableUnderline
                                                     onChange={(e) => handleChangeAccess(s.id, e.target.value)}
-                                                    sx={{fontSize: '0.8rem', mr: 1}}
+                                                    sx={{ fontSize: '0.8rem', mr: 1, fontWeight: 600, color: 'primary.main' }}
                                                 >
-                                                    <MenuItem value="READ">Wgląd</MenuItem>
-                                                    <MenuItem value="WRITE">Edycja</MenuItem>
+                                                    <MenuItem value="READ">{t('perm_read')}</MenuItem>
+                                                    <MenuItem value="WRITE">{t('perm_write')}</MenuItem>
                                                 </Select>
-                                                <IconButton edge="end" onClick={() => handleRevokeAccess(s.id)} size="small" color="error">
-                                                    <PersonRemoveIcon />
-                                                </IconButton>
+                                                <Tooltip title="Odbierz dostęp">
+                                                    <IconButton edge="end" onClick={() => handleRevokeAccess(s.id)} size="small" color="error">
+                                                        <PersonRemoveIcon fontSize="small" />
+                                                    </IconButton>
+                                                </Tooltip>
                                             </ListItemSecondaryAction>
                                         </ListItem>
-                                    ))}
-                                </List>
-                            </>
+                                    )
+                                })}
+                            </List>
                         )}
                     </DialogContent>
                     <DialogActions>

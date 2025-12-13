@@ -1,6 +1,5 @@
-// src/components/NotesPage/NoteCard.tsx
 import React from 'react';
-import { Card, CardContent, Typography, Box, useTheme, alpha } from '@mui/material';
+import { Card, CardContent, Typography, Box, useTheme, alpha, Chip } from '@mui/material';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import { Note } from '@/types/Note';
 import { useRouter } from 'next/router';
@@ -10,14 +9,9 @@ interface NoteCardProps {
     note: Note;
 }
 
-// Prosta funkcja usuwająca podstawowe znaczniki Markdown dla estetycznego podglądu
 function stripMarkdown(text: string): string {
     if (!text) return '';
-    return text
-        .replace(/[#*`_~\[\]]/g, '') // Usuwa znaki specjalne
-        .replace(/\n+/g, ' ')         // Zamienia nowe linie na spacje
-        .replace(/\s+/g, ' ')         // Usuwa podwójne spacje
-        .trim();
+    return text.replace(/[#*`_~\[\]]/g, '').replace(/\n+/g, ' ').trim();
 }
 
 export const NoteCard: React.FC<NoteCardProps> = ({ note }) => {
@@ -25,21 +19,10 @@ export const NoteCard: React.FC<NoteCardProps> = ({ note }) => {
     const theme = useTheme();
     const router = useRouter();
 
-    const content = note.content ?? '';
-    // Używamy wersji bez znaczników Markdown do wyświetlania na kafelku
-    const cleanContent = stripMarkdown(content);
-
-    const shortContent = cleanContent.length > 100
-        ? cleanContent.substring(0, 100) + '...'
-        : cleanContent;
-
+    const cleanContent = stripMarkdown(note.content || '');
     const formattedDate = new Date(note.created_at).toLocaleDateString(
         i18n.language === 'en' ? 'en-US' : 'pl-PL',
-        {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-        }
+        { month: 'short', day: 'numeric' }
     );
 
     const handleOpenNote = () => {
@@ -51,49 +34,62 @@ export const NoteCard: React.FC<NoteCardProps> = ({ note }) => {
             elevation={0}
             onClick={handleOpenNote}
             sx={{
-                borderRadius: '16px',
-                border: '1px solid',
-                borderColor: 'divider',
+                borderRadius: '12px',
+                border: `1px solid ${theme.palette.mode === 'light' ? '#e0e0e0' : '#444'}`,
+                backgroundColor: theme.palette.background.paper,
                 height: '100%',
-                transition: 'all 0.3s ease',
+                display: 'flex',
+                flexDirection: 'column',
+                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                 '&:hover': {
-                    transform: 'translateY(-3px)',
-                    boxShadow: `0 10px 20px -5px ${alpha(theme.palette.primary.main, 0.15)}`,
-                    borderColor: theme.palette.primary.main,
+                    transform: 'translateY(-2px)',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                    borderColor: 'transparent',
                     cursor: 'pointer',
                 }
             }}
         >
-            <CardContent>
-                <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
-                    <AccessTimeIcon sx={{ fontSize: '0.8rem' }} />
-                    {formattedDate}
-                </Typography>
-
-                <Typography variant="h6" fontWeight={700} gutterBottom sx={{
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                }}>
-                    {note.title || t('note_untitled')}
-                </Typography>
+            <CardContent sx={{ flexGrow: 1, p: 2.5, '&:last-child': { pb: 2.5 } }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                    <Typography variant="h6" sx={{
+                        fontWeight: 600,
+                        fontSize: '1.1rem',
+                        lineHeight: 1.3,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical'
+                    }}>
+                        {note.title || <span style={{ opacity: 0.5 }}>{t('note_untitled')}</span>}
+                    </Typography>
+                </Box>
 
                 <Typography variant="body2" color="text.secondary" sx={{
+                    mb: 2,
                     lineHeight: 1.5,
-                    maxHeight: '4.5em',
+                    minHeight: '3em',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     display: '-webkit-box',
-                    WebkitLineClamp: 3,
+                    WebkitLineClamp: 4,
                     WebkitBoxOrient: 'vertical',
                 }}>
-                    {shortContent || t('note_no_content')}
+                    {cleanContent || t('note_no_content')}
                 </Typography>
 
-                <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
-                    <Typography variant="caption" color="primary.main" fontWeight={600}>
-                        {t('btn_open')}
-                    </Typography>
+                <Box sx={{ pt: 1, borderTop: '1px solid', borderColor: 'divider', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Chip
+                        icon={<AccessTimeIcon sx={{ fontSize: '14px !important' }} />}
+                        label={formattedDate}
+                        size="small"
+                        sx={{
+                            height: 24,
+                            fontSize: '0.75rem',
+                            bgcolor: alpha(theme.palette.text.secondary, 0.08),
+                            color: 'text.secondary'
+                        }}
+                    />
                 </Box>
             </CardContent>
         </Card>
