@@ -80,8 +80,7 @@ export default function SingleNotePage({note: initialNote}: InferGetServerSidePr
     const router = useRouter();
     const theme = useTheme();
 
-    const isGroupNote = Boolean(initialNote.groupId);
-    const permission = initialNote.permission || 'OWNER';
+    const isGroupNote = initialNote.groupId && initialNote.groupId !== 'null';    const permission = initialNote.permission || 'OWNER';
     const canEdit = permission === 'OWNER' || permission === 'WRITE';
     const isOwner = permission === 'OWNER';
 

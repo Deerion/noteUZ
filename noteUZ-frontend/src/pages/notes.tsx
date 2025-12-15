@@ -18,8 +18,10 @@ import {apiFetch} from '@/lib/api';
 import {Note} from '@/types/Note';
 
 // Rozszerzamy typ Note o opcjonalne pole permission (dla udostępnionych)
+// Oraz pole status, żeby móc odfiltrować niezaakceptowane zaproszenia
 interface SharedNote extends Note {
     permission?: string;
+    status?: 'PENDING' | 'ACCEPTED' | 'REJECTED';
 }
 
 type Props = {
@@ -104,7 +106,16 @@ export default function NotesPage({
         const fetchShared = async () => {
             try {
                 const data = await apiFetch<SharedNote[]>('/api/notes/shared');
-                setSharedNotes(Array.isArray(data) ? data : []);
+
+                if (Array.isArray(data)) {
+                    // --- ZMIANA: Filtracja ---
+                    // Wyświetlamy tutaj TYLKO notatki, które zostały już zaakceptowane.
+                    // Zaproszenia oczekujące (PENDING) są widoczne na osobnej podstronie (notes/shared.tsx).
+                    const acceptedOnly = data.filter(note => note.status === 'ACCEPTED');
+                    setSharedNotes(acceptedOnly);
+                } else {
+                    setSharedNotes([]);
+                }
             } catch (e) {
                 console.error("Błąd pobierania udostępnionych notatek", e);
             }
@@ -169,6 +180,7 @@ export default function NotesPage({
                         </Grid>
                     ) : (
                         <Typography color="text.secondary" textAlign="center">
+                            {/* Komunikat, gdy nie ma zaakceptowanych notatek */}
                             Brak udostępnionych notatek.
                         </Typography>
                     )}

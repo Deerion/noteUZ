@@ -73,25 +73,48 @@ public class NoteController {
         if (userId == null) return ResponseEntity.status(401).build();
 
         Note note = service.getNoteById(id);
-        boolean isOwner = note.getUserId().equals(userId);
-        boolean isShared = false;
-        String permission = "OWNER";
+        String permission = null; // Domyślnie brak dostępu
 
-        if (!isOwner) {
-            var shareOpt = service.findShare(id, userEmail);
-            if (shareOpt.isPresent() && shareOpt.get().getStatus() == NoteShare.ShareStatus.ACCEPTED) {
-                isShared = true;
-                permission = shareOpt.get().getPermission().toString();
+        // 1. Sprawdzenie właściciela
+        if (note.getUserId().equals(userId)) {
+            permission = "OWNER";
+        }
+
+        // 2. Sprawdzenie grupy (Jeśli nie właściciel, ale jest w grupie -> ma WRITE)
+        if (permission == null && note.getGroupId() != null) {
+            if (groupMemberRepo.existsByGroupIdAndUserId(note.getGroupId(), userId)) {
+                permission = "WRITE"; // TU BYŁ BŁĄD: Zmieniono na WRITE, aby frontend pozwolił na edycję
             }
         }
 
-        if (!isOwner && !isShared) return ResponseEntity.status(403).build();
+        // 3. Sprawdzenie udostępnienia (Share)
+        // Logika: Jeśli permission to nadal null LUB permission to READ, sprawdzamy czy share nie daje wyższego uprawnienia
+        if (!"OWNER".equals(permission) && !"WRITE".equals(permission)) {
+            var shareOpt = service.findShare(id, userEmail);
+            if (shareOpt.isPresent() && shareOpt.get().getStatus() == NoteShare.ShareStatus.ACCEPTED) {
+                String sharePerm = shareOpt.get().getPermission().toString();
+                // Jeśli jeszcze nie mamy żadnego uprawnienia, bierzemy to z share
+                if (permission == null) {
+                    permission = sharePerm;
+                }
+                // Jeśli mamy READ (np. z innej logiki), a share daje WRITE, podnosimy uprawnienie
+                else if ("READ".equals(permission) && "WRITE".equals(sharePerm)) {
+                    permission = "WRITE";
+                }
+            }
+        }
+
+        // Jeśli po wszystkich sprawdzeniach nadal null -> 403 Forbidden
+        if (permission == null) {
+            return ResponseEntity.status(403).build();
+        }
 
         return ResponseEntity.ok(Map.of(
                 "id", note.getId(),
                 "title", note.getTitle(),
                 "content", note.getContent(),
                 "userId", note.getUserId(),
+                "groupId", note.getGroupId() != null ? note.getGroupId() : "null",
                 "createdAt", note.getCreatedAt(),
                 "permission", permission
         ));
@@ -112,14 +135,32 @@ public class NoteController {
         if (userId == null) return ResponseEntity.status(401).build();
 
         Note existing = service.getNoteById(id);
-        boolean isOwner = existing.getUserId().equals(userId);
+        boolean hasPermission = false;
 
-        if (!isOwner) {
-            var shareOpt = service.findShare(id, userEmail);
-            if (shareOpt.isEmpty() || shareOpt.get().getPermission() != NoteShare.Permission.WRITE) {
-                return ResponseEntity.status(403).body(Map.of("message", "Brak uprawnień"));
+        // 1. Właściciel
+        if (existing.getUserId().equals(userId)) {
+            hasPermission = true;
+        }
+
+        // 2. Członek Grupy -> ZAWSZE MA PRAWO EDYCJI
+        if (!hasPermission && existing.getGroupId() != null) {
+            if (groupMemberRepo.existsByGroupIdAndUserId(existing.getGroupId(), userId)) {
+                hasPermission = true;
             }
         }
+
+        // 3. Udostępnienie z prawem WRITE
+        if (!hasPermission) {
+            var shareOpt = service.findShare(id, userEmail);
+            if (shareOpt.isPresent() && shareOpt.get().getPermission() == NoteShare.Permission.WRITE) {
+                hasPermission = true;
+            }
+        }
+
+        if (!hasPermission) {
+            return ResponseEntity.status(403).body(Map.of("message", "Brak uprawnień do edycji"));
+        }
+
         var updated = service.update(id, (String) body.get("title"), (String) body.get("content"));
         return ResponseEntity.ok(Map.of("id", updated.getId()));
     }
@@ -159,10 +200,8 @@ public class NoteController {
         NoteShare.Permission permission = NoteShare.Permission.valueOf(permissionStr);
 
         try {
-            // Service zwraca link lub rzuca błąd
             String shareUrl = service.createShare(id, ownerId, recipientEmail, permission);
 
-            // Próba wysyłki maila (nie przerywa działania w razie błędu SMTP)
             try {
                 emailService.sendShareInvitation(recipientEmail, ownerEmail, note.getTitle(), shareUrl, permissionStr);
             } catch (Exception e) {

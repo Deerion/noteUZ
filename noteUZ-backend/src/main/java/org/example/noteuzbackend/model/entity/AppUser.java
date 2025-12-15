@@ -9,7 +9,7 @@ import org.hibernate.annotations.Immutable;
 import java.util.UUID;
 
 @Entity
-@Immutable // To ważne - nie chcemy zapisywać danych do widoku, tylko czytać
+@Immutable
 @Table(name = "users_view", schema = "public")
 public class AppUser {
 

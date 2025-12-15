@@ -162,6 +162,6 @@ public class GroupController {
         String content = body.getOrDefault("content", "");
 
         // Używamy NoteService do utworzenia notatki przypisanej do grupy
-        return ResponseEntity.ok(noteService.createGroupNote(userId, id, title, content));
+        return ResponseEntity.ok(noteService.createGroupNote(id, userId, title, content));
     }
 }
