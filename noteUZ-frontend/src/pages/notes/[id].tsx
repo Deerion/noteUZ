@@ -1,411 +1,477 @@
 // src/pages/notes/[id].tsx
-import type { GetServerSideProps, InferGetServerSidePropsType } from 'next';
+import type {GetServerSideProps, InferGetServerSidePropsType} from 'next';
 import Head from 'next/head';
-import { useRouter } from 'next/router';
-import React, { useState, FormEvent, useRef, useEffect } from 'react';
-// Importy UI
+import {useRouter} from 'next/router';
+import React, {useState, FormEvent, useRef, useEffect} from 'react';
 import {
     Box, TextField, Button as MuiButton, Paper, Grid, Alert, Divider,
     Typography, useTheme, CircularProgress, Dialog, DialogTitle,
-    DialogContent, DialogActions, DialogContentText
+    DialogContent, DialogActions, DialogContentText,
+    FormControl, InputLabel, Select, MenuItem, List, ListItem, ListItemText,
+    ListItemSecondaryAction, IconButton, Chip, Avatar, Tooltip, InputAdornment, Collapse
 } from '@mui/material';
-// Ikony
+// Icons
 import DeleteIcon from '@mui/icons-material/Delete';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import CloseIcon from '@mui/icons-material/Close';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
-import EmailIcon from '@mui/icons-material/Email';
+import ShareIcon from '@mui/icons-material/Share';
+import LockIcon from '@mui/icons-material/Lock';
+import PersonRemoveIcon from '@mui/icons-material/PersonRemove';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import MarkEmailReadIcon from '@mui/icons-material/MarkEmailRead';
 
-// i18n
-import { useTranslation } from 'next-i18next';
-import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
-
-// Markdown
+import {useTranslation} from 'next-i18next';
+import {serverSideTranslations} from 'next-i18next/serverSideTranslations';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
-// Komponenty
-import { NotesLayout } from '@/components/NotesPage/NotesLayout';
-import { MarkdownEditor } from '@/components/MarkdownEditor';
-import { Note } from '@/types/Note';
-import { UserData } from '@/types/User';
-import { apiFetch } from '@/lib/api'; // <--- IMPORT apiFetch
+import {NotesLayout} from '@/components/NotesPage/NotesLayout';
+import {MarkdownEditor} from '@/components/MarkdownEditor';
+import {Note} from '@/types/Note';
+import {apiFetch} from '@/lib/api';
 
-interface Props { note: Note; }
+interface ExtendedNote extends Note {
+    permission?: 'OWNER' | 'WRITE' | 'READ';
+    userId?: string;
+}
 
-// --- SERVER SIDE ---
-export const getServerSideProps: GetServerSideProps<Props> = async ({ params, req, locale }) => {
+interface NoteShareInfo {
+    id: string;
+    email: string;
+    status: string;
+    permission: 'READ' | 'WRITE';
+    token?: string;
+}
+
+interface ShareResponse {
+    message: string;
+    shareUrl?: string; // Backend zwraca teraz URL
+}
+
+interface Props { note: ExtendedNote; }
+
+export const getServerSideProps: GetServerSideProps<Props> = async ({params, req, locale}) => {
     const noteId = params?.id;
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
     const cookie = req.headers.cookie;
-
     const translations = await serverSideTranslations(locale ?? 'pl', ['common']);
 
-    if (!noteId) return { notFound: true };
+    if (!noteId) return {notFound: true};
 
     try {
         const res = await fetch(`${API_URL}/api/notes/${noteId}`, {
             method: 'GET',
-            headers: { 'Content-Type': 'application/json', ...(cookie && { 'Cookie': cookie }) },
+            headers: {'Content-Type': 'application/json', ...(cookie && {'Cookie': cookie})},
         });
-
-        if (res.status === 404) return { notFound: true };
-        if (!res.ok) throw new Error('Błąd pobierania');
-
-        const note = (await res.json()) as Note;
-        return { props: { note, ...translations } };
+        if (res.status === 404 || res.status === 403) return {notFound: true};
+        if (!res.ok) throw new Error('Error');
+        const note = (await res.json()) as ExtendedNote;
+        return {props: {note, ...translations}};
     } catch (e) {
-        return { notFound: true };
+        return {notFound: true};
     }
 };
 
-// --- CLIENT SIDE ---
-export default function SingleNotePage({ note: initialNote }: InferGetServerSidePropsType<typeof getServerSideProps>) {
-    const { t } = useTranslation('common');
+export default function SingleNotePage({note: initialNote}: InferGetServerSidePropsType<typeof getServerSideProps>) {
+    const {t} = useTranslation('common');
     const router = useRouter();
     const theme = useTheme();
 
     const isGroupNote = Boolean(initialNote.groupId);
+    const permission = initialNote.permission || 'OWNER';
+    const canEdit = permission === 'OWNER' || permission === 'WRITE';
+    const isOwner = permission === 'OWNER';
 
-    // Stan notatki
     const [title, setTitle] = useState(initialNote.title || '');
     const [content, setContent] = useState(initialNote.content || '');
     const [isEditing, setIsEditing] = useState(false);
-
-    // Stany akcji
     const [loading, setLoading] = useState(false);
     const [exporting, setExporting] = useState(false);
-    const [sendingEmail, setSendingEmail] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-    // Stan uprawnień
-    const [canDelete, setCanDelete] = useState(false);
+    // Dialog Udostępniania
+    const [shareDialogOpen, setShareDialogOpen] = useState(false);
+    const [shareEmail, setShareEmail] = useState('');
+    const [sharePermission, setSharePermission] = useState('READ');
+    const [shareLoading, setShareLoading] = useState(false);
+    const [shares, setShares] = useState<NoteShareInfo[]>([]);
+    const [generatedLink, setGeneratedLink] = useState<string | null>(null); // Nowy stan dla linku
+    const [shareError, setShareError] = useState<string | null>(null); // Błędy w modalu
 
-    // Stan modala email
-    const [emailDialogOpen, setEmailDialogOpen] = useState(false);
-    const [targetEmail, setTargetEmail] = useState('');
+    // Własny mail (do sprawdzenia w frontendzie, opcjonalnie)
+    const [myEmail, setMyEmail] = useState<string>('');
 
     const printRef = useRef<HTMLDivElement>(null);
 
-    // --- POPRAWIONE SPRAWDZANIE UPRAWNIEŃ (apiFetch) ---
     useEffect(() => {
-        const checkPermissions = async () => {
-            try {
-                // 1. Pobierz dane zalogowanego użytkownika (apiFetch wyśle ciasteczka poprawnie)
-                const me = await apiFetch<UserData>('/api/auth/me');
-                if (!me) return;
+        // Pobierz mój email, żeby zablokować wpisywanie go w polu udostępniania
+        apiFetch<{ email: string }>('/api/auth/me').then(data => setMyEmail(data.email)).catch(() => {});
+    }, []);
 
-                // 2. Sprawdź czy jestem autorem
-                // Backend może zwracać userId (camelCase) lub user_id (snake_case)
-                const noteAuthorId = (initialNote as any).userId || initialNote.user_id;
-                const isAuthor = me.id === noteAuthorId;
+    const handleBack = () => router.push(isGroupNote ? `/groups/${initialNote.groupId}` : '/notes');
 
-                if (isAuthor) {
-                    setCanDelete(true);
-                    return;
-                }
-
-                // 3. Jeśli to notatka grupowa -> sprawdź rolę w grupie
-                if (initialNote.groupId) {
-                    // Pobieramy szczegóły grupy
-                    const groupData = await apiFetch<any>(`/api/groups/${initialNote.groupId}`);
-
-                    if (groupData && groupData.members) {
-                        // Znajdź mnie na liście członków
-                        const myMember = groupData.members.find((m: any) => m.userId === me.id);
-
-                        if (myMember) {
-                            // Pozwól usuwać tylko ADMIN i OWNER
-                            if (myMember.role === 'OWNER' || myMember.role === 'ADMIN') {
-                                setCanDelete(true);
-                            }
-                        }
-                    }
-                }
-            } catch (e) {
-                console.error("Błąd sprawdzania uprawnień:", e);
-            }
-        };
-
-        checkPermissions();
-    }, [initialNote]);
-
-    // --- RESZTA KODU BEZ ZMIAN ---
-    const handleBack = () => {
-        if (isGroupNote) {
-            router.push(`/groups/${initialNote.groupId}`);
-        } else {
-            router.push('/notes');
+    // Pobierz listę osób (tylko właściciel)
+    useEffect(() => {
+        if (shareDialogOpen && isOwner) {
+            setGeneratedLink(null);
+            setShareError(null);
+            setShareEmail('');
+            apiFetch<NoteShareInfo[]>(`/api/notes/${initialNote.id}/shares`)
+                .then(data => setShares(data || []))
+                .catch(console.error);
         }
-    };
+    }, [shareDialogOpen, isOwner, initialNote.id]);
 
     async function handleSave(e: FormEvent) {
         e.preventDefault();
+        if (!canEdit) return;
         setLoading(true);
-        setError(null);
         try {
             await apiFetch(`/api/notes/${initialNote.id}`, {
                 method: 'PUT',
-                body: JSON.stringify({ title, content }),
+                body: JSON.stringify({title, content}),
             });
             setIsEditing(false);
             router.reload();
-        } catch (err: any) {
-            setError(err.message || t('error_save_failed'));
-        } finally {
-            setLoading(false);
-        }
+        } catch (err) { setError(t('error_save_failed')); }
+        finally { setLoading(false); }
     }
 
     async function handleDelete() {
-        if (!confirm(t('confirm_delete'))) return;
+        const msg = isOwner
+            ? t('confirm_delete') || "Czy na pewno usunąć notatkę bezpowrotnie?"
+            : "Czy na pewno usunąć notatkę z listy udostępnionych?";
+
+        if (!confirm(msg)) return;
         setLoading(true);
         try {
-            await apiFetch(`/api/notes/${initialNote.id}`, { method: 'DELETE' });
+            await apiFetch(`/api/notes/${initialNote.id}`, {method: 'DELETE'});
+            router.push('/notes');
+        } catch (err) { setError(t('error_delete_failed')); setLoading(false); }
+    }
 
-            if (isGroupNote) {
-                router.push(`/groups/${initialNote.groupId}`);
-            } else {
-                router.push('/notes');
-            }
-        } catch (err: any) {
-            setError(err.message || t('error_delete_failed'));
-            setLoading(false);
+    async function handleShare() {
+        setShareError(null);
+        setGeneratedLink(null);
+
+        if (!shareEmail.includes('@')) { setShareError(t('invalid_email')); return; }
+        if (shareEmail.trim().toLowerCase() === myEmail.trim().toLowerCase()) {
+            setShareError(t('share_self_error') || "Nie możesz udostępnić samemu sobie.");
+            return;
         }
+
+        setShareLoading(true);
+        try {
+            const res = await apiFetch<ShareResponse>(`/api/notes/${initialNote.id}/share`, {
+                method: 'POST',
+                body: JSON.stringify({email: shareEmail, permission: sharePermission})
+            });
+
+            // Sukces - pokaż link
+            if (res.shareUrl) {
+                setGeneratedLink(res.shareUrl);
+            }
+
+            setShareEmail(''); // Wyczyść pole
+            // Odśwież listę
+            const updatedShares = await apiFetch<NoteShareInfo[]>(`/api/notes/${initialNote.id}/shares`);
+            setShares(updatedShares || []);
+        } catch (error: unknown) {
+            // Fix: Specify error type as unknown and cast or check
+            let errMsg = t('error_sharing');
+            if (error instanceof Error) {
+                errMsg = error.message;
+            }
+            setShareError(errMsg);
+        }
+        finally { setShareLoading(false); }
+    }
+
+    async function handleRevokeAccess(shareId: string) {
+        if(!confirm("Odebrać dostęp?")) return;
+        try {
+            await fetch(`/api/notes/share-update?shareId=${shareId}`, { method: 'DELETE' });
+            const updated = shares.filter(s => s.id !== shareId);
+            setShares(updated);
+        } catch (e) { alert("Błąd"); }
+    }
+
+    async function handleChangeAccess(shareId: string, newPerm: string) {
+        try {
+            await fetch(`/api/notes/share-update`, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({shareId, permission: newPerm})
+            });
+            // Aktualizuj lokalnie
+            setShares(shares.map(s => s.id === shareId ? {...s, permission: newPerm as any} : s));
+        } catch (e) { alert("Błąd"); }
     }
 
     async function handleExportPdf() {
         if (!printRef.current) return;
         setExporting(true);
-        setError(null);
-
         try {
             const html2canvas = (await import('html2canvas')).default;
             const jsPDFModule = await import('jspdf');
-            // @ts-ignore
             const JsPDF = jsPDFModule.jsPDF || jsPDFModule.default;
-
             const element = printRef.current;
-            let bgColor = '#ffffff';
-            let textColor = '#000000';
-
-            if (typeof window !== 'undefined') {
-                const computed = getComputedStyle(document.body);
-                const isDark = theme.palette.mode === 'dark';
-                bgColor = isDark ? '#ffffff' : computed.getPropertyValue('--paper').trim() || '#ffffff';
-                textColor = isDark ? '#000000' : computed.getPropertyValue('--foreground').trim() || '#000000';
-            }
 
             const originalStyle = element.style.cssText;
-            element.style.backgroundColor = bgColor;
-            element.style.color = textColor;
+            element.style.backgroundColor = '#ffffff';
+            element.style.color = '#000000';
             element.style.padding = '20px';
 
-            const canvas = await html2canvas(element, {
-                scale: 3,
-                useCORS: true,
-                backgroundColor: bgColor
-            });
-
+            const canvas = await html2canvas(element, { scale: 3, useCORS: true });
             element.style.cssText = originalStyle;
 
             const imgData = canvas.toDataURL('image/png');
-            const pdf = new JsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = pdf.internal.pageSize.getHeight();
-            const marginX = 15;
-            const marginY = 20;
-            const contentWidth = pdfWidth - (2 * marginX);
+            const pdf = new JsPDF({orientation: 'portrait', unit: 'mm', format: 'a4'});
             const imgProps = pdf.getImageProperties(imgData);
-            const imgHeight = (imgProps.height * contentWidth) / imgProps.width;
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = (imgProps.height * (pdfWidth - 30)) / imgProps.width;
 
-            pdf.setFont("helvetica", "bold");
-            pdf.setFontSize(22);
-            const safeTitle = title.replace(/[^\x00-\x7F]/g, "");
-            pdf.text(safeTitle || "Note", marginX, marginY);
-
-            pdf.setFont("helvetica", "normal");
-            pdf.setFontSize(10);
-            pdf.setTextColor(100);
-            const dateStr = new Date().toLocaleDateString();
-            pdf.text(`NoteUZ | ${dateStr}`, marginX, marginY + 6);
-
-            pdf.setDrawColor(200);
-            pdf.line(marginX, marginY + 10, pdfWidth - marginX, marginY + 10);
-
-            let position = marginY + 15;
-            pdf.addImage(imgData, 'PNG', marginX, position, contentWidth, imgHeight);
-
-            pdf.setFontSize(8);
-            pdf.setTextColor(150);
-            pdf.text("Wygenerowano przez NoteUZ", pdfWidth / 2, pdfHeight - 10, { align: 'center' });
-
-            const safeFilename = title.replace(/[^a-z0-9żźćńółęśąŻŹĆŃÓŁĘŚĄ \-]/gi, '_');
-            pdf.save(`NoteUZ_${safeFilename || 'notatka'}.pdf`);
-
-        } catch (e: any) {
-            console.error(e);
-            alert((t('error_export_failed') || 'Błąd eksportu') + ': ' + e.message);
-        } finally {
-            setExporting(false);
-        }
+            pdf.setFontSize(20);
+            pdf.text(title.replace(/[^\x00-\x7F]/g, ""), 15, 20);
+            pdf.addImage(imgData, 'PNG', 15, 30, pdfWidth - 30, pdfHeight);
+            pdf.save(`NoteUZ.pdf`);
+        } catch (e) { alert(t('error_export_failed')); }
+        finally { setExporting(false); }
     }
 
-    async function handleSendEmail() {
-        if (!targetEmail || !targetEmail.includes('@')) {
-            alert(t('invalid_email') || 'Podaj poprawny adres e-mail');
-            return;
-        }
-        setSendingEmail(true);
-        setEmailDialogOpen(false);
-        setError(null);
-        setSuccessMsg(null);
-
-        try {
-            await apiFetch(`/api/notes/${initialNote.id}/email`, {
-                method: 'POST',
-                body: JSON.stringify({ email: targetEmail })
-            });
-
-            setSuccessMsg(t('email_sent_success') || 'Notatka została wysłana!');
-            setTargetEmail('');
-        } catch (err: any) {
-            setError(err.message || t('error_unknown'));
-        } finally {
-            setSendingEmail(false);
+    const copyLink = () => {
+        if (generatedLink) {
+            navigator.clipboard.writeText(generatedLink);
+            alert(t('share_link_copied') || "Link skopiowany!");
         }
     }
-
-    const markdownStyles = {
-        '& h1, & h2, & h3': { color: 'text.primary', fontWeight: 800, mt: 3, mb: 1.5 },
-        '& h1': { fontSize: '2rem', borderBottom: '1px solid', borderColor: 'divider', pb: 1 },
-        '& p': { color: 'text.secondary', lineHeight: 1.7, mb: 2 },
-        '& ul, & ol': { pl: 3, mb: 2, color: 'text.secondary' },
-        '& a': { color: 'primary.main', textDecoration: 'none', fontWeight: 500 },
-        '& blockquote': {
-            borderLeft: `4px solid ${theme.palette.primary.main}`,
-            pl: 2.5, py: 0.5, my: 3,
-            bgcolor: theme.palette.mode === 'light' ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.03)',
-            fontStyle: 'italic', color: 'text.primary'
-        },
-        '& code': {
-            bgcolor: theme.palette.mode === 'light' ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.1)',
-            p: '2px 6px', borderRadius: '6px', fontFamily: 'monospace', color: theme.palette.secondary.main
-        }
-    };
 
     return (
         <>
             <Head><title>{title} — NoteUZ</title></Head>
             <NotesLayout
                 title={isEditing ? t('edit_note_header') : t('view_note_header')}
-                actionButton={
-                    <MuiButton startIcon={<ArrowBackIcon />} onClick={handleBack}>
-                        {t('btn_back')}
-                    </MuiButton>
-                }
+                actionButton={<MuiButton startIcon={<ArrowBackIcon/>} onClick={handleBack}>{t('btn_back')}</MuiButton>}
             >
-                <Paper sx={{ p: { xs: 3, md: 5 }, borderRadius: 4 }}>
-                    {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-                    {successMsg && <Alert severity="success" sx={{ mb: 2 }}>{successMsg}</Alert>}
+                <Paper sx={{p: {xs: 3, md: 5}, borderRadius: 4, mb: 3}}>
+                    {error && <Alert severity="error" sx={{mb: 2}}>{error}</Alert>}
+                    {successMsg && <Alert severity="success" sx={{mb: 2}}>{successMsg}</Alert>}
 
-                    <Box component="form" onSubmit={handleSave} sx={{ display: 'grid', gap: 3 }}>
+                    {!canEdit && (
+                        <Alert severity="info" icon={<LockIcon />} sx={{mb: 3}}>
+                            {t('read_only_mode') || "Tylko podgląd."}
+                        </Alert>
+                    )}
 
+                    <Box component="form" onSubmit={handleSave} sx={{display: 'grid', gap: 3}}>
                         <TextField
                             label={t('label_title')}
                             value={title}
                             onChange={e => setTitle(e.target.value)}
-                            disabled={!isEditing}
+                            disabled={!isEditing || !canEdit}
                             fullWidth
                             variant={isEditing ? "outlined" : "standard"}
-                            slotProps={{
-                                input: { sx: { fontSize: '1.5rem', fontWeight: 700, color: 'text.primary' } }
-                            }}
+                            slotProps={{input: {sx: {fontSize: '1.5rem', fontWeight: 700}}}}
                         />
 
                         {!isEditing ? (
-                            <Box ref={printRef} sx={{ minHeight: 200, ...markdownStyles, p: 2 }}>
-                                {content ? <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown> : <Typography color="text.disabled" fontStyle="italic">{t('note_no_content')}</Typography>}
+                            <Box ref={printRef} sx={{minHeight: 200, p: 2}}>
+                                {content ? <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown> :
+                                    <Typography color="text.disabled" fontStyle="italic">{t('note_no_content')}</Typography>}
                             </Box>
                         ) : (
-                            <MarkdownEditor value={content} onChange={setContent} minRows={15} />
+                            <MarkdownEditor value={content} onChange={setContent} minRows={15}/>
                         )}
 
-                        <Divider sx={{ my: 2 }} />
+                        <Divider sx={{my: 2}}/>
 
                         <Grid container spacing={2} justifyContent="flex-end">
                             {!isEditing ? (
                                 <>
-                                    {!isGroupNote && (
+                                    {!isGroupNote && isOwner && (
                                         <Grid>
-                                            <MuiButton
-                                                onClick={() => setEmailDialogOpen(true)}
-                                                variant="outlined" color="primary"
-                                                disabled={sendingEmail}
-                                                startIcon={sendingEmail ? <CircularProgress size={20} /> : <EmailIcon />}
-                                                sx={{ borderRadius: '10px' }}
-                                            >
-                                                {t('btn_email') || "Wyślij"}
+                                            <MuiButton onClick={() => setShareDialogOpen(true)} variant="outlined" startIcon={<ShareIcon/>}>
+                                                {t('notes.share')}
                                             </MuiButton>
                                         </Grid>
                                     )}
                                     <Grid>
-                                        <MuiButton
-                                            onClick={handleExportPdf}
-                                            variant="outlined" color="secondary"
-                                            disabled={exporting}
-                                            startIcon={exporting ? <CircularProgress size={20} /> : <PictureAsPdfIcon />}
-                                            sx={{ borderRadius: '10px' }}
-                                        >
-                                            {t('btn_export_pdf') || "PDF"}
+                                        <MuiButton onClick={handleExportPdf} variant="outlined" color="secondary" disabled={exporting} startIcon={exporting ? <CircularProgress size={20}/> : <PictureAsPdfIcon/>}>
+                                            {t('btn_export_pdf')}
                                         </MuiButton>
                                     </Grid>
-                                    <Grid><MuiButton onClick={() => setIsEditing(true)} variant="contained" startIcon={<EditIcon />} sx={{ borderRadius: '10px' }}>{t('btn_edit')}</MuiButton></Grid>
-
-                                    {/* --- PRZYCISK USUWANIA --- */}
-                                    {canDelete && (
+                                    {canEdit && (
                                         <Grid>
-                                            <MuiButton onClick={handleDelete} color="error" variant="outlined" startIcon={<DeleteIcon />} sx={{ borderRadius: '10px' }}>
-                                                {t('btn_delete')}
+                                            <MuiButton onClick={() => setIsEditing(true)} variant="contained" startIcon={<EditIcon/>}>
+                                                {t('btn_edit')}
                                             </MuiButton>
                                         </Grid>
                                     )}
+                                    <Grid>
+                                        <MuiButton onClick={handleDelete} color="error" variant="outlined" startIcon={<DeleteIcon/>}>
+                                            {isOwner ? t('btn_delete') : "Usuń z listy"}
+                                        </MuiButton>
+                                    </Grid>
                                 </>
                             ) : (
                                 <>
-                                    <Grid><MuiButton onClick={() => { setIsEditing(false); }} disabled={loading} startIcon={<CloseIcon />} color="inherit">{t('btn_cancel')}</MuiButton></Grid>
-                                    <Grid><MuiButton type="submit" variant="contained" disabled={loading} startIcon={<SaveIcon />} sx={{ borderRadius: '10px' }}>{t('btn_save')}</MuiButton></Grid>
+                                    <Grid><MuiButton onClick={() => setIsEditing(false)} disabled={loading} startIcon={<CloseIcon/>} color="inherit">{t('btn_cancel')}</MuiButton></Grid>
+                                    <Grid><MuiButton type="submit" variant="contained" disabled={loading} startIcon={<SaveIcon/>}>{t('btn_save')}</MuiButton></Grid>
                                 </>
                             )}
                         </Grid>
                     </Box>
                 </Paper>
 
-                <Dialog open={emailDialogOpen} onClose={() => setEmailDialogOpen(false)}>
-                    <DialogTitle>{t('email_modal_title') || "Wyślij notatkę"}</DialogTitle>
+                {/* --- MODAL UDOSTĘPNIANIA --- */}
+                <Dialog open={shareDialogOpen} onClose={() => setShareDialogOpen(false)} fullWidth maxWidth="sm">
+                    <DialogTitle sx={{ fontWeight: 700 }}>
+                        {t('notes.share_note')}
+                    </DialogTitle>
                     <DialogContent>
-                        <DialogContentText>
-                            {t('email_modal_desc') || "Podaj adres e-mail, na który chcesz wysłać tę notatkę."}
+                        <DialogContentText sx={{mb: 2}}>
+                            {t('share_desc')}
                         </DialogContentText>
-                        <TextField
-                            autoFocus margin="dense"
-                            label="Adres e-mail"
-                            type="email"
-                            fullWidth variant="outlined"
-                            value={targetEmail}
-                            onChange={(e) => setTargetEmail(e.target.value)}
-                        />
+
+                        {/* FORMULARZ */}
+                        <Box sx={{display: 'flex', gap: 1, alignItems: 'flex-start', mb: 1}}>
+                            <TextField
+                                fullWidth
+                                label={t('notes.recipient_email')}
+                                type="email"
+                                value={shareEmail}
+                                onChange={(e) => setShareEmail(e.target.value)}
+                                placeholder="user@example.com"
+                                variant="outlined"
+                                size="small"
+                                error={!!shareError}
+                                helperText={shareError}
+                            />
+                            <FormControl size="small" sx={{minWidth: 110}}>
+                                <InputLabel>{t('permission')}</InputLabel>
+                                <Select
+                                    value={sharePermission}
+                                    label={t('permission')}
+                                    onChange={(e) => setSharePermission(e.target.value)}
+                                >
+                                    <MenuItem value="READ">{t('perm_read')}</MenuItem>
+                                    <MenuItem value="WRITE">{t('perm_write')}</MenuItem>
+                                </Select>
+                            </FormControl>
+                        </Box>
+                        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 3 }}>
+                            <MuiButton
+                                onClick={handleShare}
+                                variant="contained"
+                                disabled={shareLoading || !shareEmail}
+                                endIcon={shareLoading ? <CircularProgress size={16} /> : <MarkEmailReadIcon />}
+                            >
+                                {t('notes.share')}
+                            </MuiButton>
+                        </Box>
+
+                        {/* LINK MANUALNY (JEŚLI WYGENEROWANY) */}
+                        <Collapse in={!!generatedLink}>
+                            <Alert severity="success" sx={{ mb: 3, alignItems: 'center' }}>
+                                <Typography variant="subtitle2" fontWeight={700} gutterBottom>
+                                    {t('email_sent_success')}
+                                </Typography>
+                                <Typography variant="body2" sx={{ mb: 1 }}>
+                                    {t('share_manual_link_label') || "Jeśli e-mail nie dotrze, wyślij ten link:"}
+                                </Typography>
+                                <TextField
+                                    fullWidth
+                                    size="small"
+                                    value={generatedLink || ''}
+                                    InputProps={{
+                                        readOnly: true,
+                                        endAdornment: (
+                                            <InputAdornment position="end">
+                                                <IconButton edge="end" onClick={copyLink}>
+                                                    <ContentCopyIcon />
+                                                </IconButton>
+                                            </InputAdornment>
+                                        ),
+                                        sx: { bgcolor: 'background.paper', fontSize: '0.85rem' }
+                                    }}
+                                />
+                            </Alert>
+                        </Collapse>
+
+                        <Divider sx={{my: 2}} />
+
+                        {/* LISTA UDOSTĘPNIEŃ */}
+                        <Typography variant="overline" color="text.secondary" fontWeight={700}>
+                            Osoby z dostępem ({shares.length})
+                        </Typography>
+
+                        {shares.length === 0 ? (
+                            <Typography variant="body2" color="text.secondary" fontStyle="italic" sx={{ mt: 1 }}>
+                                Nikt jeszcze nie ma dostępu.
+                            </Typography>
+                        ) : (
+                            <List dense sx={{ mt: 1 }}>
+                                {shares.map(s => {
+                                    const initial = s.email.charAt(0).toUpperCase();
+                                    return (
+                                        <ListItem
+                                            key={s.id}
+                                            divider
+                                            sx={{
+                                                bgcolor: theme.palette.action.hover,
+                                                borderRadius: 2,
+                                                mb: 1
+                                            }}
+                                        >
+                                            <Avatar sx={{ width: 32, height: 32, mr: 2, bgcolor: theme.palette.secondary.main, fontSize: '0.9rem' }}>
+                                                {initial}
+                                            </Avatar>
+                                            <ListItemText
+                                                primary={<Typography fontWeight={500}>{s.email}</Typography>}
+                                                secondary={
+                                                    <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                        <Chip
+                                                            label={s.status === 'ACCEPTED' ? t('status_accepted') : (s.status === 'REJECTED' ? t('status_rejected') : t('status_pending'))}
+                                                            size="small"
+                                                            color={s.status === 'ACCEPTED' ? 'success' : 'warning'}
+                                                            variant="outlined"
+                                                            sx={{ height: 20, fontSize: '0.65rem' }}
+                                                        />
+                                                    </Box>
+                                                }
+                                            />
+                                            <ListItemSecondaryAction sx={{display: 'flex', alignItems: 'center', gap: 1}}>
+                                                <Select
+                                                    value={s.permission}
+                                                    size="small"
+                                                    variant="standard"
+                                                    disableUnderline
+                                                    onChange={(e) => handleChangeAccess(s.id, e.target.value)}
+                                                    sx={{ fontSize: '0.8rem', mr: 1, fontWeight: 600, color: 'primary.main' }}
+                                                >
+                                                    <MenuItem value="READ">{t('perm_read')}</MenuItem>
+                                                    <MenuItem value="WRITE">{t('perm_write')}</MenuItem>
+                                                </Select>
+                                                <Tooltip title="Odbierz dostęp">
+                                                    <IconButton edge="end" onClick={() => handleRevokeAccess(s.id)} size="small" color="error">
+                                                        <PersonRemoveIcon fontSize="small" />
+                                                    </IconButton>
+                                                </Tooltip>
+                                            </ListItemSecondaryAction>
+                                        </ListItem>
+                                    )
+                                })}
+                            </List>
+                        )}
                     </DialogContent>
                     <DialogActions>
-                        <MuiButton onClick={() => setEmailDialogOpen(false)}>{t('btn_cancel')}</MuiButton>
-                        <MuiButton onClick={handleSendEmail} variant="contained">{t('btn_send') || "Wyślij"}</MuiButton>
+                        <MuiButton onClick={() => setShareDialogOpen(false)}>{t('common.cancel')}</MuiButton>
                     </DialogActions>
                 </Dialog>
-
             </NotesLayout>
         </>
     );

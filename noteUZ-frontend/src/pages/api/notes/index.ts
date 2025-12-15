@@ -1,55 +1,85 @@
-// src/pages/api/notes/index.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 const SPRING_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-    // Nagłówki z ciasteczkami sesji
-    const headers: HeadersInit = {
-        'Content-Type': 'application/json',
-    };
-    if (req.headers.cookie) {
-        headers['Cookie'] = req.headers.cookie;
+
+    // GET - lista notatek
+    if (req.method === 'GET') {
+        try {
+            const headers: HeadersInit = {
+                'Content-Type': 'application/json'
+            };
+
+            if (req.headers.cookie) {
+                headers['Cookie'] = req.headers.cookie;
+            }
+
+            const response = await fetch(
+                `${SPRING_API_URL}/api/notes`,
+                {
+                    method: 'GET',
+                    headers
+                }
+            );
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error(`[Notes List] Backend error:`, errorText);
+                return res.status(response.status).json({
+                    message: errorText || 'Błąd pobierania notatek'
+                });
+            }
+
+            const data = await response.json();
+            return res.status(200).json(data);
+
+        } catch (error) {
+            console.error('[Notes List] Fetch error:', error);
+            return res.status(500).json({
+                message: 'Błąd połączenia z backendem'
+            });
+        }
     }
 
-    try {
-        let response: Response;
+    // POST - tworzenie notatki
+    if (req.method === 'POST') {
+        try {
+            const headers: HeadersInit = {
+                'Content-Type': 'application/json'
+            };
 
-        switch (req.method) {
-            case 'GET':
-                // Pobieranie listy notatek
-                response = await fetch(`${SPRING_API_URL}/api/notes`, {
-                    method: 'GET',
-                    headers,
-                    cache: 'no-store'
-                });
-                break;
+            if (req.headers.cookie) {
+                headers['Cookie'] = req.headers.cookie;
+            }
 
-            case 'POST':
-                // Tworzenie nowej notatki
-                response = await fetch(`${SPRING_API_URL}/api/notes`, {
+            const response = await fetch(
+                `${SPRING_API_URL}/api/notes`,
+                {
                     method: 'POST',
                     headers,
-                    body: JSON.stringify(req.body),
+                    body: JSON.stringify(req.body)
+                }
+            );
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error(`[Note Create] Backend error:`, errorText);
+                return res.status(response.status).json({
+                    message: errorText || 'Błąd tworzenia notatki'
                 });
-                break;
+            }
 
-            default:
-                res.setHeader('Allow', ['GET', 'POST']);
-                return res.status(405).end(`Method ${req.method} Not Allowed`);
+            const data = await response.json();
+            return res.status(200).json(data);
+
+        } catch (error) {
+            console.error('[Note Create] Fetch error:', error);
+            return res.status(500).json({
+                message: 'Błąd połączenia z backendem'
+            });
         }
-
-        // Przekazanie odpowiedzi z Javy do Frontendu
-        const data = await response.text();
-        try {
-            const json = JSON.parse(data);
-            return res.status(response.status).json(json);
-        } catch {
-            return res.status(response.status).send(data);
-        }
-
-    } catch (error) {
-        console.error('API Notes Error:', error);
-        return res.status(500).json({ message: 'Backend unavailable' });
     }
+
+    return res.status(405).json({ message: 'Metoda niedozwolona' });
 }

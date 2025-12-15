@@ -4,12 +4,13 @@ import org.example.noteuzbackend.service.AuthService;
 import org.example.noteuzbackend.service.NoteService;
 import org.example.noteuzbackend.service.EmailService;
 import org.example.noteuzbackend.model.entity.Note;
-import org.example.noteuzbackend.repository.GroupMemberRepo; // <--- 1. IMPORT
-import org.springframework.beans.factory.annotation.Value;
+import org.example.noteuzbackend.model.entity.NoteShare;
+import org.example.noteuzbackend.repository.GroupMemberRepo;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 @RestController
@@ -19,35 +20,16 @@ public class NoteController {
     private final NoteService service;
     private final AuthService authService;
     private final EmailService emailService;
-    private final GroupMemberRepo groupMemberRepo; // <--- 2. NOWE POLE
-    private final String cookieName;
+    private final GroupMemberRepo groupMemberRepo;
 
-    // <--- 3. ZAKTUALIZOWANY KONSTRUKTOR
-    public NoteController(NoteService service,
-                          AuthService authService,
-                          EmailService emailService,
-                          GroupMemberRepo groupMemberRepo,
-                          @Value("${app.jwt.cookie}") String cookieName) {
+    public NoteController(NoteService service, AuthService authService, EmailService emailService, GroupMemberRepo groupMemberRepo) {
         this.service = service;
         this.authService = authService;
         this.emailService = emailService;
         this.groupMemberRepo = groupMemberRepo;
-        this.cookieName = cookieName;
     }
 
-    // Metoda pomocnicza do sprawdzania dostępu (Autor LUB Członek Grupy)
-    private boolean hasAccess(Note note, UUID userId) {
-        // 1. Jest autorem
-        if (note.getUserId().equals(userId)) {
-            return true;
-        }
-        // 2. Jest członkiem grupy przypisanej do notatki
-        if (note.getGroupId() != null) {
-            return groupMemberRepo.existsByGroupIdAndUserId(note.getGroupId(), userId);
-        }
-        return false;
-    }
-
+    @SuppressWarnings("unchecked")
     private Map<String, Object> getUserDataFromToken(String token) {
         if (token == null || token.isBlank()) return null;
         ResponseEntity<?> response = authService.getUser(token);
@@ -65,137 +47,169 @@ public class NoteController {
         return null;
     }
 
-    // GET /api/notes
+    private String getUserEmailFromToken(String token) {
+        Map<String, Object> userData = getUserDataFromToken(token);
+        return (userData != null) ? (String) userData.get("email") : null;
+    }
+
     @GetMapping
     public ResponseEntity<?> list(@CookieValue(value = "${app.jwt.cookie}", required = false) String token) {
         UUID userId = getUserIdFromToken(token);
-        if (userId == null) {
-            return ResponseEntity.status(401).body(Map.of("message", "Nie jesteś zalogowany"));
-        }
+        if (userId == null) return ResponseEntity.status(401).body(Map.of("message", "Nie jesteś zalogowany"));
         return ResponseEntity.ok(service.listNotes(userId));
     }
 
-    // GET /api/notes/{id}
+    @GetMapping("/shared")
+    public ResponseEntity<?> listSharedNotes(@CookieValue(value = "${app.jwt.cookie}", required = false) String token) {
+        String email = getUserEmailFromToken(token);
+        if (email == null) return ResponseEntity.status(401).body(Map.of("message", "Musisz być zalogowany"));
+        return ResponseEntity.ok(service.getSharedNotes(email));
+    }
+
     @GetMapping("/{id}")
-    public ResponseEntity<?> get(@PathVariable UUID id,
-                                 @CookieValue(value = "${app.jwt.cookie}", required = false) String token) {
+    public ResponseEntity<Map<String, Object>> get(@PathVariable UUID id, @CookieValue(value = "${app.jwt.cookie}", required = false) String token) {
         UUID userId = getUserIdFromToken(token);
+        String userEmail = getUserEmailFromToken(token);
         if (userId == null) return ResponseEntity.status(401).build();
 
         Note note = service.getNoteById(id);
+        boolean isOwner = note.getUserId().equals(userId);
+        boolean isShared = false;
+        String permission = "OWNER";
 
-        // <--- 4. NOWE SPRAWDZANIE UPRAWNIEŃ (Wspiera Grupy)
-        if (!hasAccess(note, userId)) {
-            return ResponseEntity.status(403).body(Map.of("message", "Brak dostępu do tej notatki"));
-        }
-
-        return ResponseEntity.ok(note);
-    }
-
-    // POST /api/notes
-    @PostMapping
-    public ResponseEntity<?> create(@RequestBody Map<String, Object> body,
-                                    @CookieValue(value = "${app.jwt.cookie}", required = false) String token) {
-        UUID userId = getUserIdFromToken(token);
-        if (userId == null) {
-            return ResponseEntity.status(401).body(Map.of("message", "Nie jesteś zalogowany"));
-        }
-
-        var title = String.valueOf(body.getOrDefault("title", ""));
-        var content = String.valueOf(body.getOrDefault("content", ""));
-
-        var saved = service.create(userId, title, content);
-
-        return ResponseEntity.ok(saved);
-    }
-
-    // PUT /api/notes/{id}
-    @PutMapping("/{id}")
-    public ResponseEntity<?> update(@PathVariable UUID id,
-                                    @RequestBody Map<String, Object> body,
-                                    @CookieValue(value = "${app.jwt.cookie}", required = false) String token) {
-        UUID userId = getUserIdFromToken(token);
-        if (userId == null) return ResponseEntity.status(401).build();
-
-        Note existing = service.getNoteById(id);
-
-        // <--- 5. EDYCJA DLA CZŁONKÓW GRUPY (Wspólna edycja)
-        if (!hasAccess(existing, userId)) {
-            return ResponseEntity.status(403).body(Map.of("message", "Brak uprawnień do edycji"));
-        }
-
-        var title = String.valueOf(body.getOrDefault("title", ""));
-        var content = String.valueOf(body.getOrDefault("content", ""));
-
-        return ResponseEntity.ok(service.update(id, title, content));
-    }
-
-    // DELETE /api/notes/{id}
-// DELETE /api/notes/{id}
-    @DeleteMapping("/{id}")
-    public ResponseEntity<?> delete(@PathVariable UUID id,
-                                    @CookieValue(value = "${app.jwt.cookie}", required = false) String token) {
-
-        // 1. Pobierz dane zalogowanego użytkownika
-        UUID userId = getUserIdFromToken(token);
-        if (userId == null) return ResponseEntity.status(401).build();
-
-        // 2. Pobierz notatkę
-        Note existing = service.getNoteById(id);
-
-        // 3. Sprawdź uprawnienia (AUTOR lub ADMIN/OWNER GRUPY)
-        boolean isAuthor = existing.getUserId().equals(userId);
-        boolean canDelete = isAuthor;
-
-        // Jeśli nie jest autorem, sprawdzamy czy jest szefem grupy
-        if (!isAuthor && existing.getGroupId() != null) {
-            var memberOpt = groupMemberRepo.findByGroupIdAndUserId(existing.getGroupId(), userId);
-            if (memberOpt.isPresent()) {
-                var role = memberOpt.get().getRole();
-                // Admin i Owner mogą usuwać notatki innych
-                if (role.name().equals("OWNER") || role.name().equals("ADMIN")) {
-                    canDelete = true;
-                }
+        if (!isOwner) {
+            var shareOpt = service.findShare(id, userEmail);
+            if (shareOpt.isPresent() && shareOpt.get().getStatus() == NoteShare.ShareStatus.ACCEPTED) {
+                isShared = true;
+                permission = shareOpt.get().getPermission().toString();
             }
         }
 
-        if (!canDelete) {
-            return ResponseEntity.status(403).body(Map.of("message", "Brak uprawnień do usunięcia notatki"));
-        }
+        if (!isOwner && !isShared) return ResponseEntity.status(403).build();
 
-        service.delete(id);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(Map.of(
+                "id", note.getId(),
+                "title", note.getTitle(),
+                "content", note.getContent(),
+                "userId", note.getUserId(),
+                "createdAt", note.getCreatedAt(),
+                "permission", permission
+        ));
     }
-    // POST /api/notes/{id}/email
-    @PostMapping("/{id}/email")
-    public ResponseEntity<?> sendEmail(@PathVariable UUID id,
-                                       @RequestBody Map<String, String> body,
-                                       @CookieValue(value = "${app.jwt.cookie}", required = false) String token) {
 
-        Map<String, Object> userData = getUserDataFromToken(token);
-        if (userData == null) return ResponseEntity.status(401).build();
+    @PostMapping
+    public ResponseEntity<Map<String, Object>> create(@RequestBody Map<String, Object> body, @CookieValue(value = "${app.jwt.cookie}", required = false) String token) {
+        UUID userId = getUserIdFromToken(token);
+        if (userId == null) return ResponseEntity.status(401).body(Map.of("message", "Nie jesteś zalogowany"));
+        var saved = service.create(userId, (String) body.get("title"), (String) body.get("content"));
+        return ResponseEntity.ok(Map.of("id", saved.getId(), "title", saved.getTitle()));
+    }
 
-        UUID userId = UUID.fromString((String) userData.get("id"));
-        String senderEmail = (String) userData.get("email");
+    @PutMapping("/{id}")
+    public ResponseEntity<?> update(@PathVariable UUID id, @RequestBody Map<String, Object> body, @CookieValue(value = "${app.jwt.cookie}", required = false) String token) {
+        UUID userId = getUserIdFromToken(token);
+        String userEmail = getUserEmailFromToken(token);
+        if (userId == null) return ResponseEntity.status(401).build();
+
+        Note existing = service.getNoteById(id);
+        boolean isOwner = existing.getUserId().equals(userId);
+
+        if (!isOwner) {
+            var shareOpt = service.findShare(id, userEmail);
+            if (shareOpt.isEmpty() || shareOpt.get().getPermission() != NoteShare.Permission.WRITE) {
+                return ResponseEntity.status(403).body(Map.of("message", "Brak uprawnień"));
+            }
+        }
+        var updated = service.update(id, (String) body.get("title"), (String) body.get("content"));
+        return ResponseEntity.ok(Map.of("id", updated.getId()));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> delete(@PathVariable UUID id, @CookieValue(value = "${app.jwt.cookie}", required = false) String token) {
+        UUID userId = getUserIdFromToken(token);
+        String userEmail = getUserEmailFromToken(token);
+        if (userId == null) return ResponseEntity.status(401).build();
 
         Note note = service.getNoteById(id);
 
-        // <--- 7. WYSYŁANIE MAILA DLA CZŁONKÓW GRUPY
-        if (!hasAccess(note, userId)) {
-            return ResponseEntity.status(403).body(Map.of("message", "Brak dostępu do tej notatki"));
+        if (note.getUserId().equals(userId)) {
+            service.delete(id);
+            return ResponseEntity.noContent().build();
+        } else {
+            Optional<NoteShare> share = service.findShare(id, userEmail);
+            if (share.isPresent()) {
+                service.revokeShare(share.get().getId());
+                return ResponseEntity.ok(Map.of("message", "Usunięto notatkę z listy udostępnionych"));
+            }
+            return ResponseEntity.status(403).body(Map.of("message", "Brak dostępu"));
         }
+    }
 
-        String targetEmail = body.get("email");
-        if (targetEmail == null || !targetEmail.contains("@")) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Nieprawidłowy adres e-mail"));
-        }
+    @PostMapping("/{id}/share")
+    public ResponseEntity<?> shareNote(@PathVariable UUID id, @RequestBody Map<String, String> body, @CookieValue(value = "${app.jwt.cookie}", required = false) String token) {
+        UUID ownerId = getUserIdFromToken(token);
+        String ownerEmail = getUserEmailFromToken(token);
+        if (ownerId == null) return ResponseEntity.status(401).build();
+
+        Note note = service.getNoteById(id);
+        if (!note.getUserId().equals(ownerId)) return ResponseEntity.status(403).body(Map.of("message", "Tylko właściciel może udostępniać"));
+
+        String recipientEmail = body.get("email");
+        String permissionStr = body.getOrDefault("permission", "READ");
+        NoteShare.Permission permission = NoteShare.Permission.valueOf(permissionStr);
 
         try {
-            emailService.sendNote(targetEmail, note.getTitle(), note.getContent(), senderEmail);
-            return ResponseEntity.noContent().build();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.internalServerError().body(Map.of("message", "Błąd wysyłania e-maila: " + e.getMessage()));
+            // Service zwraca link lub rzuca błąd
+            String shareUrl = service.createShare(id, ownerId, recipientEmail, permission);
+
+            // Próba wysyłki maila (nie przerywa działania w razie błędu SMTP)
+            try {
+                emailService.sendShareInvitation(recipientEmail, ownerEmail, note.getTitle(), shareUrl, permissionStr);
+            } catch (Exception e) {
+                System.err.println("Błąd wysyłania maila: " + e.getMessage());
+            }
+
+            return ResponseEntity.ok(Map.of("message", "Wysłano", "shareUrl", shareUrl));
+
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
+    }
+
+    @GetMapping("/{id}/shares")
+    public ResponseEntity<?> getNoteShares(@PathVariable UUID id, @CookieValue(value = "${app.jwt.cookie}", required = false) String token) {
+        UUID userId = getUserIdFromToken(token);
+        Note note = service.getNoteById(id);
+        if (!note.getUserId().equals(userId)) return ResponseEntity.status(403).body(Map.of("message", "Brak dostępu"));
+        return ResponseEntity.ok(service.getNoteShares(id));
+    }
+
+    @PostMapping("/share/{token}/accept")
+    public ResponseEntity<?> acceptShare(@PathVariable String token, @CookieValue(value = "${app.jwt.cookie}", required = false) String sessionToken) {
+        UUID userId = getUserIdFromToken(sessionToken);
+        if (userId == null) return ResponseEntity.status(401).body(Map.of("message", "Zaloguj się"));
+
+        try {
+            service.acceptShare(UUID.fromString(token), userId);
+            return ResponseEntity.ok(Map.of("message", "Zaakceptowano"));
+        } catch (Exception e) {
+            return ResponseEntity.status(400).body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    @PutMapping("/share/{shareId}")
+    public ResponseEntity<?> updateShare(@PathVariable UUID shareId, @RequestBody Map<String, String> body, @CookieValue(value = "${app.jwt.cookie}", required = false) String token) {
+        if (getUserIdFromToken(token) == null) return ResponseEntity.status(401).build();
+
+        service.updateSharePermission(shareId, NoteShare.Permission.valueOf(body.get("permission")));
+        return ResponseEntity.ok(Map.of("message", "Zaktualizowano"));
+    }
+
+    @DeleteMapping("/share/{shareId}")
+    public ResponseEntity<?> revokeShare(@PathVariable UUID shareId, @CookieValue(value = "${app.jwt.cookie}", required = false) String token) {
+        if (getUserIdFromToken(token) == null) return ResponseEntity.status(401).build();
+
+        service.revokeShare(shareId);
+        return ResponseEntity.ok(Map.of("message", "Usunięto"));
     }
 }
