@@ -1,24 +1,29 @@
 package org.example.noteuzbackend.controller;
 
+import org.example.noteuzbackend.service.AdminService; // <--- DODANO
 import org.example.noteuzbackend.service.AuthService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.Map;
+import java.util.UUID; // <--- DODANO
 
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
     private final AuthService auth;
+    private final AdminService adminService; // <--- DODANO
     private final String cookieName;
     private final String hcaptchaSecretKey;
 
     public AuthController(
             AuthService auth,
+            AdminService adminService, // <--- DODANO
             @Value("${app.jwt.cookie}") String cookieName,
             @Value("${hcaptcha.secret_key}") String hcaptchaSecretKey
     ) {
         this.auth = auth;
+        this.adminService = adminService; // <--- DODANO
         this.cookieName = cookieName;
         this.hcaptchaSecretKey = hcaptchaSecretKey;
     }
@@ -28,8 +33,6 @@ public class AuthController {
         var email = body.getOrDefault("email", "");
         var password = body.getOrDefault("password", "");
         var captchaToken = body.getOrDefault("captchaToken", "");
-
-        System.out.println("Login request - email: " + email + ", has token: " + !captchaToken.isBlank());
 
         // Weryfikuj CAPTCHA
         ResponseEntity<?> captchaResponse = auth.verifyCaptcha(captchaToken);
@@ -45,12 +48,10 @@ public class AuthController {
         return auth.signOut();
     }
 
-    // NOWY ENDPOINT: Odświeżanie tokena
     @PostMapping("/refresh")
     public ResponseEntity<?> refresh(
             @CookieValue(value = "${app.jwt.refreshCookie}", required = false) String refreshToken
     ) {
-        // Przekazujemy ciasteczko refresh do serwisu
         return auth.refreshSession(refreshToken);
     }
 
@@ -62,13 +63,22 @@ public class AuthController {
             return ResponseEntity.status(401).body(Map.of("authenticated", false));
         }
 
-        // Pobieramy pełne dane usera z Supabase
         ResponseEntity<?> userResponse = auth.getUser(tokenFromCookie);
 
         if (userResponse.getStatusCode().is2xxSuccessful()) {
-            // Doklejamy flagę authenticated dla frontendu
             Map<String, Object> userData = (Map<String, Object>) userResponse.getBody();
-            // Możesz tu opakować odpowiedź, ale zwrócenie całego obiektu User z Supabase jest ok
+
+            // --- LOGIKA ADMINA ---
+            String idStr = (String) userData.get("id");
+            if (idStr != null) {
+                UUID userId = UUID.fromString(idStr);
+                // Upewnij się, że wpis security istnieje
+                adminService.ensureUserSecurityExists(userId);
+                // Dodaj flagę isAdmin do odpowiedzi
+                userData.put("isAdmin", adminService.isAdmin(userId));
+            }
+            // ---------------------
+
             return ResponseEntity.ok(userData);
         }
 
@@ -82,9 +92,6 @@ public class AuthController {
         var displayName = body.getOrDefault("displayName", "");
         var captchaToken = body.getOrDefault("captchaToken", "");
 
-        System.out.println("Register request - email: " + email + ", displayName: " + displayName + ", has token: " + !captchaToken.isBlank());
-
-        // Weryfikuj CAPTCHA
         ResponseEntity<?> captchaResponse = auth.verifyCaptcha(captchaToken);
         if (!captchaResponse.getStatusCode().is2xxSuccessful()) {
             return captchaResponse;
