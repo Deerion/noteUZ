@@ -14,7 +14,7 @@ interface NavbarProps {
     user: UserData | null;
     onLogout: () => void;
     busy: boolean;
-    hideSearch?: boolean; // <--- NOWE: Opcja ukrycia szukajki
+    hideSearch?: boolean;
 }
 
 export const Navbar = ({ user, onLogout, busy, hideSearch = false }: NavbarProps) => {
@@ -42,10 +42,9 @@ export const Navbar = ({ user, onLogout, busy, hideSearch = false }: NavbarProps
                 <Link href={user ? "/dashboard" : "/"} legacyBehavior passHref>
                     <Box component="a" sx={{ display: 'flex', alignItems: 'center', gap: 1.5, textDecoration: 'none', color: 'inherit' }}>
                         <Box sx={{
-                            width: 40, height: 40, borderRadius: '10px',
+                            width: 40, height: 40, borderRadius: '12px',
                             background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.3)}`
                         }}>
                             <MenuBookIcon sx={{ fontSize: 22, color: 'white' }} />
                         </Box>
@@ -55,21 +54,36 @@ export const Navbar = ({ user, onLogout, busy, hideSearch = false }: NavbarProps
                     </Box>
                 </Link>
 
-                {/* Search Bar (Desktop) - Ukrywamy jeśli hideSearch=true */}
+                {/* Search Bar (POPRAWIONE WYŚRODKOWANIE) */}
                 {!hideSearch && (
                     <Box sx={{ flex: 1, maxWidth: 500, display: { xs: 'none', md: 'block' }, mx: 4 }}>
                         <Box sx={{
-                            position: 'relative',
-                            borderRadius: '10px',
-                            backgroundColor: theme.palette.mode === 'light' ? alpha('#000', 0.04) : alpha('#fff', 0.08),
-                            '&:hover': { backgroundColor: theme.palette.mode === 'light' ? alpha('#000', 0.06) : alpha('#fff', 0.12) },
+                            display: 'flex',           // Flexbox do układania elementów
+                            alignItems: 'center',      // Idealne centrowanie w pionie
+                            height: 44,                // Stała wysokość dla spójności
+                            borderRadius: '50px',      // Pastylka
+                            backgroundColor: theme.palette.mode === 'light' ? '#f0f2f5' : '#1e1e1e',
+                            transition: 'background-color 0.2s',
+                            px: 2,                     // Padding poziomy kontenera
+                            '&:hover': {
+                                backgroundColor: theme.palette.mode === 'light' ? '#e4e6e9' : '#2d2d2d',
+                            },
                         }}>
-                            <Box sx={{ position: 'absolute', left: 12, top: 9, color: 'text.secondary' }}>
-                                <SearchIcon fontSize="small" />
-                            </Box>
+                            {/* Ikona jako element flexa, nie absolute */}
+                            <SearchIcon
+                                fontSize="small"
+                                sx={{ color: 'text.secondary', mr: 1.5, display: 'flex' }}
+                            />
+
+                            {/* Input wypełnia resztę miejsca */}
                             <InputBase
                                 placeholder={t('search')}
-                                sx={{ width: '100%', py: 0.5, pl: 5, pr: 2, fontSize: '0.9rem', color: 'inherit' }}
+                                sx={{
+                                    flex: 1,
+                                    fontSize: '0.95rem',
+                                    color: 'inherit',
+                                    '& input': { padding: 0 } // Reset domyślnych paddingów inputa html
+                                }}
                             />
                         </Box>
                     </Box>
@@ -82,7 +96,6 @@ export const Navbar = ({ user, onLogout, busy, hideSearch = false }: NavbarProps
 
                     {user ? (
                         <>
-                            {/* PRZYCISK ADMINA */}
                             {user.isAdmin && (
                                 <Tooltip title="Panel Administratora">
                                     <IconButton
@@ -90,9 +103,9 @@ export const Navbar = ({ user, onLogout, busy, hideSearch = false }: NavbarProps
                                         href="/admin"
                                         color="primary"
                                         sx={{
-                                            border: '1px dashed',
-                                            borderColor: theme.palette.primary.main,
-                                            mr: 1
+                                            bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                            mr: 1,
+                                            '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.2) }
                                         }}
                                     >
                                         <AdminPanelSettingsIcon />
@@ -110,12 +123,9 @@ export const Navbar = ({ user, onLogout, busy, hideSearch = false }: NavbarProps
                                         src={avatarUrl}
                                         alt={displayName}
                                         sx={{
-                                            width: 40,
-                                            height: 40,
+                                            width: 40, height: 40,
                                             bgcolor: theme.palette.secondary.main,
-                                            color: '#fff',
-                                            fontWeight: 700,
-                                            fontSize: '1.1rem'
+                                            color: '#fff', fontWeight: 700, fontSize: '1.1rem',
                                         }}
                                     >
                                         {initial}
@@ -129,7 +139,7 @@ export const Navbar = ({ user, onLogout, busy, hideSearch = false }: NavbarProps
                                 color="primary"
                                 disabled={busy}
                                 size="small"
-                                sx={{ ml: 1 }}
+                                sx={{ ml: 1, px: 3 }}
                             >
                                 {busy ? '...' : t('logout')}
                             </MuiButton>

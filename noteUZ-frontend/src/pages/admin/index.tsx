@@ -7,7 +7,7 @@ import {
     Box, Typography, Paper, Table, TableBody, TableCell, TableContainer,
     TableHead, TableRow, Button, IconButton, Chip, Tabs, Tab,
     CircularProgress, Alert, Tooltip, Grid, Card, CardContent, TextField, InputAdornment, useTheme,
-    Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Snackbar, Stack, Avatar, Divider
+    Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Snackbar, Stack, Avatar
 } from '@mui/material';
 
 // Ikony
@@ -27,10 +27,7 @@ import { UserData } from '@/types/User';
 import { Note } from '@/types/Note';
 import { Navbar } from '@/components/landing/Navbar';
 
-// --- TYPY ---
-
-// Backend zwraca userId (camelCase), frontend typuje to jako user_id
-// Rozszerzamy typ, aby TypeScript nie krzyczał przy obsłudze obu wersji
+// Typy
 interface AdminNote extends Note {
     userId?: string;
 }
@@ -63,14 +60,12 @@ interface SnackbarState {
     severity: 'success' | 'error' | 'info';
 }
 
-// --- KOMPONENTY UI ---
-
 const StatCard = ({ title, value, icon, colorType }: { title: string, value: number, icon: React.ReactNode, colorType: 'primary' | 'secondary' | 'warning' }) => {
     const theme = useTheme();
     const color = theme.palette[colorType].main;
 
     return (
-        <Card sx={{ height: '100%', position: 'relative', overflow: 'hidden', border: '1px solid', borderColor: 'divider', borderRadius: 3, boxShadow: 'none' }}>
+        <Card sx={{ height: '100%', position: 'relative', overflow: 'hidden', border: '1px solid', borderColor: 'divider', boxShadow: 'none' }}>
             <Box sx={{
                 position: 'absolute', right: -15, top: -15,
                 opacity: 0.1, fontSize: 100, color: color,
@@ -95,23 +90,22 @@ export default function AdminPage() {
     const router = useRouter();
     const theme = useTheme();
 
-    // --- STATE ---
+    // State
     const [tab, setTab] = useState(0);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [error, setError] = useState<string | null>(null);
     const [currentUser, setCurrentUser] = useState<UserData | null>(null);
 
-    // Data
+    // Dane
     const [users, setUsers] = useState<AdminUser[]>([]);
     const [notes, setNotes] = useState<AdminNote[]>([]);
     const [groups, setGroups] = useState<AdminGroup[]>([]);
 
-    // Modals
+    // UI State
     const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>({ open: false, title: '', content: '', action: null });
     const [snackbar, setSnackbar] = useState<SnackbarState>({ open: false, message: '', severity: 'info' });
 
-    // --- INITIALIZATION ---
     useEffect(() => {
         apiFetch<UserData>('/api/auth/me')
             .then(user => {
@@ -138,7 +132,7 @@ export default function AdminPage() {
             setGroups(groupsData);
         } catch (e) {
             console.error(e);
-            setError("Nie udało się pobrać danych administratora.");
+            setError(t('error_backend'));
         } finally {
             setLoading(false);
         }
@@ -148,7 +142,7 @@ export default function AdminPage() {
         try { await apiFetch('/api/auth/logout', { method: 'POST' }); router.push('/login'); } catch (e) { }
     };
 
-    // --- FILTERING ---
+    // Filtrowanie
     const filteredUsers = useMemo(() => users.filter(u =>
         (u.displayName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         (u.email || '').toLowerCase().includes(searchTerm.toLowerCase())
@@ -163,28 +157,27 @@ export default function AdminPage() {
         (g.name || '').toLowerCase().includes(searchTerm.toLowerCase())
     ), [groups, searchTerm]);
 
-    // --- UI HELPERS ---
+    // UI Helpers
     const showSnackbar = (message: string, severity: 'success' | 'error' = 'success') => setSnackbar({ open: true, message, severity });
     const closeSnackbar = () => setSnackbar(prev => ({ ...prev, open: false }));
     const openConfirm = (title: string, content: string, action: () => Promise<void>, isDestructive = false) => setConfirmDialog({ open: true, title, content, action, isDestructive });
     const handleConfirmClose = () => setConfirmDialog(prev => ({ ...prev, open: false }));
     const handleConfirmAction = async () => {
         if (confirmDialog.action) {
-            try { await confirmDialog.action(); showSnackbar("Operacja zakończona sukcesem", "success"); }
-            catch (e) { showSnackbar("Wystąpił błąd", "error"); }
+            try { await confirmDialog.action(); showSnackbar(t('success_op'), "success"); }
+            catch (e) { showSnackbar(t('error_op'), "error"); }
         }
         handleConfirmClose();
         fetchAll();
     };
 
-    // --- ACTIONS ---
-    const clickToggleRole = (id: string) => openConfirm("Zmiana roli", "Czy na pewno zmienić uprawnienia administratora?", async () => apiFetch(`/api/admin/users/${id}/role`, { method: 'POST' }));
-    const clickToggleBan = (id: string, isBanned: boolean) => openConfirm(isBanned ? "Odblokuj" : "Zablokuj", `Czy na pewno ${isBanned ? "odblokować" : "zablokować"} konto?`, async () => apiFetch(`/api/admin/users/${id}/ban`, { method: 'POST' }), !isBanned);
-    const clickWarn = (id: string) => openConfirm("Ostrzeżenie", "Wysłać oficjalne ostrzeżenie użytkownikowi?", async () => apiFetch(`/api/admin/users/${id}/warn`, { method: 'POST' }), true);
-    const clickDeleteUser = (id: string) => openConfirm("Usuń użytkownika", "UWAGA: To usunie użytkownika i wszystkie jego dane bezpowrotnie. Kontynuować?", async () => apiFetch(`/api/admin/users/${id}`, { method: 'DELETE' }), true);
-
-    const clickDeleteNote = (id: string) => openConfirm("Usuń notatkę", "Tej operacji nie można cofnąć.", async () => apiFetch(`/api/admin/notes/${id}`, { method: 'DELETE' }), true);
-    const clickDeleteGroup = (id: string) => openConfirm("Usuń grupę", "Grupa zostanie trwale usunięta.", async () => apiFetch(`/api/admin/groups/${id}`, { method: 'DELETE' }), true);
+    // Akcje
+    const clickToggleRole = (id: string) => openConfirm(t('dialog_role_title'), t('dialog_role_desc'), async () => apiFetch(`/api/admin/users/${id}/role`, { method: 'POST' }));
+    const clickToggleBan = (id: string, isBanned: boolean) => openConfirm(isBanned ? t('dialog_unban_title') : t('dialog_ban_title'), isBanned ? t('dialog_unban_desc') : t('dialog_ban_desc'), async () => apiFetch(`/api/admin/users/${id}/ban`, { method: 'POST' }), !isBanned);
+    const clickWarn = (id: string) => openConfirm(t('dialog_warn_title'), t('dialog_warn_desc'), async () => apiFetch(`/api/admin/users/${id}/warn`, { method: 'POST' }), true);
+    const clickDeleteUser = (id: string) => openConfirm(t('dialog_delete_user_title'), t('dialog_delete_user_desc'), async () => apiFetch(`/api/admin/users/${id}`, { method: 'DELETE' }), true);
+    const clickDeleteNote = (id: string) => openConfirm(t('dialog_delete_note_title'), t('dialog_delete_note_desc'), async () => apiFetch(`/api/admin/notes/${id}`, { method: 'DELETE' }), true);
+    const clickDeleteGroup = (id: string) => openConfirm(t('dialog_delete_group_title'), t('dialog_delete_group_desc'), async () => apiFetch(`/api/admin/groups/${id}`, { method: 'DELETE' }), true);
 
     if (!currentUser && loading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 10 }}><CircularProgress /></Box>;
 
@@ -201,74 +194,76 @@ export default function AdminPage() {
                     </Avatar>
                     <Box>
                         <Typography variant="h4" fontWeight={800} color="text.primary">
-                            Centrum Zarządzania
+                            {t('admin_panel')}
                         </Typography>
                         <Typography variant="body1" color="text.secondary">
-                            Panel Administratora NoteUZ
+                            {t('admin_subtitle')}
                         </Typography>
                     </Box>
                 </Box>
 
-                {error && <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>{error}</Alert>}
+                {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
 
-                {/* Dashboard Stats (BEZ LOGÓW) */}
+                {/* Statystyki */}
                 <Grid container spacing={3} sx={{ mb: 4 }}>
                     <Grid item xs={12} sm={6} md={4}>
-                        <StatCard title="Użytkownicy" value={users.length} icon={<PeopleIcon />} colorType="primary" />
+                        <StatCard title={t('stat_users')} value={users.length} icon={<PeopleIcon />} colorType="primary" />
                     </Grid>
                     <Grid item xs={12} sm={6} md={4}>
-                        <StatCard title="Notatki" value={notes.length} icon={<NoteIcon />} colorType="secondary" />
+                        <StatCard title={t('stat_notes')} value={notes.length} icon={<NoteIcon />} colorType="secondary" />
                     </Grid>
                     <Grid item xs={12} sm={6} md={4}>
-                        <StatCard title="Grupy" value={groups.length} icon={<GroupsIcon />} colorType="warning" />
+                        <StatCard title={t('stat_groups')} value={groups.length} icon={<GroupsIcon />} colorType="warning" />
                     </Grid>
                 </Grid>
 
-                {/* Main Content Area */}
-                <Paper sx={{ mb: 3, overflow: 'hidden', borderRadius: 3, border: '1px solid', borderColor: 'divider' }} elevation={0}>
+                {/* Główny kontener treści */}
+                <Paper sx={{ mb: 3, overflow: 'hidden', border: '1px solid', borderColor: 'divider' }} elevation={0}>
 
-                    {/* Toolbar */}
+                    {/* Toolbar: Zakładki i Wyszukiwanie */}
                     <Box sx={{
                         p: 2, borderBottom: '1px solid', borderColor: 'divider',
                         display: 'flex', flexDirection: { xs: 'column', md: 'row' },
-                        justifyContent: 'space-between', alignItems: 'center', gap: 2,
-                        bgcolor: theme.palette.mode === 'light' ? 'rgba(0,0,0,0.01)' : 'rgba(255,255,255,0.01)'
+                        justifyContent: 'space-between', alignItems: 'center', gap: 2
                     }}>
                         <Tabs
                             value={tab}
                             onChange={(e, v) => setTab(v)}
                             textColor="primary"
                             indicatorColor="primary"
-                            sx={{ minHeight: 48 }}
                         >
-                            <Tab icon={<PeopleIcon sx={{ fontSize: 18 }}/>} iconPosition="start" label="Użytkownicy" sx={{ fontWeight: 600, minHeight: 48 }} />
-                            <Tab icon={<NoteIcon sx={{ fontSize: 18 }}/>} iconPosition="start" label="Notatki" sx={{ fontWeight: 600, minHeight: 48 }} />
-                            <Tab icon={<GroupsIcon sx={{ fontSize: 18 }}/>} iconPosition="start" label="Grupy" sx={{ fontWeight: 600, minHeight: 48 }} />
+                            <Tab icon={<PeopleIcon sx={{ fontSize: 18 }}/>} iconPosition="start" label={t('tab_users')} sx={{ minHeight: 48 }} />
+                            <Tab icon={<NoteIcon sx={{ fontSize: 18 }}/>} iconPosition="start" label={t('stat_notes')} sx={{ minHeight: 48 }} />
+                            <Tab icon={<GroupsIcon sx={{ fontSize: 18 }}/>} iconPosition="start" label={t('stat_groups')} sx={{ minHeight: 48 }} />
                         </Tabs>
 
                         <TextField
                             size="small"
-                            placeholder="Filtruj listę..."
+                            placeholder={t('search_placeholder')}
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             InputProps={{
-                                startAdornment: (<InputAdornment position="start"><SearchIcon color="action" fontSize="small" /></InputAdornment>),
+                                startAdornment: (
+                                    <InputAdornment position="start">
+                                        <SearchIcon color="action" fontSize="small" />
+                                    </InputAdornment>
+                                ),
                             }}
                             sx={{ width: { xs: '100%', md: 300 } }}
                         />
                     </Box>
 
-                    {/* --- TABELA UŻYTKOWNIKÓW --- */}
+                    {/* Tabela Użytkowników */}
                     {tab === 0 && (
                         <TableContainer>
                             <Table size="medium">
-                                <TableHead sx={{ bgcolor: theme.palette.action.hover }}>
+                                <TableHead sx={{ bgcolor: theme.palette.mode === 'light' ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)' }}>
                                     <TableRow>
-                                        <TableCell>Użytkownik</TableCell>
-                                        <TableCell align="center">Rola</TableCell>
-                                        <TableCell align="center">Status</TableCell>
-                                        <TableCell align="center">Ostrzeżenia</TableCell>
-                                        <TableCell align="right">Akcje</TableCell>
+                                        <TableCell>{t('col_user')}</TableCell>
+                                        <TableCell align="center">{t('col_role')}</TableCell>
+                                        <TableCell align="center">{t('col_status')}</TableCell>
+                                        <TableCell align="center">{t('col_warnings')}</TableCell>
+                                        <TableCell align="right">{t('col_actions')}</TableCell>
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
@@ -285,37 +280,37 @@ export default function AdminPage() {
                                             </TableCell>
                                             <TableCell align="center">
                                                 {u.isAdmin ?
-                                                    <Chip label="ADMIN" size="small" color="primary" sx={{ fontWeight: 700, borderRadius: 1 }} />
+                                                    <Chip label="ADMIN" size="small" color="primary" sx={{ fontWeight: 700 }} />
                                                     :
-                                                    <Chip label="User" size="small" variant="outlined" sx={{ borderRadius: 1 }} />
+                                                    <Chip label="User" size="small" variant="outlined" />
                                                 }
                                             </TableCell>
                                             <TableCell align="center">
                                                 {u.isBanned ?
-                                                    <Chip label="ZBANOWANY" color="error" size="small" icon={<BlockIcon />} sx={{ borderRadius: 1 }} />
+                                                    <Chip label={t('status_banned')} color="error" size="small" icon={<BlockIcon />} />
                                                     :
-                                                    <Chip label="Aktywny" color="success" size="small" variant="outlined" icon={<CheckCircleIcon />} sx={{ borderRadius: 1 }} />
+                                                    <Chip label={t('status_active')} color="success" size="small" variant="outlined" icon={<CheckCircleIcon />} />
                                                 }
                                             </TableCell>
                                             <TableCell align="center">
                                                 {u.warningCount > 0 ?
-                                                    <Chip label={u.warningCount} color="warning" size="small" sx={{ borderRadius: 1, minWidth: 30 }} />
+                                                    <Chip label={u.warningCount} color="warning" size="small" />
                                                     : <Typography variant="body2" color="text.secondary">-</Typography>
                                                 }
                                             </TableCell>
                                             <TableCell align="right">
-                                                <Tooltip title="Zmień rolę">
+                                                <Tooltip title={t('action_change_role')}>
                                                     <IconButton size="small" onClick={() => clickToggleRole(u.id)} color="primary"><SecurityIcon fontSize="small" /></IconButton>
                                                 </Tooltip>
-                                                <Tooltip title={u.isBanned ? "Odblokuj" : "Zablokuj"}>
+                                                <Tooltip title={u.isBanned ? t('action_unban') : t('action_ban')}>
                                                     <IconButton size="small" onClick={() => clickToggleBan(u.id, u.isBanned)} color={u.isBanned ? 'success' : 'default'}>
                                                         {u.isBanned ? <CheckCircleIcon fontSize="small" /> : <BlockIcon fontSize="small" />}
                                                     </IconButton>
                                                 </Tooltip>
-                                                <Tooltip title="Ostrzeżenie">
+                                                <Tooltip title={t('action_warn')}>
                                                     <IconButton size="small" onClick={() => clickWarn(u.id)} color="warning"><WarningAmberIcon fontSize="small" /></IconButton>
                                                 </Tooltip>
-                                                <Tooltip title="Usuń użytkownika">
+                                                <Tooltip title={t('action_delete_user')}>
                                                     <IconButton size="small" onClick={() => clickDeleteUser(u.id)} color="error"><PersonRemoveIcon fontSize="small" /></IconButton>
                                                 </Tooltip>
                                             </TableCell>
@@ -326,27 +321,26 @@ export default function AdminPage() {
                         </TableContainer>
                     )}
 
-                    {/* --- TABELA NOTATEK --- */}
+                    {/* Tabela Notatek */}
                     {tab === 1 && (
                         <TableContainer>
                             <Table size="medium">
-                                <TableHead sx={{ bgcolor: theme.palette.action.hover }}>
+                                <TableHead sx={{ bgcolor: theme.palette.mode === 'light' ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)' }}>
                                     <TableRow>
-                                        <TableCell>Tytuł</TableCell>
-                                        <TableCell>Treść</TableCell>
-                                        <TableCell>ID Autora</TableCell>
-                                        <TableCell>Data utworzenia</TableCell>
-                                        <TableCell align="right">Akcje</TableCell>
+                                        <TableCell>{t('col_title')}</TableCell>
+                                        <TableCell>{t('col_content')}</TableCell>
+                                        <TableCell>{t('col_author')}</TableCell>
+                                        <TableCell>{t('col_date')}</TableCell>
+                                        <TableCell align="right">{t('col_actions')}</TableCell>
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
                                     {filteredNotes.map(n => {
-                                        // BEZPIECZNE POBIERANIE ID (Fix dla błędu substring)
+                                        // Bezpieczne pobranie ID autora (wspiera różne formaty z backendu)
                                         const ownerId = n.userId || n.user_id || "unknown";
-
                                         return (
                                             <TableRow key={n.id} hover>
-                                                <TableCell sx={{ fontWeight: 600 }}>{n.title || <Typography fontStyle="italic" color="text.secondary">Bez tytułu</Typography>}</TableCell>
+                                                <TableCell sx={{ fontWeight: 600 }}>{n.title || <Typography fontStyle="italic" color="text.secondary">{t('note_untitled')}</Typography>}</TableCell>
                                                 <TableCell sx={{ color: 'text.secondary', maxWidth: 250, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                                     {n.content}
                                                 </TableCell>
@@ -362,7 +356,7 @@ export default function AdminPage() {
                                                     {new Date(n.created_at).toLocaleDateString()}
                                                 </TableCell>
                                                 <TableCell align="right">
-                                                    <Tooltip title="Usuń notatkę">
+                                                    <Tooltip title={t('action_delete_note')}>
                                                         <IconButton size="small" color="error" onClick={() => clickDeleteNote(n.id)}>
                                                             <DeleteIcon fontSize="small" />
                                                         </IconButton>
@@ -376,16 +370,16 @@ export default function AdminPage() {
                         </TableContainer>
                     )}
 
-                    {/* --- TABELA GRUP --- */}
+                    {/* Tabela Grup */}
                     {tab === 2 && (
                         <TableContainer>
                             <Table size="medium">
-                                <TableHead sx={{ bgcolor: theme.palette.action.hover }}>
+                                <TableHead sx={{ bgcolor: theme.palette.mode === 'light' ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)' }}>
                                     <TableRow>
-                                        <TableCell>Nazwa</TableCell>
-                                        <TableCell>Opis</TableCell>
-                                        <TableCell>ID Grupy</TableCell>
-                                        <TableCell align="right">Akcje</TableCell>
+                                        <TableCell>{t('col_name')}</TableCell>
+                                        <TableCell>{t('col_desc')}</TableCell>
+                                        <TableCell>{t('col_group_id')}</TableCell>
+                                        <TableCell align="right">{t('col_actions')}</TableCell>
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
@@ -402,7 +396,7 @@ export default function AdminPage() {
                                                 />
                                             </TableCell>
                                             <TableCell align="right">
-                                                <Tooltip title="Usuń grupę">
+                                                <Tooltip title={t('action_delete_group')}>
                                                     <IconButton size="small" color="error" onClick={() => clickDeleteGroup(g.id)}>
                                                         <DeleteIcon fontSize="small" />
                                                     </IconButton>
@@ -417,17 +411,17 @@ export default function AdminPage() {
                 </Paper>
             </Box>
 
-            {/* MODALS */}
-            <Dialog open={confirmDialog.open} onClose={handleConfirmClose} PaperProps={{ sx: { borderRadius: 3, p: 1 } }}>
+            {/* Modale Potwierdzeń */}
+            <Dialog open={confirmDialog.open} onClose={handleConfirmClose}>
                 <DialogTitle sx={{ fontWeight: 700 }}>{confirmDialog.title}</DialogTitle>
                 <DialogContent><DialogContentText>{confirmDialog.content}</DialogContentText></DialogContent>
                 <DialogActions>
-                    <Button onClick={handleConfirmClose} color="inherit">Anuluj</Button>
-                    <Button onClick={handleConfirmAction} variant="contained" color={confirmDialog.isDestructive ? "error" : "primary"} autoFocus>Potwierdź</Button>
+                    <Button onClick={handleConfirmClose} color="inherit">{t('common.cancel')}</Button>
+                    <Button onClick={handleConfirmAction} variant="contained" color={confirmDialog.isDestructive ? "error" : "primary"} autoFocus>{t('btn_confirm')}</Button>
                 </DialogActions>
             </Dialog>
             <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={closeSnackbar} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
-                <Alert onClose={closeSnackbar} severity={snackbar.severity} variant="filled" sx={{ width: '100%', borderRadius: 2 }}>{snackbar.message}</Alert>
+                <Alert onClose={closeSnackbar} severity={snackbar.severity} variant="filled" sx={{ width: '100%' }}>{snackbar.message}</Alert>
             </Snackbar>
         </Box>
     );

@@ -1,4 +1,3 @@
-// src/components/NotesPage/NotesLayout.tsx
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -18,7 +17,6 @@ import {
     CircularProgress
 } from '@mui/material';
 
-// Ikony
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
 import PeopleOutlineIcon from '@mui/icons-material/PeopleOutline';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -39,21 +37,16 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({ children, title, actio
     const theme = useTheme();
     const router = useRouter();
 
-    // Stan użytkownika dla Navbara
     const [user, setUser] = useState<UserData | null>(null);
     const [loadingUser, setLoadingUser] = useState(true);
     const [busy, setBusy] = useState(false);
 
     const isActive = (path: string) => router.pathname === path;
 
-    // Pobieranie użytkownika (aby Navbar działał poprawnie)
     useEffect(() => {
         apiFetch<UserData>('/api/auth/me')
             .then(data => setUser(data))
-            .catch(() => {
-                // Opcjonalnie: przekierowanie, jeśli sesja wygasła
-                // router.push('/login'); 
-            })
+            .catch(() => { })
             .finally(() => setLoadingUser(false));
     }, []);
 
@@ -68,24 +61,9 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({ children, title, actio
     };
 
     const menuItems = [
-        {
-            text: t('my_notes'),
-            icon: <DescriptionOutlinedIcon />,
-            path: '/notes',
-            disabled: false
-        },
-        {
-            text: t('groups_nav'),
-            icon: <PeopleOutlineIcon />,
-            path: '/groups',
-            disabled: false
-        },
-        {
-            text: t('shared_notes'),
-            icon: <ShareIcon />,
-            path: '/notes/shared',
-            disabled: false
-        }
+        { text: t('my_notes'), icon: <DescriptionOutlinedIcon />, path: '/notes', disabled: false },
+        { text: t('groups_nav'), icon: <PeopleOutlineIcon />, path: '/groups', disabled: false },
+        { text: t('shared_notes'), icon: <ShareIcon />, path: '/notes/shared', disabled: false }
     ];
 
     if (loadingUser) {
@@ -99,22 +77,15 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({ children, title, actio
     return (
         <Box sx={{
             display: 'flex',
-            flexDirection: 'column', // ZMIANA: Układ kolumnowy (Navbar na górze)
+            flexDirection: 'column',
             minHeight: '100vh',
             background: 'var(--page-gradient)',
         }}>
-            {/* 1. NAVBAR NA GÓRZE */}
-            <Navbar
-                user={user}
-                onLogout={handleLogout}
-                busy={busy}
-                // hideSearch={false} // Możesz włączyć wyszukiwarkę jeśli chcesz globalnego szukania
-            />
+            <Navbar user={user} onLogout={handleLogout} busy={busy} />
 
-            {/* 2. KONTENER TREŚCI (Sidebar + Main) */}
             <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
 
-                {/* ================= LEWY SIDEBAR ================= */}
+                {/* ================= SIDEBAR (Flat & Tonal) ================= */}
                 <Paper
                     elevation={0}
                     sx={{
@@ -122,64 +93,66 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({ children, title, actio
                         flexShrink: 0,
                         display: { xs: 'none', md: 'flex' },
                         flexDirection: 'column',
+                        // Usuwamy cień, dodajemy subtelną linię
                         borderRight: '1px solid',
                         borderColor: 'divider',
-                        // Tło lekko przezroczyste, pasujące do motywu
-                        backgroundColor: theme.palette.mode === 'light'
-                            ? 'rgba(255, 255, 255, 0.5)'
-                            : 'rgba(20, 20, 20, 0.5)',
-                        backdropFilter: 'blur(10px)',
-                        pt: 2 // Padding od góry
+                        backgroundColor: 'transparent', // Przezroczyste tło, żeby zlało się ze stroną
+                        pt: 3,
+                        px: 2
                     }}
                 >
-                    {/* Usunąłem logo "NoteUZ" stąd, bo jest już w Navbarze wyżej */}
-
-                    {/* Lista Menu */}
-                    <List sx={{ px: 2 }}>
-                        {menuItems.map((item) => (
-                            <Link href={item.disabled ? '#' : item.path} key={item.path} legacyBehavior passHref>
-                                <ListItemButton
-                                    component="a"
-                                    disabled={item.disabled}
-                                    selected={isActive(item.path)}
-                                    sx={{
-                                        borderRadius: '10px',
-                                        mb: 0.5,
-                                        '&.Mui-selected': {
-                                            backgroundColor: alpha(theme.palette.primary.main, 0.1),
-                                            color: theme.palette.primary.main,
-                                            '&:hover': { backgroundColor: alpha(theme.palette.primary.main, 0.15) },
-                                            '& .MuiListItemIcon-root': { color: theme.palette.primary.main }
-                                        }
-                                    }}
-                                >
-                                    <ListItemIcon
-                                        sx={{ minWidth: 40, color: isActive(item.path) ? 'inherit' : 'text.secondary' }}>
-                                        {item.icon}
-                                    </ListItemIcon>
-                                    <ListItemText
-                                        primary={item.text}
-                                        primaryTypographyProps={{
-                                            fontWeight: isActive(item.path) ? 600 : 500,
-                                            fontSize: '0.95rem'
+                    <List>
+                        {menuItems.map((item) => {
+                            const active = isActive(item.path);
+                            return (
+                                <Link href={item.disabled ? '#' : item.path} key={item.path} legacyBehavior passHref>
+                                    <ListItemButton
+                                        component="a"
+                                        disabled={item.disabled}
+                                        selected={active}
+                                        sx={{
+                                            borderRadius: '50px', // Pastylka
+                                            mb: 1,
+                                            pl: 2.5,
+                                            // Tonal State: Wypełnienie kolorem (bez cienia) gdy aktywne
+                                            '&.Mui-selected': {
+                                                backgroundColor: alpha(theme.palette.primary.main, 0.1), // Lekki pomarańcz
+                                                color: theme.palette.primary.main, // Ciemny pomarańcz tekst
+                                                fontWeight: 700,
+                                                '&:hover': { backgroundColor: alpha(theme.palette.primary.main, 0.15) },
+                                                '& .MuiListItemIcon-root': { color: theme.palette.primary.main }
+                                            },
+                                            '&:hover': {
+                                                backgroundColor: alpha(theme.palette.text.primary, 0.05) // Szary hover
+                                            }
                                         }}
-                                    />
-                                </ListItemButton>
-                            </Link>
-                        ))}
+                                    >
+                                        <ListItemIcon sx={{ minWidth: 42, color: active ? 'inherit' : 'text.secondary' }}>
+                                            {item.icon}
+                                        </ListItemIcon>
+                                        <ListItemText
+                                            primary={item.text}
+                                            primaryTypographyProps={{
+                                                fontWeight: active ? 700 : 500,
+                                                fontSize: '0.95rem'
+                                            }}
+                                        />
+                                    </ListItemButton>
+                                </Link>
+                            );
+                        })}
                     </List>
 
                     <Box sx={{ flexGrow: 1 }} />
 
-                    {/* Sekcja dolna Sidebara */}
-                    <Box sx={{ p: 2 }}>
-                        <Divider sx={{ mb: 2 }} />
+                    <Box sx={{ p: 2, pb: 4 }}>
+                        <Divider sx={{ mb: 2, mx: 1 }} />
                         <Link href="/dashboard" legacyBehavior passHref>
                             <ListItemButton
                                 component="a"
-                                sx={{ borderRadius: '10px', color: 'text.secondary' }}
+                                sx={{ borderRadius: '50px', color: 'text.secondary', pl: 2.5 }}
                             >
-                                <ListItemIcon sx={{ minWidth: 40 }}>
+                                <ListItemIcon sx={{ minWidth: 42 }}>
                                     <ArrowBackIcon />
                                 </ListItemIcon>
                                 <ListItemText primary={t('back_to_dashboard')} />
@@ -188,38 +161,30 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({ children, title, actio
                     </Box>
                 </Paper>
 
-                {/* ================= GŁÓWNA TREŚĆ ================= */}
-                <Box component="main" sx={{ flexGrow: 1, p: { xs: 2, md: 4, lg: 6 }, overflowY: 'auto' }}>
+                {/* MAIN CONTENT */}
+                <Box component="main" sx={{ flexGrow: 1, p: { xs: 2, md: 4, lg: 5 }, overflowY: 'auto' }}>
                     <Box sx={{
                         display: 'flex',
                         flexDirection: { xs: 'column', sm: 'row' },
                         justifyContent: 'space-between',
                         alignItems: { xs: 'flex-start', sm: 'center' },
                         gap: 2,
-                        mb: 5
+                        mb: 4
                     }}>
                         <Box>
-                            {/* Mobilny przycisk powrotu */}
                             <Box sx={{ display: { md: 'none' }, mb: 2 }}>
                                 <Link href="/dashboard" legacyBehavior>
-                                    <Button startIcon={<ArrowBackIcon />} size="small" color="inherit">
+                                    <Button startIcon={<ArrowBackIcon />} size="small" color="inherit" sx={{ borderRadius: '50px' }}>
                                         {t('dashboard')}
                                     </Button>
                                 </Link>
                             </Box>
-
-                            <Typography variant="h4" component="h1" fontWeight={800}>
+                            <Typography variant="h4" component="h1" fontWeight={800} sx={{ letterSpacing: '-0.02em' }}>
                                 {title}
                             </Typography>
                         </Box>
-
-                        {actionButton && (
-                            <Box>
-                                {actionButton}
-                            </Box>
-                        )}
+                        {actionButton && <Box sx={{ display: { xs: 'none', sm: 'block' } }}>{actionButton}</Box>}
                     </Box>
-
                     {children}
                 </Box>
             </Box>
