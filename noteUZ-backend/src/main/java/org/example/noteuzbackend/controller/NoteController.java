@@ -62,8 +62,9 @@ public class NoteController {
     @GetMapping("/shared")
     public ResponseEntity<?> listSharedNotes(@CookieValue(value = "${app.jwt.cookie}", required = false) String token) {
         String email = getUserEmailFromToken(token);
+        UUID userId = getUserIdFromToken(token);
         if (email == null) return ResponseEntity.status(401).body(Map.of("message", "Musisz być zalogowany"));
-        return ResponseEntity.ok(service.getSharedNotes(email));
+        return ResponseEntity.ok(service.getSharedNotes(email, userId));
     }
 
     @GetMapping("/{id}")
@@ -72,39 +73,36 @@ public class NoteController {
         String userEmail = getUserEmailFromToken(token);
         if (userId == null) return ResponseEntity.status(401).build();
 
-        Note note = service.getNoteById(id);
-        String permission = null; // Domyślnie brak dostępu
+        // Przekazujemy userId, żeby policzyć votedByMe
+        Note note = service.getNoteById(id, userId);
+        String permission = null;
 
         // 1. Sprawdzenie właściciela
         if (note.getUserId().equals(userId)) {
             permission = "OWNER";
         }
 
-        // 2. Sprawdzenie grupy (Jeśli nie właściciel, ale jest w grupie -> ma WRITE)
+        // 2. Sprawdzenie grupy
         if (permission == null && note.getGroupId() != null) {
             if (groupMemberRepo.existsByGroupIdAndUserId(note.getGroupId(), userId)) {
-                permission = "WRITE"; // TU BYŁ BŁĄD: Zmieniono na WRITE, aby frontend pozwolił na edycję
+                permission = "WRITE";
             }
         }
 
-        // 3. Sprawdzenie udostępnienia (Share)
-        // Logika: Jeśli permission to nadal null LUB permission to READ, sprawdzamy czy share nie daje wyższego uprawnienia
+        // 3. Sprawdzenie udostępnienia
         if (!"OWNER".equals(permission) && !"WRITE".equals(permission)) {
             var shareOpt = service.findShare(id, userEmail);
             if (shareOpt.isPresent() && shareOpt.get().getStatus() == NoteShare.ShareStatus.ACCEPTED) {
                 String sharePerm = shareOpt.get().getPermission().toString();
-                // Jeśli jeszcze nie mamy żadnego uprawnienia, bierzemy to z share
                 if (permission == null) {
                     permission = sharePerm;
                 }
-                // Jeśli mamy READ (np. z innej logiki), a share daje WRITE, podnosimy uprawnienie
                 else if ("READ".equals(permission) && "WRITE".equals(sharePerm)) {
                     permission = "WRITE";
                 }
             }
         }
 
-        // Jeśli po wszystkich sprawdzeniach nadal null -> 403 Forbidden
         if (permission == null) {
             return ResponseEntity.status(403).build();
         }
@@ -116,7 +114,9 @@ public class NoteController {
                 "userId", note.getUserId(),
                 "groupId", note.getGroupId() != null ? note.getGroupId() : "null",
                 "createdAt", note.getCreatedAt(),
-                "permission", permission
+                "permission", permission,
+                "voteCount", note.getVoteCount(), // <---
+                "votedByMe", note.isVotedByMe()   // <---
         ));
     }
 
@@ -124,7 +124,15 @@ public class NoteController {
     public ResponseEntity<Map<String, Object>> create(@RequestBody Map<String, Object> body, @CookieValue(value = "${app.jwt.cookie}", required = false) String token) {
         UUID userId = getUserIdFromToken(token);
         if (userId == null) return ResponseEntity.status(401).body(Map.of("message", "Nie jesteś zalogowany"));
-        var saved = service.create(userId, (String) body.get("title"), (String) body.get("content"));
+
+        String groupIdStr = (String) body.get("groupId");
+        Note saved;
+
+        if (groupIdStr != null) {
+            saved = service.createGroupNote(UUID.fromString(groupIdStr), userId, (String) body.get("title"), (String) body.get("content"));
+        } else {
+            saved = service.create(userId, (String) body.get("title"), (String) body.get("content"));
+        }
         return ResponseEntity.ok(Map.of("id", saved.getId(), "title", saved.getTitle()));
     }
 
@@ -137,29 +145,16 @@ public class NoteController {
         Note existing = service.getNoteById(id);
         boolean hasPermission = false;
 
-        // 1. Właściciel
-        if (existing.getUserId().equals(userId)) {
-            hasPermission = true;
-        }
-
-        // 2. Członek Grupy -> ZAWSZE MA PRAWO EDYCJI
+        if (existing.getUserId().equals(userId)) hasPermission = true;
         if (!hasPermission && existing.getGroupId() != null) {
-            if (groupMemberRepo.existsByGroupIdAndUserId(existing.getGroupId(), userId)) {
-                hasPermission = true;
-            }
+            if (groupMemberRepo.existsByGroupIdAndUserId(existing.getGroupId(), userId)) hasPermission = true;
         }
-
-        // 3. Udostępnienie z prawem WRITE
         if (!hasPermission) {
             var shareOpt = service.findShare(id, userEmail);
-            if (shareOpt.isPresent() && shareOpt.get().getPermission() == NoteShare.Permission.WRITE) {
-                hasPermission = true;
-            }
+            if (shareOpt.isPresent() && shareOpt.get().getPermission() == NoteShare.Permission.WRITE) hasPermission = true;
         }
 
-        if (!hasPermission) {
-            return ResponseEntity.status(403).body(Map.of("message", "Brak uprawnień do edycji"));
-        }
+        if (!hasPermission) return ResponseEntity.status(403).body(Map.of("message", "Brak uprawnień"));
 
         var updated = service.update(id, (String) body.get("title"), (String) body.get("content"));
         return ResponseEntity.ok(Map.of("id", updated.getId()));
@@ -186,6 +181,20 @@ public class NoteController {
         }
     }
 
+    // --- NOWE: ENDPOINT GŁOSOWANIA ---
+    @PostMapping("/{id}/vote")
+    public ResponseEntity<?> voteNote(@PathVariable UUID id, @CookieValue(value = "${app.jwt.cookie}", required = false) String token) {
+        UUID userId = getUserIdFromToken(token);
+        if (userId == null) return ResponseEntity.status(401).build();
+
+        try {
+            return ResponseEntity.ok(service.toggleVote(id, userId));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    // --- UDOSTĘPNIANIE (BEZ ZMIAN) ---
     @PostMapping("/{id}/share")
     public ResponseEntity<?> shareNote(@PathVariable UUID id, @RequestBody Map<String, String> body, @CookieValue(value = "${app.jwt.cookie}", required = false) String token) {
         UUID ownerId = getUserIdFromToken(token);
@@ -201,15 +210,12 @@ public class NoteController {
 
         try {
             String shareUrl = service.createShare(id, ownerId, recipientEmail, permission);
-
             try {
                 emailService.sendShareInvitation(recipientEmail, ownerEmail, note.getTitle(), shareUrl, permissionStr);
             } catch (Exception e) {
                 System.err.println("Błąd wysyłania maila: " + e.getMessage());
             }
-
             return ResponseEntity.ok(Map.of("message", "Wysłano", "shareUrl", shareUrl));
-
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
@@ -227,7 +233,6 @@ public class NoteController {
     public ResponseEntity<?> acceptShare(@PathVariable String token, @CookieValue(value = "${app.jwt.cookie}", required = false) String sessionToken) {
         UUID userId = getUserIdFromToken(sessionToken);
         if (userId == null) return ResponseEntity.status(401).body(Map.of("message", "Zaloguj się"));
-
         try {
             service.acceptShare(UUID.fromString(token), userId);
             return ResponseEntity.ok(Map.of("message", "Zaakceptowano"));
@@ -239,7 +244,6 @@ public class NoteController {
     @PutMapping("/share/{shareId}")
     public ResponseEntity<?> updateShare(@PathVariable UUID shareId, @RequestBody Map<String, String> body, @CookieValue(value = "${app.jwt.cookie}", required = false) String token) {
         if (getUserIdFromToken(token) == null) return ResponseEntity.status(401).build();
-
         service.updateSharePermission(shareId, NoteShare.Permission.valueOf(body.get("permission")));
         return ResponseEntity.ok(Map.of("message", "Zaktualizowano"));
     }
@@ -247,7 +251,6 @@ public class NoteController {
     @DeleteMapping("/share/{shareId}")
     public ResponseEntity<?> revokeShare(@PathVariable UUID shareId, @CookieValue(value = "${app.jwt.cookie}", required = false) String token) {
         if (getUserIdFromToken(token) == null) return ResponseEntity.status(401).build();
-
         service.revokeShare(shareId);
         return ResponseEntity.ok(Map.of("message", "Usunięto"));
     }
