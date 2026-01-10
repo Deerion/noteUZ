@@ -24,6 +24,8 @@ import SortIcon from '@mui/icons-material/Sort';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
 import StarIcon from '@mui/icons-material/Star';
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';   // <-- Nowa ikona
+import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward'; // <-- Nowa ikona
 
 import { NotesLayout } from '@/components/NotesPage/NotesLayout';
 import { NoteCard } from '@/components/NotesPage/NoteCard';
@@ -31,7 +33,7 @@ import { apiFetch } from '@/lib/api';
 import { GroupDetails, GroupMember, GroupRole } from '@/types/Group';
 import { Note } from '@/types/Note';
 
-// --- PODIUM ITEM (Z AUTOREM) ---
+// --- PODIUM ITEM ---
 const PodiumItem = ({ note, rank, members, onClick }: { note: Note, rank: 1 | 2 | 3, members: GroupMember[], onClick: () => void }) => {
     const theme = useTheme();
     const isWinner = rank === 1;
@@ -42,7 +44,6 @@ const PodiumItem = ({ note, rank, members, onClick }: { note: Note, rank: 1 | 2 
     const scale = isWinner ? 1.0 : 0.9;
     const yOffset = isWinner ? -15 : 0;
 
-    // Szukamy autora w liście członków
     const author = members.find(m => m.userId === note.userId);
     const authorName = author ? (author.displayName || author.email || "Nieznany") : "Nieznany";
     const authorInitial = authorName.charAt(0).toUpperCase();
@@ -71,8 +72,8 @@ const PodiumItem = ({ note, rank, members, onClick }: { note: Note, rank: 1 | 2 
             <Paper
                 elevation={0}
                 sx={{
-                    width: 150, // Lekko szersze, żeby imię się mieściło
-                    height: 'auto', // Auto height, bo doszła treść
+                    width: 150,
+                    height: 'auto',
                     minHeight: 160,
                     borderRadius: '24px',
                     bgcolor: isWinner ? alpha(activeColor, 0.04) : theme.palette.background.paper,
@@ -92,7 +93,6 @@ const PodiumItem = ({ note, rank, members, onClick }: { note: Note, rank: 1 | 2 
                     #{rank}
                 </Box>
 
-                {/* Tytuł Notatki */}
                 <Typography
                     variant="body1"
                     fontWeight={700}
@@ -103,14 +103,13 @@ const PodiumItem = ({ note, rank, members, onClick }: { note: Note, rank: 1 | 2 
                         display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
                         lineHeight: 1.3,
                         mb: 1.5,
-                        mt: 2, // Trochę miejsca na numer #1
+                        mt: 2,
                         color: theme.palette.text.primary
                     }}
                 >
                     {note.title || "Bez tytułu"}
                 </Typography>
 
-                {/* --- SEKCJA AUTORA --- */}
                 <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5, maxWidth: '100%' }}>
                     <Avatar
                         src={`/api/proxy-avatar/${note.userId}`}
@@ -123,7 +122,6 @@ const PodiumItem = ({ note, rank, members, onClick }: { note: Note, rank: 1 | 2 
                     </Typography>
                 </Stack>
 
-                {/* Licznik głosów */}
                 <Stack direction="row" alignItems="center" spacing={0.5} sx={{
                     color: isWinner ? activeColor : theme.palette.text.secondary,
                     bgcolor: isWinner ? alpha(activeColor, 0.1) : alpha(theme.palette.text.secondary, 0.1),
@@ -139,7 +137,7 @@ const PodiumItem = ({ note, rank, members, onClick }: { note: Note, rank: 1 | 2 
     );
 };
 
-// --- KOMPONENT LIDERA WIEDZY ---
+// --- LIDER WIEDZY ---
 const TopContributorCard = ({ member, totalVotes }: { member: GroupMember, totalVotes: number }) => {
     const theme = useTheme();
     const displayName = member.displayName || member.email || "Użytkownik";
@@ -154,11 +152,9 @@ const TopContributorCard = ({ member, totalVotes }: { member: GroupMember, total
                 borderRadius: '24px',
                 border: '1px solid',
                 borderColor: alpha(theme.palette.secondary.main, 0.3),
-                // POPRAWKA: Usunięto alpha() dla zmiennej CSS background.paper
+                // Fix: usunięto alpha() z drugiego koloru gradientu, bo to zmienna CSS
                 background: `linear-gradient(135deg, ${alpha(theme.palette.secondary.main, 0.05)} 0%, ${theme.palette.background.paper} 100%)`,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 2
+                display: 'flex', alignItems: 'center', gap: 2
             }}
         >
             <Box sx={{ position: 'relative' }}>
@@ -213,7 +209,10 @@ export default function GroupDetailsPage() {
     const [notes, setNotes] = useState<Note[]>([]);
     const [tab, setTab] = useState(0);
     const [loading, setLoading] = useState(true);
+
+    // --- SORTOWANIE ---
     const [sortBy, setSortBy] = useState<'DATE' | 'VOTES' | 'ALPHABET'>('DATE');
+    const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc'); // Nowy stan
 
     // State management
     const [inviteEmail, setInviteEmail] = useState('');
@@ -257,28 +256,23 @@ export default function GroupDetailsPage() {
         apiFetch<{ id: string }>('/api/auth/me').then(u => setMyId(u.id)).catch(() => {});
     }, []);
 
-    // --- LOGIKA LIDERA ---
     const topContributor = useMemo(() => {
         if (!notes.length || !details) return null;
         const voteMap: Record<string, number> = {};
-
         notes.forEach(note => {
             const votes = note.voteCount || 0;
             if (votes > 0 && note.userId) {
                 voteMap[note.userId] = (voteMap[note.userId] || 0) + votes;
             }
         });
-
         let maxVotes = 0;
         let topUserId = null;
-
         Object.entries(voteMap).forEach(([userId, total]) => {
             if (total > maxVotes) {
                 maxVotes = total;
                 topUserId = userId;
             }
         });
-
         if (!topUserId || maxVotes === 0) return null;
         const member = details.members.find(m => m.userId === topUserId);
         return member ? { member, totalVotes: maxVotes } : null;
@@ -291,20 +285,43 @@ export default function GroupDetailsPage() {
             .slice(0, 3);
     }, [notes]);
 
+    // --- LOGIKA SORTOWANIA Z KIERUNKIEM ---
     const listNotes = useMemo(() => {
         let list = [...notes];
-        if (sortBy === 'VOTES') list.sort((a, b) => (b.voteCount || 0) - (a.voteCount || 0));
-        else if (sortBy === 'ALPHABET') list.sort((a, b) => a.title.localeCompare(b.title));
-        else list.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+        list.sort((a, b) => {
+            let res = 0;
+            if (sortBy === 'VOTES') {
+                res = (a.voteCount || 0) - (b.voteCount || 0);
+            } else if (sortBy === 'ALPHABET') {
+                res = a.title.localeCompare(b.title);
+            } else { // DATE
+                const tA = new Date(a.created_at).getTime();
+                const tB = new Date(b.created_at).getTime();
+                res = tA - tB;
+            }
+
+            // Domyślny porządek logiczny:
+            // Votes: rosnąco = mało głosów -> dużo głosów
+            // Alphabet: rosnąco = A -> Z
+            // Date: rosnąco = stare -> nowe
+
+            // Jeśli użytkownik wybrał 'desc' (malejąco), odwracamy wynik
+            return sortDirection === 'asc' ? res : -res;
+        });
+
         return list;
-    }, [notes, sortBy]);
+    }, [notes, sortBy, sortDirection]);
+
+    const handleToggleSortDirection = () => {
+        setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    };
 
     const myMemberRec = details?.members.find(m => m.userId === myId);
     const myRole = myMemberRec?.role || 'MEMBER';
     const canManage = myRole === 'OWNER' || myRole === 'ADMIN';
     const roleLabels: Record<string, string> = { OWNER: t('role_OWNER'), ADMIN: t('role_ADMIN'), MEMBER: t('role_MEMBER') };
 
-    // Handlery (bez zmian)
     const handleCreateNote = async () => {
         if (!noteTitle) return;
         setCreatingNote(true);
@@ -369,12 +386,10 @@ export default function GroupDetailsPage() {
 
                 {tab === 0 && (
                     <Box>
-                        {/* LIDER WIEDZY */}
                         {topContributor && (
                             <TopContributorCard member={topContributor.member} totalVotes={topContributor.totalVotes} />
                         )}
 
-                        {/* PODIUM */}
                         {podiumNotes.length > 0 && (
                             <Box sx={{ mb: 6, mt: 2, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                                 <Typography variant="overline" color="text.secondary" letterSpacing={2} fontWeight={700} sx={{ mb: 4 }}>
@@ -382,7 +397,6 @@ export default function GroupDetailsPage() {
                                 </Typography>
 
                                 <Box sx={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: { xs: 1, sm: 2 }, minHeight: 180 }}>
-                                    {/* Przekazujemy 'details.members' do PodiumItem */}
                                     {podiumNotes[1] && <PodiumItem note={podiumNotes[1]} rank={2} members={details.members} onClick={() => handleEditNote(podiumNotes[1])} />}
                                     {podiumNotes[0] && <PodiumItem note={podiumNotes[0]} rank={1} members={details.members} onClick={() => handleEditNote(podiumNotes[0])} />}
                                     {podiumNotes[2] && <PodiumItem note={podiumNotes[2]} rank={3} members={details.members} onClick={() => handleEditNote(podiumNotes[2])} />}
@@ -392,7 +406,7 @@ export default function GroupDetailsPage() {
 
                         {/* PASEK SORTOWANIA */}
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, pb: 2, borderBottom: '1px solid', borderColor: 'divider', flexWrap: 'wrap', gap: 2 }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                 <SortIcon color="action" />
                                 <FormControl size="small" sx={{ minWidth: 150 }}>
                                     <InputLabel>Sortuj według</InputLabel>
@@ -402,13 +416,29 @@ export default function GroupDetailsPage() {
                                         <MenuItem value="ALPHABET">Alfabetycznie</MenuItem>
                                     </Select>
                                 </FormControl>
+
+                                {/* PRZYCISK ZMIANY KIERUNKU SORTOWANIA */}
+                                <Tooltip title={sortDirection === 'asc' ? "Rosnąco" : "Malejąco"}>
+                                    <IconButton
+                                        onClick={handleToggleSortDirection}
+                                        size="small"
+                                        sx={{
+                                            border: '1px solid',
+                                            borderColor: 'divider',
+                                            borderRadius: '8px',
+                                            p: 1
+                                        }}
+                                    >
+                                        {sortDirection === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />}
+                                    </IconButton>
+                                </Tooltip>
                             </Box>
+
                             <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={() => setNoteOpen(true)} sx={{ borderRadius: '12px', px: 3, py: 1, fontWeight: 700, textTransform: 'none' }}>
                                 {t('create_group_note') || "Dodaj notatkę"}
                             </Button>
                         </Box>
 
-                        {/* LISTA KART */}
                         {listNotes.length === 0 ? (
                             <Paper sx={{ p: 6, textAlign: 'center', color: 'text.secondary', borderRadius: '16px', bgcolor: 'transparent', border: '1px dashed divider' }}>
                                 <Typography variant="h6" fontWeight={600} gutterBottom>{t('notes_empty_title')}</Typography>
@@ -428,7 +458,6 @@ export default function GroupDetailsPage() {
                     </Box>
                 )}
 
-                {/* TABELA CZŁONKÓW (TAB 1) */}
                 {tab === 1 && (
                     <Box>
                         {canManage && (
@@ -471,7 +500,7 @@ export default function GroupDetailsPage() {
                     </Box>
                 )}
 
-                {/* MODALE - Dialogi bez zmian */}
+                {/* MODALE */}
                 <Dialog open={noteOpen} onClose={() => setNoteOpen(false)} fullWidth>
                     <DialogTitle>{t('create_new_note_header')}</DialogTitle>
                     <DialogContent>
