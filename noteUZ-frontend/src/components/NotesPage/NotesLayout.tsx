@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import {useRouter} from 'next/router';
-import {useTranslation} from 'next-i18next';
+import { useRouter } from 'next/router';
+import { useTranslation } from 'next-i18next';
 import {
     Box,
     Typography,
@@ -13,15 +13,18 @@ import {
     ListItemText,
     Divider,
     alpha,
-    Paper
+    Paper,
+    CircularProgress
 } from '@mui/material';
 
-// Ikony
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
 import PeopleOutlineIcon from '@mui/icons-material/PeopleOutline';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import MenuBookIcon from '@mui/icons-material/MenuBook';
-import ShareIcon from '@mui/icons-material/Share'; // Upewnij się, że masz ten import
+import ShareIcon from '@mui/icons-material/Share';
+
+import { Navbar } from '@/components/landing/Navbar';
+import { UserData } from '@/types/User';
+import { apiFetch } from '@/lib/api';
 
 interface NotesLayoutProps {
     children: React.ReactNode;
@@ -29,160 +32,161 @@ interface NotesLayoutProps {
     actionButton?: React.ReactNode;
 }
 
-export const NotesLayout: React.FC<NotesLayoutProps> = ({children, title, actionButton}) => {
-    const {t} = useTranslation('common');
+export const NotesLayout: React.FC<NotesLayoutProps> = ({ children, title, actionButton }) => {
+    const { t } = useTranslation('common');
     const theme = useTheme();
     const router = useRouter();
 
+    const [user, setUser] = useState<UserData | null>(null);
+    const [loadingUser, setLoadingUser] = useState(true);
+    const [busy, setBusy] = useState(false);
+
     const isActive = (path: string) => router.pathname === path;
 
-    const menuItems = [
-        {
-            text: t('my_notes'),
-            icon: <DescriptionOutlinedIcon/>,
-            path: '/notes',
-            disabled: false
-        },
-        {
-            text: t('groups_nav'),
-            icon: <PeopleOutlineIcon/>,
-            path: '/groups',
-            disabled: false
-        },
-        {
-            text: t('shared_notes'), // Nowy klucz tłumaczenia
-            icon: <ShareIcon/>,     // Ikona udostępniania
-            path: '/notes/shared',   // Ścieżka do strony
-            disabled: false          // AKTYWNE
+    useEffect(() => {
+        apiFetch<UserData>('/api/auth/me')
+            .then(data => setUser(data))
+            .catch(() => { })
+            .finally(() => setLoadingUser(false));
+    }, []);
+
+    const handleLogout = async () => {
+        setBusy(true);
+        try {
+            await apiFetch('/api/auth/logout', { method: 'POST' });
+            router.push('/login');
+        } finally {
+            setBusy(false);
         }
+    };
+
+    const menuItems = [
+        { text: t('my_notes'), icon: <DescriptionOutlinedIcon />, path: '/notes', disabled: false },
+        { text: t('groups_nav'), icon: <PeopleOutlineIcon />, path: '/groups', disabled: false },
+        { text: t('shared_notes'), icon: <ShareIcon />, path: '/notes/shared', disabled: false }
     ];
+
+    if (loadingUser) {
+        return (
+            <Box sx={{ minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', background: 'var(--page-gradient)' }}>
+                <CircularProgress />
+            </Box>
+        );
+    }
 
     return (
         <Box sx={{
             display: 'flex',
+            flexDirection: 'column',
             minHeight: '100vh',
             background: 'var(--page-gradient)',
         }}>
-            {/* ================= LEWY SIDEBAR ================= */}
-            <Paper
-                elevation={0}
-                sx={{
-                    width: 280,
-                    flexShrink: 0,
-                    display: {xs: 'none', md: 'flex'},
-                    flexDirection: 'column',
-                    borderRight: '1px solid',
-                    borderColor: 'divider',
-                    backgroundColor: theme.palette.mode === 'light'
-                        ? 'rgba(255, 255, 255, 0.5)'
-                        : 'rgba(20, 20, 20, 0.5)',
-                    backdropFilter: 'blur(10px)',
-                }}
-            >
-                {/* Nagłówek Sidebara */}
-                <Box sx={{p: 3, display: 'flex', alignItems: 'center', gap: 1.5}}>
-                    <Box sx={{
-                        width: 32, height: 32, borderRadius: '8px',
-                        background: 'linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        boxShadow: '0 4px 12px rgba(79,70,229,0.2)'
-                    }}>
-                        <MenuBookIcon sx={{fontSize: 18, color: 'white'}}/>
-                    </Box>
-                    <Typography variant="h6" fontWeight={700} sx={{letterSpacing: '-0.5px'}}>
-                        NoteUZ
-                    </Typography>
-                </Box>
+            <Navbar user={user} onLogout={handleLogout} busy={busy} />
 
-                {/* Lista Menu */}
-                <List sx={{px: 2}}>
-                    {menuItems.map((item) => (
-                        <Link href={item.disabled ? '#' : item.path} key={item.path} legacyBehavior passHref>
+            <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+
+                {/* ================= SIDEBAR (Flat & Tonal) ================= */}
+                <Paper
+                    elevation={0}
+                    sx={{
+                        width: 280,
+                        flexShrink: 0,
+                        display: { xs: 'none', md: 'flex' },
+                        flexDirection: 'column',
+                        // Usuwamy cień, dodajemy subtelną linię
+                        borderRight: '1px solid',
+                        borderColor: 'divider',
+                        backgroundColor: 'transparent', // Przezroczyste tło, żeby zlało się ze stroną
+                        pt: 3,
+                        px: 2
+                    }}
+                >
+                    <List>
+                        {menuItems.map((item) => {
+                            const active = isActive(item.path);
+                            return (
+                                <Link href={item.disabled ? '#' : item.path} key={item.path} legacyBehavior passHref>
+                                    <ListItemButton
+                                        component="a"
+                                        disabled={item.disabled}
+                                        selected={active}
+                                        sx={{
+                                            borderRadius: '50px', // Pastylka
+                                            mb: 1,
+                                            pl: 2.5,
+                                            // Tonal State: Wypełnienie kolorem (bez cienia) gdy aktywne
+                                            '&.Mui-selected': {
+                                                backgroundColor: alpha(theme.palette.primary.main, 0.1), // Lekki pomarańcz
+                                                color: theme.palette.primary.main, // Ciemny pomarańcz tekst
+                                                fontWeight: 700,
+                                                '&:hover': { backgroundColor: alpha(theme.palette.primary.main, 0.15) },
+                                                '& .MuiListItemIcon-root': { color: theme.palette.primary.main }
+                                            },
+                                            '&:hover': {
+                                                backgroundColor: alpha(theme.palette.text.primary, 0.05) // Szary hover
+                                            }
+                                        }}
+                                    >
+                                        <ListItemIcon sx={{ minWidth: 42, color: active ? 'inherit' : 'text.secondary' }}>
+                                            {item.icon}
+                                        </ListItemIcon>
+                                        <ListItemText
+                                            primary={item.text}
+                                            primaryTypographyProps={{
+                                                fontWeight: active ? 700 : 500,
+                                                fontSize: '0.95rem'
+                                            }}
+                                        />
+                                    </ListItemButton>
+                                </Link>
+                            );
+                        })}
+                    </List>
+
+                    <Box sx={{ flexGrow: 1 }} />
+
+                    <Box sx={{ p: 2, pb: 4 }}>
+                        <Divider sx={{ mb: 2, mx: 1 }} />
+                        <Link href="/dashboard" legacyBehavior passHref>
                             <ListItemButton
                                 component="a"
-                                disabled={item.disabled}
-                                selected={isActive(item.path)}
-                                sx={{
-                                    borderRadius: '10px',
-                                    mb: 0.5,
-                                    '&.Mui-selected': {
-                                        backgroundColor: alpha(theme.palette.primary.main, 0.1),
-                                        color: theme.palette.primary.main,
-                                        '&:hover': {backgroundColor: alpha(theme.palette.primary.main, 0.15)},
-                                        '& .MuiListItemIcon-root': {color: theme.palette.primary.main}
-                                    }
-                                }}
+                                sx={{ borderRadius: '50px', color: 'text.secondary', pl: 2.5 }}
                             >
-                                <ListItemIcon
-                                    sx={{minWidth: 40, color: isActive(item.path) ? 'inherit' : 'text.secondary'}}>
-                                    {item.icon}
+                                <ListItemIcon sx={{ minWidth: 42 }}>
+                                    <ArrowBackIcon />
                                 </ListItemIcon>
-                                <ListItemText
-                                    primary={item.text}
-                                    primaryTypographyProps={{
-                                        fontWeight: isActive(item.path) ? 600 : 500,
-                                        fontSize: '0.95rem'
-                                    }}
-                                />
+                                <ListItemText primary={t('back_to_dashboard')} />
                             </ListItemButton>
                         </Link>
-                    ))}
-                </List>
-
-                <Box sx={{flexGrow: 1}}/>
-
-                {/* Sekcja dolna Sidebara */}
-                <Box sx={{p: 2}}>
-                    <Divider sx={{mb: 2}}/>
-                    <Link href="/dashboard" legacyBehavior passHref>
-                        <ListItemButton
-                            component="a"
-                            sx={{borderRadius: '10px', color: 'text.secondary'}}
-                        >
-                            <ListItemIcon sx={{minWidth: 40}}>
-                                <ArrowBackIcon/>
-                            </ListItemIcon>
-                            <ListItemText primary={t('back_to_dashboard')}/>
-                        </ListItemButton>
-                    </Link>
-                </Box>
-            </Paper>
-
-            {/* ================= GŁÓWNA TREŚĆ ================= */}
-            <Box component="main" sx={{flexGrow: 1, p: {xs: 2, md: 4, lg: 6}, overflowX: 'hidden'}}>
-                <Box sx={{
-                    display: 'flex',
-                    flexDirection: {xs: 'column', sm: 'row'},
-                    justifyContent: 'space-between',
-                    alignItems: {xs: 'flex-start', sm: 'center'},
-                    gap: 2,
-                    mb: 5
-                }}>
-                    <Box>
-                        {/* Mobilny przycisk powrotu */}
-                        <Box sx={{display: {md: 'none'}, mb: 2}}>
-                            <Link href="/dashboard" legacyBehavior>
-                                <Button startIcon={<ArrowBackIcon/>} size="small" color="inherit">
-                                    {t('dashboard')}
-                                </Button>
-                            </Link>
-                        </Box>
-
-                        <Typography variant="h4" component="h1" fontWeight={800}>
-                            {title}
-                        </Typography>
                     </Box>
+                </Paper>
 
-                    {actionButton && (
+                {/* MAIN CONTENT */}
+                <Box component="main" sx={{ flexGrow: 1, p: { xs: 2, md: 4, lg: 5 }, overflowY: 'auto' }}>
+                    <Box sx={{
+                        display: 'flex',
+                        flexDirection: { xs: 'column', sm: 'row' },
+                        justifyContent: 'space-between',
+                        alignItems: { xs: 'flex-start', sm: 'center' },
+                        gap: 2,
+                        mb: 4
+                    }}>
                         <Box>
-                            {actionButton}
+                            <Box sx={{ display: { md: 'none' }, mb: 2 }}>
+                                <Link href="/dashboard" legacyBehavior>
+                                    <Button startIcon={<ArrowBackIcon />} size="small" color="inherit" sx={{ borderRadius: '50px' }}>
+                                        {t('dashboard')}
+                                    </Button>
+                                </Link>
+                            </Box>
+                            <Typography variant="h4" component="h1" fontWeight={800} sx={{ letterSpacing: '-0.02em' }}>
+                                {title}
+                            </Typography>
                         </Box>
-                    )}
+                        {actionButton && <Box sx={{ display: { xs: 'none', sm: 'block' } }}>{actionButton}</Box>}
+                    </Box>
+                    {children}
                 </Box>
-
-                {children}
             </Box>
         </Box>
     );
