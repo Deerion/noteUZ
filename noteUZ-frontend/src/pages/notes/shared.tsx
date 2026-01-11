@@ -8,7 +8,6 @@ import {
     Card, CardContent, CardActions, IconButton, Tooltip, useTheme, alpha
 } from '@mui/material';
 import ShareIcon from '@mui/icons-material/Share';
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import MarkEmailUnreadIcon from '@mui/icons-material/MarkEmailUnread';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import CheckIcon from '@mui/icons-material/Check';
@@ -49,47 +48,57 @@ export default function SharedNotesPage() {
     useEffect(() => {
         if (!router.isReady) return;
         fetchSharedNotes();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [router.isReady]);
 
     const handleAcceptShare = async (noteId: string, tokenStr: string) => {
         setProcessingId(noteId);
         try {
             await apiFetch(`/api/notes/share/${tokenStr}/accept`, {method: 'POST'});
-            setActionResult({type: 'success', msg: t('share_accepted_success') || 'Notatka została dodana do Twojej listy!'});
+            setActionResult({
+                type: 'success',
+                msg: t('share_accepted_success') || 'Notatka została dodana do Twojej listy!'
+            });
             await fetchSharedNotes();
         } catch (e: unknown) {
             console.error(e);
-            setActionResult({type: 'error', msg: t('error_general') || 'Wystąpił błąd.'});
+            setActionResult({
+                type: 'error',
+                msg: t('error_general') || 'Wystąpił błąd podczas akceptacji.'
+            });
         } finally {
             setProcessingId(null);
         }
     };
 
     const handleRejectShare = async (noteId: string) => {
-        if (!confirm(t('confirm_reject_share') || "Czy na pewno odrzucić to zaproszenie?")) return;
+        const confirmMsg = t('confirm_reject_share') || "Czy na pewno odrzucić to zaproszenie?";
+        if (!confirm(confirmMsg)) return;
+
         setProcessingId(noteId);
         try {
-            // Używamy endpointu delete notatki (jako odbiorca usuwamy dostęp)
+            // Jako odbiorca usuwamy swój dostęp (status REJECTED/DELETE)
             await apiFetch(`/api/notes/${noteId}`, {method: 'DELETE'});
-            setActionResult({type: 'success', msg: t('share_rejected_success') || 'Zaproszenie odrzucone.'});
+            setActionResult({
+                type: 'success',
+                msg: t('share_rejected_success') || 'Zaproszenie zostało odrzucone.'
+            });
             await fetchSharedNotes();
         } catch (e) {
-            setActionResult({type: 'error', msg: t('error_general') || 'Błąd.'});
+            setActionResult({
+                type: 'error',
+                msg: t('error_general') || 'Błąd podczas odrzucania zaproszenia.'
+            });
         } finally {
             setProcessingId(null);
         }
     }
 
-    // Dzielimy notatki na dwie grupy
     const pendingNotes = notes.filter(n => n.status === 'PENDING');
     const acceptedNotes = notes.filter(n => n.status === 'ACCEPTED');
 
     return (
         <>
-            <Head>
-                <title>{t('shared_notes')} — NoteUZ</title>
-            </Head>
+            <Head><title>{t('shared_notes')} — NoteUZ</title></Head>
 
             <NotesLayout title={t('shared_notes') || "Udostępnione dla mnie"}>
                 <Container maxWidth="xl" disableGutters>
@@ -114,38 +123,37 @@ export default function SharedNotesPage() {
                         <>
                             {/* --- SEKCJA 1: ZAPROSZENIA (PENDING) --- */}
                             {pendingNotes.length > 0 && (
-                                <Box sx={{mb: 6}}>
-                                    <Typography variant="h6" fontWeight={700} sx={{mb: 3, display: 'flex', alignItems: 'center', color: theme.palette.text.primary}}>
+                                <Box sx={{mb: 8}}>
+                                    <Typography variant="h6" fontWeight={700} sx={{mb: 4, display: 'flex', alignItems: 'center', color: theme.palette.text.primary}}>
                                         <MarkEmailUnreadIcon sx={{mr: 1.5, color: theme.palette.warning.main}} />
                                         {t('invitations')} ({pendingNotes.length})
                                     </Typography>
 
-                                    <Grid container spacing={3}>
+                                    <Grid container spacing={3} alignItems="stretch">
                                         {pendingNotes.map((note) => (
-                                            <Grid key={note.id} size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
-                                                {/* Karta Zaproszenia "Google Style" */}
+                                            // md: 3 daje 4 kafelki w rzędzie
+                                            <Grid key={note.id} size={{ xs: 12, sm: 6, md: 3 }} sx={{ display: 'flex' }}>
                                                 <Card
                                                     variant="outlined"
                                                     sx={{
-                                                        height: '100%',
+                                                        width: '100%',
                                                         display: 'flex',
                                                         flexDirection: 'column',
                                                         borderRadius: '16px',
                                                         border: '1px dashed',
                                                         borderColor: alpha(theme.palette.text.primary, 0.2),
-                                                        // FIX: Zamiast alpha() na zmiennej CSS, używamy ręcznego rgba
                                                         backgroundColor: theme.palette.mode === 'light'
                                                             ? 'rgba(249, 249, 249, 0.6)'
                                                             : 'rgba(26, 26, 26, 0.6)',
                                                         transition: 'all 0.2s ease',
                                                         '&:hover': {
                                                             borderColor: theme.palette.primary.main,
-                                                            transform: 'translateY(-2px)',
+                                                            transform: 'translateY(-4px)',
                                                             boxShadow: '0 8px 24px rgba(0,0,0,0.06)'
                                                         }
                                                     }}
                                                 >
-                                                    <CardContent sx={{ flex: 1, textAlign: 'center', pt: 4, pb: 2 }}>
+                                                    <CardContent sx={{ flexGrow: 1, textAlign: 'center', pt: 4, pb: 2 }}>
                                                         <Box sx={{
                                                             width: 56, height: 56, borderRadius: '50%',
                                                             bgcolor: alpha(theme.palette.primary.main, 0.1),
@@ -156,15 +164,15 @@ export default function SharedNotesPage() {
                                                             <MarkEmailUnreadIcon fontSize="medium" />
                                                         </Box>
 
-                                                        <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'uppercase', letterSpacing: 1 }}>
+                                                        <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ textTransform: 'uppercase', letterSpacing: 1 }}>
                                                             {t('pending_share_subtitle') || "ZAPROSZENIE"}
                                                         </Typography>
 
-                                                        <Typography variant="h6" fontWeight={700} sx={{ mt: 1, mb: 1, px: 1 }} noWrap title={note.title}>
+                                                        <Typography variant="h6" fontWeight={700} sx={{ mt: 1, mb: 1, px: 1, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
                                                             {note.title || t('note_untitled')}
                                                         </Typography>
 
-                                                        <Typography variant="body2" color="text.secondary" sx={{ px: 2 }}>
+                                                        <Typography variant="body2" color="text.secondary" sx={{ px: 2, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
                                                             {t('pending_share_desc') || "Użytkownik zaprasza Cię do edycji tej notatki."}
                                                         </Typography>
                                                     </CardContent>
@@ -178,7 +186,7 @@ export default function SharedNotesPage() {
                                                                 color="error"
                                                                 disabled={!!processingId}
                                                                 size="small"
-                                                                sx={{ border: '1px solid', borderColor: 'divider' }}
+                                                                sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '10px' }}
                                                             >
                                                                 <DeleteOutlineIcon />
                                                             </IconButton>
@@ -190,7 +198,7 @@ export default function SharedNotesPage() {
                                                             onClick={() => handleAcceptShare(note.id, note.token!)}
                                                             disabled={!!processingId}
                                                             startIcon={processingId === note.id ? <CircularProgress size={16} color="inherit"/> : <CheckIcon />}
-                                                            sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600, flex: 1 }}
+                                                            sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 700, flex: 1 }}
                                                         >
                                                             {t('accept')}
                                                         </Button>
@@ -199,13 +207,13 @@ export default function SharedNotesPage() {
                                             </Grid>
                                         ))}
                                     </Grid>
-                                    <Divider sx={{my: 5}} />
+                                    <Divider sx={{my: 6}} />
                                 </Box>
                             )}
 
                             {/* --- SEKCJA 2: ZAAKCEPTOWANE (ACCEPTED) --- */}
                             <Box>
-                                <Typography variant="h6" fontWeight={700} sx={{mb: 3, display: 'flex', alignItems: 'center', color: 'text.secondary'}}>
+                                <Typography variant="h6" fontWeight={700} sx={{mb: 4, display: 'flex', alignItems: 'center', color: 'text.secondary'}}>
                                     <ShareIcon sx={{mr: 1.5, fontSize: 22}} />
                                     {t('my_shared_notes')}
                                 </Typography>
@@ -215,10 +223,11 @@ export default function SharedNotesPage() {
                                         <Typography variant="body1">{t('no_shared_notes')}</Typography>
                                     </Box>
                                 ) : (
-                                    <Grid container spacing={3}>
+                                    <Grid container spacing={3} alignItems="stretch">
                                         {acceptedNotes.map((note) => (
-                                            <Grid key={note.id} size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
-                                                <Box sx={{position: 'relative', height: '100%'}}>
+                                            // md: 3 daje 4 kafelki w rzędzie
+                                            <Grid key={note.id} size={{ xs: 12, sm: 6, md: 3 }} sx={{ display: 'flex' }}>
+                                                <Box sx={{position: 'relative', width: '100%', display: 'flex'}}>
                                                     <NoteCard note={note} />
                                                     <Chip
                                                         label={note.permission === 'WRITE' ? t('perm_write') : t('perm_read')}
@@ -229,7 +238,8 @@ export default function SharedNotesPage() {
                                                             position: 'absolute', top: 12, right: 12, zIndex: 2,
                                                             fontWeight: 'bold', fontSize: '0.7rem',
                                                             boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                                                            backdropFilter: 'blur(4px)'
+                                                            backdropFilter: 'blur(4px)',
+                                                            pointerEvents: 'none'
                                                         }}
                                                     />
                                                 </Box>
