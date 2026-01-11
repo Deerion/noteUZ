@@ -23,6 +23,7 @@ type Props = {
     error?: string;
 };
 
+// --- SSR: Pobiera MOJE notatki z zachowaniem starej obsługi błędów ---
 export const getServerSideProps: GetServerSideProps<Props> = async ({ req, locale }) => {
     const API = process.env.NEXT_PUBLIC_API_URL!;
     const cookie = req.headers.cookie;
@@ -37,11 +38,36 @@ export const getServerSideProps: GetServerSideProps<Props> = async ({ req, local
             },
         });
 
-        if (res.status === 401) return { redirect: { destination: `/error?code=401`, permanent: false } };
+        if (res.status === 401) {
+            return { redirect: { destination: `/error?code=401`, permanent: false } };
+        }
+
+        if (!res.ok) {
+            let errorMsg = `Błąd API ${res.status}`;
+            try {
+                const data = await res.json();
+                errorMsg = data.message || errorMsg;
+            } catch (e) { /* ignoruj */ }
+
+            return {
+                redirect: {
+                    destination: `/error?code=${res.status}&msg=${encodeURIComponent(errorMsg)}`,
+                    permanent: false,
+                },
+            };
+        }
 
         const data = await res.json();
-        return { props: { notes: Array.isArray(data) ? data : [], status: res.status, ...translations } };
-    } catch (e) {
+        const notes = Array.isArray(data) ? data : [];
+
+        return {
+            props: {
+                notes,
+                status: res.status,
+                ...translations
+            }
+        };
+    } catch (e: unknown) {
         return { redirect: { destination: `/error?code=503`, permanent: false } };
     }
 };
@@ -50,6 +76,7 @@ export default function NotesPage({ notes = [] }: InferGetServerSidePropsType<ty
     const { t } = useTranslation('common');
     const [sharedNotes, setSharedNotes] = useState<SharedNote[]>([]);
 
+    // Pobieramy notatki udostępnione (zachowano logikę filtrowania ACCEPTED)
     useEffect(() => {
         apiFetch<SharedNote[]>('/api/notes/shared')
             .then(data => {
@@ -66,23 +93,27 @@ export default function NotesPage({ notes = [] }: InferGetServerSidePropsType<ty
 
             <NotesLayout title={t('my_notes')} actionButton={<CreateNoteButton />}>
 
-                {/* SEKCJA: MOJE NOTATKI */}
+                {/* --- SEKCJA: MOJE NOTATKI --- */}
                 {notes.length === 0 ? (
                     <Box sx={{ textAlign: 'center', py: 10, opacity: 0.6 }}>
                         <Typography variant="h6" fontWeight={700} gutterBottom>{t('notes_empty_title')}</Typography>
                         <Typography variant="body1">{t('notes_empty_desc')}</Typography>
                     </Box>
                 ) : (
+                    // alignItems="stretch" zapewnia, że wszystkie kolumny w rzędzie mają tę samą wysokość
                     <Grid container spacing={3} alignItems="stretch">
                         {notes.map((note) => (
-                            <Grid key={note.id} size={{ xs: 12, sm: 6, md: 4 }} sx={{ display: 'flex' }}>
-                                <NoteCard note={note} />
+                            // md: 3 daje 4 karty w rzędzie na komputerach
+                            <Grid key={note.id} size={{ xs: 12, sm: 6, md: 3 }} sx={{ display: 'flex' }}>
+                                <Box sx={{ width: '100%', display: 'flex' }}>
+                                    <NoteCard note={note} />
+                                </Box>
                             </Grid>
                         ))}
                     </Grid>
                 )}
 
-                {/* SEKCJA: UDOSTĘPNIONE DLA MNIE */}
+                {/* --- SEKCJA: UDOSTĘPNIONE DLA MNIE --- */}
                 {sharedNotes.length > 0 && (
                     <Box sx={{ mt: 10 }}>
                         <Divider sx={{ mb: 5 }}>
@@ -95,23 +126,21 @@ export default function NotesPage({ notes = [] }: InferGetServerSidePropsType<ty
 
                         <Grid container spacing={3} alignItems="stretch">
                             {sharedNotes.map((note) => (
-                                <Grid key={note.id} size={{ xs: 12, sm: 6, md: 4 }} sx={{ display: 'flex', position: 'relative' }}>
-                                    <NoteCard note={note} />
-                                    <Chip
-                                        label={note.permission === 'WRITE' ? t('perm_write') : t('perm_read')}
-                                        size="small"
-                                        color={note.permission === 'WRITE' ? 'secondary' : 'default'}
-                                        sx={{
-                                            position: 'absolute',
-                                            top: 12,
-                                            right: 12,
-                                            zIndex: 2,
-                                            fontWeight: 700,
-                                            boxShadow: '0 4px 10px rgba(0,0,0,0.1)',
-                                            backdropFilter: 'blur(4px)',
-                                            pointerEvents: 'none'
-                                        }}
-                                    />
+                                // md: 3 daje 4 karty w rzędzie
+                                <Grid key={note.id} size={{ xs: 12, sm: 6, md: 3 }} sx={{ display: 'flex' }}>
+                                    <Box sx={{ width: '100%', position: 'relative', display: 'flex' }}>
+                                        <NoteCard note={note} />
+                                        <Chip
+                                            label={note.permission === 'WRITE' ? t('perm_write') : t('perm_read')}
+                                            size="small"
+                                            color={note.permission === 'WRITE' ? 'secondary' : 'default'}
+                                            sx={{
+                                                position: 'absolute', top: 12, right: 12, zIndex: 2,
+                                                fontWeight: 700, boxShadow: '0 4px 10px rgba(0,0,0,0.1)',
+                                                backdropFilter: 'blur(4px)', pointerEvents: 'none'
+                                            }}
+                                        />
+                                    </Box>
                                 </Grid>
                             ))}
                         </Grid>

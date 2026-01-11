@@ -200,8 +200,8 @@ const TopContributorCard = ({ member, totalVotes }: { member: GroupMember, total
 
 export default function GroupDetailsPage() {
     const { t } = useTranslation('common');
-    const router = useRouter();
     const theme = useTheme();
+    const router = useRouter();
     const { id } = router.query;
 
     const [details, setDetails] = useState<GroupDetails | null>(null);
@@ -213,7 +213,7 @@ export default function GroupDetailsPage() {
     const [sortBy, setSortBy] = useState<'DATE' | 'VOTES' | 'ALPHABET'>('DATE');
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
-    // State management
+    // Zarządzanie stanami
     const [inviteEmail, setInviteEmail] = useState('');
     const [inviteOpen, setInviteOpen] = useState(false);
     const [inviting, setInviting] = useState(false);
@@ -284,10 +284,9 @@ export default function GroupDetailsPage() {
             .slice(0, 3);
     }, [notes]);
 
-    // --- LOGIKA SORTOWANIA Z KIERUNKIEM ---
+    // --- LOGIKA SORTOWANIA ---
     const listNotes = useMemo(() => {
         let list = [...notes];
-
         list.sort((a, b) => {
             let res = 0;
             if (sortBy === 'VOTES') {
@@ -299,10 +298,8 @@ export default function GroupDetailsPage() {
                 const tB = new Date(b.created_at || '').getTime();
                 res = tA - tB;
             }
-
             return sortDirection === 'asc' ? res : -res;
         });
-
         return list;
     }, [notes, sortBy, sortDirection]);
 
@@ -371,7 +368,7 @@ export default function GroupDetailsPage() {
             <Head><title>{details.group.name} — NoteUZ</title></Head>
             <NotesLayout
                 title={details.group.name}
-                actionButton={<Button startIcon={<ArrowBackIcon />} onClick={() => router.push('/groups')}>{t('btn_back')}</Button>}
+                actionButton={<Button startIcon={<ArrowBackIcon />} onClick={() => router.push('/groups')} sx={{ borderRadius: '10px' }}>{t('btn_back')}</Button>}
             >
                 {details.group.description && (
                     <Box sx={{ mb: 4 }}>
@@ -380,8 +377,8 @@ export default function GroupDetailsPage() {
                 )}
 
                 <Tabs value={tab} onChange={(e, v) => setTab(v)} sx={{ mb: 4, borderBottom: 1, borderColor: 'divider' }}>
-                    <Tab label={t('tab_notes')} />
-                    <Tab label={`${t('tab_members')} (${details.members.length})`} />
+                    <Tab label={t('tab_notes')} sx={{ textTransform: 'none', fontWeight: 700 }} />
+                    <Tab label={`${t('tab_members')} (${details.members.length})`} sx={{ textTransform: 'none', fontWeight: 700 }} />
                 </Tabs>
 
                 {tab === 0 && (
@@ -404,13 +401,28 @@ export default function GroupDetailsPage() {
                             </Box>
                         )}
 
-                        {/* PASEK SORTOWANIA */}
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, pb: 2, borderBottom: '1px solid', borderColor: 'divider', flexWrap: 'wrap', gap: 2 }}>
+                        {/* PASEK SORTOWANIA I AKCJI */}
+                        <Box sx={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            mb: 3,
+                            pb: 2,
+                            borderBottom: '1px solid',
+                            borderColor: 'divider',
+                            flexWrap: 'wrap',
+                            gap: 2
+                        }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                 <SortIcon color="action" />
                                 <FormControl size="small" sx={{ minWidth: 150 }}>
                                     <InputLabel>Sortuj według</InputLabel>
-                                    <Select value={sortBy} label="Sortuj według" onChange={(e) => setSortBy(e.target.value as any)} sx={{ borderRadius: '12px' }}>
+                                    <Select
+                                        value={sortBy}
+                                        label="Sortuj według"
+                                        onChange={(e) => setSortBy(e.target.value as any)}
+                                        sx={{ borderRadius: '12px' }}
+                                    >
                                         <MenuItem value="DATE">Data dodania</MenuItem>
                                         <MenuItem value="VOTES">Liczba głosów</MenuItem>
                                         <MenuItem value="ALPHABET">Alfabetycznie</MenuItem>
@@ -421,40 +433,40 @@ export default function GroupDetailsPage() {
                                     <IconButton
                                         onClick={handleToggleSortDirection}
                                         size="small"
-                                        sx={{
-                                            border: '1px solid',
-                                            borderColor: 'divider',
-                                            borderRadius: '8px',
-                                            p: 1
-                                        }}
+                                        sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '8px', p: 1 }}
                                     >
                                         {sortDirection === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />}
                                     </IconButton>
                                 </Tooltip>
                             </Box>
 
-                            <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={() => setNoteOpen(true)} sx={{ borderRadius: '12px', px: 3, py: 1, fontWeight: 700, textTransform: 'none' }}>
+                            <Button
+                                variant="contained"
+                                color="primary"
+                                startIcon={<AddIcon />}
+                                onClick={() => setNoteOpen(true)}
+                                sx={{ borderRadius: '12px', px: 3, py: 1, fontWeight: 700, textTransform: 'none' }}
+                            >
                                 {t('create_group_note') || "Dodaj notatkę"}
                             </Button>
                         </Box>
 
                         {listNotes.length === 0 ? (
-                            <Paper sx={{ p: 6, textAlign: 'center', color: 'text.secondary', borderRadius: '16px', bgcolor: 'transparent', border: '1px dashed divider' }}>
+                            <Paper sx={{ p: 6, textAlign: 'center', color: 'text.secondary', borderRadius: '16px', bgcolor: 'transparent', border: '1px dashed', borderColor: 'divider' }}>
                                 <Typography variant="h6" fontWeight={600} gutterBottom>{t('notes_empty_title')}</Typography>
                                 <Typography variant="body2">{t('notes_empty_desc')}</Typography>
                             </Paper>
                         ) : (
-                            <Container maxWidth="xl" disableGutters>
-                                <Grid container spacing={3} alignItems="stretch">
-                                    {listNotes.map((note) => (
-                                        <Grid item xs={12} sm={6} md={4} lg={3} key={note.id} sx={{ display: 'flex' }}>
-                                            <Box sx={{ width: '100%', display: 'flex' }}>
-                                                <NoteCard note={note} onEdit={handleEditNote} onDelete={handleDeleteNote} showVotes={true} />
-                                            </Box>
-                                        </Grid>
-                                    ))}
-                                </Grid>
-                            </Container>
+                            <Grid container spacing={3} alignItems="stretch">
+                                {listNotes.map((note) => (
+                                    // ZMIANA: md: 3 daje 4 kafelki w rzędzie
+                                    <Grid key={note.id} size={{ xs: 12, sm: 6, md: 3 }} sx={{ display: 'flex' }}>
+                                        <Box sx={{ width: '100%', display: 'flex' }}>
+                                            <NoteCard note={note} onEdit={handleEditNote} onDelete={handleDeleteNote} showVotes={true} />
+                                        </Box>
+                                    </Grid>
+                                ))}
+                            </Grid>
                         )}
                     </Box>
                 )}
@@ -463,77 +475,131 @@ export default function GroupDetailsPage() {
                     <Box>
                         {canManage && (
                             <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end' }}>
-                                <Button startIcon={<PersonAddIcon />} variant="outlined" onClick={() => setInviteOpen(true)} sx={{ borderRadius: '100px' }}>
+                                <Button startIcon={<PersonAddIcon />} variant="outlined" onClick={() => setInviteOpen(true)} sx={{ borderRadius: '12px' }}>
                                     {t('invite_member')}
                                 </Button>
                             </Box>
                         )}
-                        <List sx={{ display: 'grid', gap: 1 }}>
-                            {details.members.map((member) => {
-                                const isMe = member.userId === myId;
-                                const isOwner = member.role === 'OWNER';
-                                const displayName = member.displayName || member.email || 'Użytkownik';
-                                const initial = displayName.charAt(0).toUpperCase();
-                                const isTopContributor = topContributor?.member.userId === member.userId;
+                        <Paper elevation={0} sx={{ borderRadius: '16px', border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
+                            <List disablePadding>
+                                {details.members.map((member, i) => {
+                                    const isMe = member.userId === myId;
+                                    const isOwner = member.role === 'OWNER';
+                                    const displayName = member.displayName || member.email || 'Użytkownik';
+                                    const initial = displayName.charAt(0).toUpperCase();
+                                    const isTopContributor = topContributor?.member.userId === member.userId;
 
-                                return (
-                                    <ListItem key={member.id} sx={{ borderRadius: '16px', bgcolor: isTopContributor ? alpha(theme.palette.secondary.main, 0.05) : theme.palette.background.paper, border: '1px solid', borderColor: isTopContributor ? theme.palette.secondary.main : 'divider' }}
-                                              secondaryAction={
-                                                  isMe ? (!isOwner && <Tooltip title={t('leave_group')}><IconButton onClick={handleLeaveGroup} color="error"><ExitToAppIcon /></IconButton></Tooltip>)
-                                                      : (canManage ? <IconButton onClick={(e) => { setSelectedMember(member); setAnchorEl(e.currentTarget); }}><MoreVertIcon /></IconButton> : null)
-                                              }
-                                    >
-                                        <ListItemAvatar>
-                                            <Box sx={{ position: 'relative' }}>
-                                                <Avatar src={`/api/proxy-avatar/${member.userId}`} alt={displayName} sx={{ bgcolor: isMe ? 'primary.main' : undefined }}>{initial}</Avatar>
-                                                {isTopContributor && <Box sx={{ position: 'absolute', bottom: -2, right: -2, bgcolor: 'background.paper', borderRadius: '50%', p: 0.2 }}><StarIcon sx={{ fontSize: 14, color: 'secondary.main' }} /></Box>}
-                                            </Box>
-                                        </ListItemAvatar>
-                                        <ListItemText
-                                            primary={<Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><span style={{ fontWeight: isMe ? 700 : 500 }}>{isMe ? `${displayName} (${t('me')})` : displayName}</span>{isTopContributor && <Chip label="Lider" size="small" color="secondary" sx={{ height: 20, fontSize: '0.65rem', fontWeight: 700 }} />}</Box>}
-                                            secondary={`${t('join_date_label')}: ${new Date(member.joinedAt).toLocaleDateString()}`}
-                                        />
-                                        <Chip label={roleLabels[member.role] || member.role} size="small" color={member.role === 'OWNER' ? 'secondary' : member.role === 'ADMIN' ? 'primary' : 'default'} sx={{ mr: 2, borderRadius: '8px', fontWeight: 600 }} />
-                                    </ListItem>
-                                );
-                            })}
-                        </List>
+                                    return (
+                                        <React.Fragment key={member.id}>
+                                            {i > 0 && <Divider />}
+                                            <ListItem
+                                                sx={{
+                                                    py: 2,
+                                                    bgcolor: isTopContributor ? alpha(theme.palette.secondary.main, 0.03) : 'transparent'
+                                                }}
+                                                secondaryAction={
+                                                    isMe ? (!isOwner && <Tooltip title={t('leave_group')}><IconButton onClick={handleLeaveGroup} color="error"><ExitToAppIcon /></IconButton></Tooltip>)
+                                                        : (canManage ? <IconButton onClick={(e) => { setSelectedMember(member); setAnchorEl(e.currentTarget); }}><MoreVertIcon /></IconButton> : null)
+                                                }
+                                            >
+                                                <ListItemAvatar>
+                                                    <Box sx={{ position: 'relative' }}>
+                                                        <Avatar src={`/api/proxy-avatar/${member.userId}`} alt={displayName} sx={{ bgcolor: isMe ? 'primary.main' : 'secondary.main', width: 44, height: 44 }}>{initial}</Avatar>
+                                                        {isTopContributor && (
+                                                            <Box sx={{ position: 'absolute', bottom: -2, right: -2, bgcolor: 'background.paper', borderRadius: '50%', p: 0.2 }}>
+                                                                <StarIcon sx={{ fontSize: 14, color: 'secondary.main' }} />
+                                                            </Box>
+                                                        )}
+                                                    </Box>
+                                                </ListItemAvatar>
+                                                <ListItemText
+                                                    primary={
+                                                        <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                            <Typography fontWeight={isMe ? 800 : 600}>{isMe ? `${displayName} (${t('me')})` : displayName}</Typography>
+                                                            {isTopContributor && <Chip label="Lider" size="small" color="secondary" sx={{ height: 20, fontSize: '0.65rem', fontWeight: 700 }} />}
+                                                        </Box>
+                                                    }
+                                                    secondary={`${t('join_date_label')}: ${new Date(member.joinedAt).toLocaleDateString()}`}
+                                                />
+                                                <Chip
+                                                    label={roleLabels[member.role] || member.role}
+                                                    size="small"
+                                                    color={member.role === 'OWNER' ? 'secondary' : member.role === 'ADMIN' ? 'primary' : 'default'}
+                                                    sx={{ mr: 2, borderRadius: '8px', fontWeight: 700 }}
+                                                />
+                                            </ListItem>
+                                        </React.Fragment>
+                                    );
+                                })}
+                            </List>
+                        </Paper>
                     </Box>
                 )}
 
                 {/* MODALE */}
-                <Dialog open={noteOpen} onClose={() => setNoteOpen(false)} fullWidth>
-                    <DialogTitle>{t('create_new_note_header')}</DialogTitle>
+                <Dialog open={noteOpen} onClose={() => setNoteOpen(false)} fullWidth PaperProps={{ sx: { borderRadius: '20px' } }}>
+                    <DialogTitle sx={{ fontWeight: 800 }}>{t('create_new_note_header')}</DialogTitle>
                     <DialogContent>
-                        <TextField autoFocus margin="dense" label={t('label_title')} fullWidth value={noteTitle} onChange={e => setNoteTitle(e.target.value)} />
-                        <TextField margin="dense" label={t('label_content')} fullWidth multiline rows={4} value={noteContent} onChange={e => setNoteContent(e.target.value)} />
+                        <TextField autoFocus margin="dense" label={t('label_title')} fullWidth value={noteTitle} onChange={e => setNoteTitle(e.target.value)} sx={{ mt: 1 }} />
+                        <TextField margin="dense" label={t('label_content')} fullWidth multiline rows={6} value={noteContent} onChange={e => setNoteContent(e.target.value)} />
                     </DialogContent>
-                    <DialogActions>
-                        <Button onClick={() => setNoteOpen(false)}>{t('btn_cancel')}</Button>
-                        <Button onClick={handleCreateNote} variant="contained" disabled={creatingNote || !noteTitle}>{creatingNote ? '...' : t('btn_create')}</Button>
+                    <DialogActions sx={{ p: 3 }}>
+                        <Button onClick={() => setNoteOpen(false)} color="inherit">{t('btn_cancel')}</Button>
+                        <Button onClick={handleCreateNote} variant="contained" disabled={creatingNote || !noteTitle} sx={{ borderRadius: '10px', px: 4, fontWeight: 700 }}>
+                            {creatingNote ? '...' : t('btn_create')}
+                        </Button>
                     </DialogActions>
                 </Dialog>
 
-                <Dialog open={inviteOpen} onClose={() => setInviteOpen(false)}>
-                    <DialogTitle>{t('invite_title')}</DialogTitle>
-                    <DialogContent><TextField autoFocus margin="dense" label={t('email_label')} type="email" fullWidth value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} /></DialogContent>
-                    <DialogActions><Button onClick={() => setInviteOpen(false)}>{t('btn_cancel')}</Button><Button onClick={handleInvite} variant="contained" disabled={inviting}>{inviting ? '...' : t('btn_send')}</Button></DialogActions>
+                <Dialog open={inviteOpen} onClose={() => setInviteOpen(false)} PaperProps={{ sx: { borderRadius: '20px' } }}>
+                    <DialogTitle sx={{ fontWeight: 800 }}>{t('invite_title')}</DialogTitle>
+                    <DialogContent>
+                        <TextField autoFocus margin="dense" label={t('email_label')} type="email" placeholder="user@example.com" fullWidth value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} sx={{ mt: 1, minWidth: 300 }} />
+                    </DialogContent>
+                    <DialogActions sx={{ p: 3 }}>
+                        <Button onClick={() => setInviteOpen(false)} color="inherit">{t('btn_cancel')}</Button>
+                        <Button onClick={handleInvite} variant="contained" disabled={inviting} sx={{ borderRadius: '10px', px: 4, fontWeight: 700 }}>
+                            {inviting ? '...' : t('btn_send')}
+                        </Button>
+                    </DialogActions>
                 </Dialog>
 
-                <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
-                    <DialogTitle>{confirmTitle}</DialogTitle>
+                <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)} PaperProps={{ sx: { borderRadius: '20px' } }}>
+                    <DialogTitle sx={{ fontWeight: 800 }}>{confirmTitle}</DialogTitle>
                     <DialogContent><DialogContentText>{confirmDesc}</DialogContentText></DialogContent>
-                    <DialogActions><Button onClick={() => setConfirmOpen(false)}>{t('btn_cancel')}</Button><Button onClick={() => { if (confirmAction) confirmAction(); setConfirmOpen(false); }} color="error" variant="contained" autoFocus>{t('btn_confirm')}</Button></DialogActions>
+                    <DialogActions sx={{ p: 3 }}>
+                        <Button onClick={() => setConfirmOpen(false)} color="inherit">{t('btn_cancel')}</Button>
+                        <Button onClick={() => { if (confirmAction) confirmAction(); setConfirmOpen(false); }} color="error" variant="contained" autoFocus sx={{ borderRadius: '10px', fontWeight: 700 }}>
+                            {t('btn_confirm')}
+                        </Button>
+                    </DialogActions>
                 </Dialog>
 
-                <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)}>
+                <Menu
+                    anchorEl={anchorEl}
+                    open={Boolean(anchorEl)}
+                    onClose={() => setAnchorEl(null)}
+                    PaperProps={{ sx: { borderRadius: '12px', mt: 1, boxShadow: '0 4px 20px rgba(0,0,0,0.1)' } }}
+                >
                     <MenuItem onClick={() => handleChangeRole('ADMIN')} disabled={selectedMember?.role === 'ADMIN'}>{t('menu_make_admin')}</MenuItem>
                     <MenuItem onClick={() => handleChangeRole('MEMBER')} disabled={selectedMember?.role === 'MEMBER'}>{t('menu_make_member')}</MenuItem>
                     <Divider />
-                    <MenuItem onClick={() => { if (selectedMember) handleRemoveMember(selectedMember.userId); setAnchorEl(null); }} sx={{ color: 'error.main' }}><DeleteIcon fontSize="small" sx={{ mr: 1 }} /> {t('menu_remove_from_group')}</MenuItem>
+                    <MenuItem onClick={() => { if (selectedMember) handleRemoveMember(selectedMember.userId); setAnchorEl(null); }} sx={{ color: 'error.main' }}>
+                        <DeleteIcon fontSize="small" sx={{ mr: 1 }} /> {t('menu_remove_from_group')}
+                    </MenuItem>
                 </Menu>
 
-                <Snackbar open={snackbar.open} autoHideDuration={6000} onClose={() => setSnackbar(prev => ({ ...prev, open: false }))} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}><Alert onClose={() => setSnackbar(prev => ({ ...prev, open: false }))} severity={snackbar.severity} sx={{ width: '100%' }}>{snackbar.msg}</Alert></Snackbar>
+                <Snackbar
+                    open={snackbar.open}
+                    autoHideDuration={6000}
+                    onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+                    anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+                >
+                    <Alert onClose={() => setSnackbar(prev => ({ ...prev, open: false }))} severity={snackbar.severity} variant="filled" sx={{ width: '100%', borderRadius: '10px' }}>
+                        {snackbar.msg}
+                    </Alert>
+                </Snackbar>
+
             </NotesLayout>
         </>
     );
