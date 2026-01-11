@@ -21,6 +21,8 @@ import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
 import PeopleOutlineIcon from '@mui/icons-material/PeopleOutline';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ShareIcon from '@mui/icons-material/Share';
+// DODANO: Ikona kalendarza
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 
 import { Navbar } from '@/components/landing/Navbar';
 import { UserData } from '@/types/User';
@@ -63,7 +65,9 @@ export const NotesLayout: React.FC<NotesLayoutProps> = ({ children, title, actio
     const menuItems = [
         { text: t('my_notes'), icon: <DescriptionOutlinedIcon />, path: '/notes', disabled: false },
         { text: t('groups_nav'), icon: <PeopleOutlineIcon />, path: '/groups', disabled: false },
-        { text: t('shared_notes'), icon: <ShareIcon />, path: '/notes/shared', disabled: false }
+        { text: t('shared_notes'), icon: <ShareIcon />, path: '/notes/shared', disabled: false },
+        // DODANO: Nowa pozycja w menu
+        { text: t('calendar', 'Kalendarz'), icon: <CalendarMonthIcon />, path: '/calendar', disabled: false }
     ];
 
     if (loadingUser) {

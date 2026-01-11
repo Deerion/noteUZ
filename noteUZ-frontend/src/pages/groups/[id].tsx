@@ -9,7 +9,7 @@ import {
     ListItemAvatar, Avatar, IconButton, Button, Dialog, DialogTitle,
     DialogContent, TextField, DialogActions, Chip, Divider, Menu, MenuItem, Alert, Tooltip,
     Snackbar, DialogContentText, Grid, Select, FormControl, InputLabel,
-    useTheme, alpha, Stack
+    useTheme, alpha, Stack, Container
 } from '@mui/material';
 
 // Ikony
@@ -24,8 +24,8 @@ import SortIcon from '@mui/icons-material/Sort';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
 import StarIcon from '@mui/icons-material/Star';
-import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';   // <-- Nowa ikona
-import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward'; // <-- Nowa ikona
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
+import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 
 import { NotesLayout } from '@/components/NotesPage/NotesLayout';
 import { NoteCard } from '@/components/NotesPage/NoteCard';
@@ -152,7 +152,6 @@ const TopContributorCard = ({ member, totalVotes }: { member: GroupMember, total
                 borderRadius: '24px',
                 border: '1px solid',
                 borderColor: alpha(theme.palette.secondary.main, 0.3),
-                // Fix: usunięto alpha() z drugiego koloru gradientu, bo to zmienna CSS
                 background: `linear-gradient(135deg, ${alpha(theme.palette.secondary.main, 0.05)} 0%, ${theme.palette.background.paper} 100%)`,
                 display: 'flex', alignItems: 'center', gap: 2
             }}
@@ -212,7 +211,7 @@ export default function GroupDetailsPage() {
 
     // --- SORTOWANIE ---
     const [sortBy, setSortBy] = useState<'DATE' | 'VOTES' | 'ALPHABET'>('DATE');
-    const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc'); // Nowy stan
+    const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
     // State management
     const [inviteEmail, setInviteEmail] = useState('');
@@ -296,17 +295,11 @@ export default function GroupDetailsPage() {
             } else if (sortBy === 'ALPHABET') {
                 res = a.title.localeCompare(b.title);
             } else { // DATE
-                const tA = new Date(a.created_at).getTime();
-                const tB = new Date(b.created_at).getTime();
+                const tA = new Date(a.created_at || '').getTime();
+                const tB = new Date(b.created_at || '').getTime();
                 res = tA - tB;
             }
 
-            // Domyślny porządek logiczny:
-            // Votes: rosnąco = mało głosów -> dużo głosów
-            // Alphabet: rosnąco = A -> Z
-            // Date: rosnąco = stare -> nowe
-
-            // Jeśli użytkownik wybrał 'desc' (malejąco), odwracamy wynik
             return sortDirection === 'asc' ? res : -res;
         });
 
@@ -331,6 +324,7 @@ export default function GroupDetailsPage() {
             showSnackbar("Notatka dodana pomyślnie!", 'success'); fetchData();
         } catch (e) { showSnackbar("Błąd tworzenia notatki", 'error'); } finally { setCreatingNote(false); }
     };
+
     const handleInvite = async () => {
         if (inviting || !inviteEmail) return;
         setInviting(true);
@@ -339,26 +333,32 @@ export default function GroupDetailsPage() {
             setInviteOpen(false); setInviteEmail(''); showSnackbar(t('invite_sent_success'), 'success');
         } catch (e: any) { showSnackbar(e.message || t('error_invite_failed'), 'error'); } finally { setInviting(false); }
     };
+
     const openConfirm = (title: string, desc: string, action: () => Promise<void>) => {
         setConfirmTitle(title); setConfirmDesc(desc); setConfirmAction(() => action); setConfirmOpen(true);
     };
+
     const handleRemoveMember = async (targetUserId: string) => {
         openConfirm(t('confirm_remove_member_title'), t('confirm_remove_member_desc'), async () => {
             try { await apiFetch(`/api/groups/${id}/members/${targetUserId}`, { method: 'DELETE' }); showSnackbar(t('success_member_removed'), 'success'); fetchData(); } catch (e) { showSnackbar(t('error_delete_failed'), 'error'); }
         });
     };
+
     const handleLeaveGroup = async () => {
         if (!myId) return;
         openConfirm(t('confirm_leave_group_title'), t('confirm_leave_group_desc'), async () => {
             try { await apiFetch(`/api/groups/${id}/members/${myId}`, { method: 'DELETE' }); showSnackbar(t('success_left_group'), 'success'); router.push('/groups'); } catch (e: any) { showSnackbar(e.message || t('error_leave_failed'), 'error'); }
         });
     };
+
     const handleDeleteNote = async (noteId: string) => {
         openConfirm(t('confirm_delete'), "Usunąć notatkę?", async () => {
             try { await apiFetch(`/api/notes/${noteId}`, { method: 'DELETE' }); showSnackbar("Notatka usunięta", 'success'); fetchData(); } catch (e) { showSnackbar(t('error_delete_failed'), 'error'); }
         });
     };
+
     const handleEditNote = (note: Note) => { router.push(`/notes/${note.id}`); };
+
     const handleChangeRole = async (role: GroupRole) => {
         if (!selectedMember) return;
         try { await apiFetch(`/api/groups/${id}/members/${selectedMember.userId}`, { method: 'PATCH', body: JSON.stringify({ role }) }); setAnchorEl(null); showSnackbar(t('success_role_changed'), 'success'); fetchData(); } catch (e) { showSnackbar(t('error_save_failed'), 'error'); }
@@ -417,7 +417,6 @@ export default function GroupDetailsPage() {
                                     </Select>
                                 </FormControl>
 
-                                {/* PRZYCISK ZMIANY KIERUNKU SORTOWANIA */}
                                 <Tooltip title={sortDirection === 'asc' ? "Rosnąco" : "Malejąco"}>
                                     <IconButton
                                         onClick={handleToggleSortDirection}
@@ -445,15 +444,17 @@ export default function GroupDetailsPage() {
                                 <Typography variant="body2">{t('notes_empty_desc')}</Typography>
                             </Paper>
                         ) : (
-                            <Grid container spacing={3} alignItems="stretch">
-                                {listNotes.map((note) => (
-                                    <Grid item xs={12} sm={6} md={4} key={note.id} sx={{ display: 'flex' }}>
-                                        <Box sx={{ width: '100%' }}>
-                                            <NoteCard note={note} onEdit={handleEditNote} onDelete={handleDeleteNote} showVotes={true} />
-                                        </Box>
-                                    </Grid>
-                                ))}
-                            </Grid>
+                            <Container maxWidth="xl" disableGutters>
+                                <Grid container spacing={3} alignItems="stretch">
+                                    {listNotes.map((note) => (
+                                        <Grid item xs={12} sm={6} md={4} lg={3} key={note.id} sx={{ display: 'flex' }}>
+                                            <Box sx={{ width: '100%', display: 'flex' }}>
+                                                <NoteCard note={note} onEdit={handleEditNote} onDelete={handleDeleteNote} showVotes={true} />
+                                            </Box>
+                                        </Grid>
+                                    ))}
+                                </Grid>
+                            </Container>
                         )}
                     </Box>
                 )}
@@ -512,22 +513,26 @@ export default function GroupDetailsPage() {
                         <Button onClick={handleCreateNote} variant="contained" disabled={creatingNote || !noteTitle}>{creatingNote ? '...' : t('btn_create')}</Button>
                     </DialogActions>
                 </Dialog>
+
                 <Dialog open={inviteOpen} onClose={() => setInviteOpen(false)}>
                     <DialogTitle>{t('invite_title')}</DialogTitle>
                     <DialogContent><TextField autoFocus margin="dense" label={t('email_label')} type="email" fullWidth value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} /></DialogContent>
                     <DialogActions><Button onClick={() => setInviteOpen(false)}>{t('btn_cancel')}</Button><Button onClick={handleInvite} variant="contained" disabled={inviting}>{inviting ? '...' : t('btn_send')}</Button></DialogActions>
                 </Dialog>
+
                 <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
                     <DialogTitle>{confirmTitle}</DialogTitle>
                     <DialogContent><DialogContentText>{confirmDesc}</DialogContentText></DialogContent>
                     <DialogActions><Button onClick={() => setConfirmOpen(false)}>{t('btn_cancel')}</Button><Button onClick={() => { if (confirmAction) confirmAction(); setConfirmOpen(false); }} color="error" variant="contained" autoFocus>{t('btn_confirm')}</Button></DialogActions>
                 </Dialog>
+
                 <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)}>
                     <MenuItem onClick={() => handleChangeRole('ADMIN')} disabled={selectedMember?.role === 'ADMIN'}>{t('menu_make_admin')}</MenuItem>
                     <MenuItem onClick={() => handleChangeRole('MEMBER')} disabled={selectedMember?.role === 'MEMBER'}>{t('menu_make_member')}</MenuItem>
                     <Divider />
                     <MenuItem onClick={() => { if (selectedMember) handleRemoveMember(selectedMember.userId); setAnchorEl(null); }} sx={{ color: 'error.main' }}><DeleteIcon fontSize="small" sx={{ mr: 1 }} /> {t('menu_remove_from_group')}</MenuItem>
                 </Menu>
+
                 <Snackbar open={snackbar.open} autoHideDuration={6000} onClose={() => setSnackbar(prev => ({ ...prev, open: false }))} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}><Alert onClose={() => setSnackbar(prev => ({ ...prev, open: false }))} severity={snackbar.severity} sx={{ width: '100%' }}>{snackbar.msg}</Alert></Snackbar>
             </NotesLayout>
         </>

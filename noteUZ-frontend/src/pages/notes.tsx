@@ -3,7 +3,7 @@ import type { GetServerSideProps, InferGetServerSidePropsType } from 'next';
 import Head from 'next/head';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
-import { Box, Typography, Grid, Divider, Chip, Container } from '@mui/material'; // Dodano Container
+import { Box, Typography, Grid, Divider, Chip, Container } from '@mui/material';
 import ShareIcon from '@mui/icons-material/Share';
 
 import { NotesLayout } from '@/components/NotesPage/NotesLayout';
@@ -63,7 +63,7 @@ export default function NotesPage({ notes = [] }: InferGetServerSidePropsType<ty
             <Head><title>{t('my_notes')} — NoteUZ</title></Head>
 
             <NotesLayout title={t('my_notes')} actionButton={<CreateNoteButton />}>
-                {/* Kontener ogranicza szerokość na dużych ekranach, co poprawia czytelność */}
+                {/* Kontener ogranicza szerokość na dużych ekranach, co poprawia czytelność i wyrównuje karty */}
                 <Container maxWidth="xl" disableGutters>
 
                     {/* MOJE NOTATKI */}
@@ -77,7 +77,8 @@ export default function NotesPage({ notes = [] }: InferGetServerSidePropsType<ty
                         <Grid container spacing={3} alignItems="stretch">
                             {notes.map((note) => (
                                 <Grid item xs={12} sm={6} md={4} lg={3} key={note.id} sx={{ display: 'flex' }}>
-                                    <Box sx={{ width: '100%' }}> {/* Wrapper dla poprawnego działania flexa wewnątrz Grida */}
+                                    {/* Wrapper z display: flex wymusza na NoteCard wypełnienie całej wysokości Grida */}
+                                    <Box sx={{ width: '100%', display: 'flex' }}>
                                         <NoteCard note={note} />
                                     </Box>
                                 </Grid>
@@ -92,13 +93,22 @@ export default function NotesPage({ notes = [] }: InferGetServerSidePropsType<ty
                             <Grid container spacing={3} alignItems="stretch">
                                 {sharedNotes.map((note) => (
                                     <Grid item xs={12} sm={6} md={4} lg={3} key={note.id} sx={{ display: 'flex' }}>
-                                        <Box sx={{ width: '100%', position: 'relative' }}>
+                                        {/* Box pozycjonowany relatywnie dla Chipa, zachowujący strukturę flex dla karty */}
+                                        <Box sx={{ width: '100%', position: 'relative', display: 'flex' }}>
                                             <NoteCard note={note} />
                                             <Chip
                                                 label={note.permission === 'WRITE' ? 'Edycja' : 'Wgląd'}
                                                 size="small"
                                                 color={note.permission === 'WRITE' ? 'secondary' : 'default'}
-                                                sx={{ position: 'absolute', top: 12, right: 12, zIndex: 1, backdropFilter: 'blur(4px)' }}
+                                                sx={{
+                                                    position: 'absolute',
+                                                    top: 12,
+                                                    right: 12,
+                                                    zIndex: 1,
+                                                    backdropFilter: 'blur(4px)',
+                                                    // Ustawiamy lekką przezroczystość, aby Chip nie zasłaniał całkowicie tła karty
+                                                    bgcolor: note.permission === 'WRITE' ? 'rgba(156, 39, 176, 0.8)' : 'rgba(0, 0, 0, 0.08)'
+                                                }}
                                             />
                                         </Box>
                                     </Grid>

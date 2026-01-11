@@ -120,20 +120,20 @@ export default function SharedNotesPage() {
                                         {t('invitations')} ({pendingNotes.length})
                                     </Typography>
 
-                                    <Grid container spacing={3}>
+                                    <Grid container spacing={3} alignItems="stretch">
                                         {pendingNotes.map((note) => (
-                                            <Grid key={note.id} size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
-                                                {/* Karta Zaproszenia "Google Style" */}
+                                            <Grid key={note.id} item xs={12} sm={6} md={4} lg={3} sx={{ display: 'flex' }}>
+                                                {/* Karta Zaproszenia "Google Style" - dodano width 100% */}
                                                 <Card
                                                     variant="outlined"
                                                     sx={{
+                                                        width: '100%',
                                                         height: '100%',
                                                         display: 'flex',
                                                         flexDirection: 'column',
                                                         borderRadius: '16px',
                                                         border: '1px dashed',
                                                         borderColor: alpha(theme.palette.text.primary, 0.2),
-                                                        // FIX: Zamiast alpha() na zmiennej CSS, używamy ręcznego rgba
                                                         backgroundColor: theme.palette.mode === 'light'
                                                             ? 'rgba(249, 249, 249, 0.6)'
                                                             : 'rgba(26, 26, 26, 0.6)',
@@ -190,7 +190,7 @@ export default function SharedNotesPage() {
                                                             onClick={() => handleAcceptShare(note.id, note.token!)}
                                                             disabled={!!processingId}
                                                             startIcon={processingId === note.id ? <CircularProgress size={16} color="inherit"/> : <CheckIcon />}
-                                                            sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600, flex: 1 }}
+                                                            sx={{ borderRadius: '100px', textTransform: 'none', fontWeight: 600, flex: 1 }}
                                                         >
                                                             {t('accept')}
                                                         </Button>
@@ -215,10 +215,11 @@ export default function SharedNotesPage() {
                                         <Typography variant="body1">{t('no_shared_notes')}</Typography>
                                     </Box>
                                 ) : (
-                                    <Grid container spacing={3}>
+                                    <Grid container spacing={3} alignItems="stretch">
                                         {acceptedNotes.map((note) => (
-                                            <Grid key={note.id} size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
-                                                <Box sx={{position: 'relative', height: '100%'}}>
+                                            <Grid key={note.id} item xs={12} sm={6} md={4} lg={3} sx={{ display: 'flex' }}>
+                                                {/* FIX: display: 'flex' + flexDirection: 'column' wymusza 100% szerokości */}
+                                                <Box sx={{position: 'relative', width: '100%', display: 'flex', flexDirection: 'column'}}>
                                                     <NoteCard note={note} />
                                                     <Chip
                                                         label={note.permission === 'WRITE' ? t('perm_write') : t('perm_read')}
@@ -229,7 +230,8 @@ export default function SharedNotesPage() {
                                                             position: 'absolute', top: 12, right: 12, zIndex: 2,
                                                             fontWeight: 'bold', fontSize: '0.7rem',
                                                             boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                                                            backdropFilter: 'blur(4px)'
+                                                            backdropFilter: 'blur(4px)',
+                                                            pointerEvents: 'none'
                                                         }}
                                                     />
                                                 </Box>

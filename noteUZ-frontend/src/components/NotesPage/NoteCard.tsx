@@ -6,7 +6,6 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import { Note } from '@/types/Note';
 import { apiFetch } from '@/lib/api';
 import { useTranslation } from 'next-i18next';
@@ -17,7 +16,7 @@ interface NoteCardProps {
     onDelete?: (id: string) => void;
     showActions?: boolean;
     showVotes?: boolean;
-    rank?: number; // Pozostawione dla kompatybilności wstecznej, ale PodiumItem teraz obsługuje renderowanie top 3
+    rank?: number;
 }
 
 function stripMarkdown(text: string): string {
@@ -40,9 +39,8 @@ export const NoteCard: React.FC<NoteCardProps> = ({ note, onEdit, onDelete, show
         ? new Date(dateStr).toLocaleDateString(i18n.language === 'en' ? 'en-US' : 'pl-PL', { month: 'short', day: 'numeric' })
         : '';
 
-    // Obsługa rankingu wewnątrz karty (tylko tło) - jeśli używane poza PodiumItem
-    let rankBorderColor = theme.palette.divider;
     let rankBg = theme.palette.background.paper;
+    let rankBorderColor = theme.palette.divider;
 
     if (showVotes && rank === 1) {
         rankBorderColor = alpha(theme.palette.primary.main, 0.4);
@@ -52,15 +50,12 @@ export const NoteCard: React.FC<NoteCardProps> = ({ note, onEdit, onDelete, show
     const handleVote = async (e: React.MouseEvent) => {
         e.stopPropagation();
         if (isVoting) return;
-
         setIsVoting(true);
         const prevVotes = votes;
         const prevVoted = voted;
-
         const newVoted = !voted;
         setVoted(newVoted);
         setVotes(prev => newVoted ? prev + 1 : prev - 1);
-
         try {
             const response = await apiFetch(`/api/notes/${note.id}/vote`, { method: 'POST' });
             if (response && typeof response.voteCount === 'number') {
@@ -70,9 +65,7 @@ export const NoteCard: React.FC<NoteCardProps> = ({ note, onEdit, onDelete, show
         } catch (error) {
             setVoted(prevVoted);
             setVotes(prevVotes);
-        } finally {
-            setIsVoting(false);
-        }
+        } finally { setIsVoting(false); }
     };
 
     const handleClick = () => {
@@ -84,15 +77,18 @@ export const NoteCard: React.FC<NoteCardProps> = ({ note, onEdit, onDelete, show
         <Card
             onClick={handleClick}
             sx={{
+                width: '100%', // NAPRAWA: Karta zawsze zajmuje 100% szerokości Gridu
                 height: '100%',
+                minWidth: 0,
                 cursor: 'pointer',
                 transition: 'all 0.2s ease-in-out',
                 position: 'relative',
-                overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column',
                 backgroundColor: rankBg,
                 border: '1px solid',
                 borderColor: rankBorderColor,
-                boxShadow: 'none', // Płaski design, minimalizm
+                boxShadow: 'none',
                 '&:hover': {
                     borderColor: theme.palette.primary.main,
                     transform: 'translateY(-2px)',
@@ -108,27 +104,17 @@ export const NoteCard: React.FC<NoteCardProps> = ({ note, onEdit, onDelete, show
                     </Typography>
 
                     {showVotes && (
-                        // Minimalistyczna pigułka głosowania
                         <Box
                             onClick={handleVote}
                             sx={{
-                                display: 'flex', alignItems: 'center', gap: 0.5,
-                                px: 1, py: 0.5,
-                                borderRadius: '8px',
-                                border: '1px solid',
+                                display: 'flex', alignItems: 'center', gap: 0.5, px: 1, py: 0.5, borderRadius: '8px', border: '1px solid',
                                 borderColor: voted ? 'transparent' : theme.palette.divider,
                                 bgcolor: voted ? alpha(theme.palette.error.main, 0.1) : 'transparent',
                                 color: voted ? theme.palette.error.main : theme.palette.text.secondary,
-                                transition: 'all 0.2s',
-                                cursor: 'pointer',
-                                flexShrink: 0,
-                                '&:hover': {
-                                    bgcolor: voted ? alpha(theme.palette.error.main, 0.2) : theme.palette.action.hover,
-                                    borderColor: voted ? 'transparent' : theme.palette.text.secondary
-                                }
+                                '&:hover': { bgcolor: voted ? alpha(theme.palette.error.main, 0.2) : theme.palette.action.hover }
                             }}
                         >
-                            <Typography variant="body2" fontWeight={700} sx={{ fontSize: '0.85rem' }}>{votes}</Typography>
+                            <Typography variant="body2" fontWeight={700}>{votes}</Typography>
                             {voted ? <FavoriteIcon sx={{ fontSize: 16 }} /> : <FavoriteBorderIcon sx={{ fontSize: 16 }} />}
                         </Box>
                     )}
@@ -148,8 +134,8 @@ export const NoteCard: React.FC<NoteCardProps> = ({ note, onEdit, onDelete, show
 
                     {showActions && (
                         <Box onClick={(e) => e.stopPropagation()}>
-                            {onEdit && <IconButton size="small" onClick={() => onEdit(note)} sx={{ color: 'text.secondary', '&:hover': { color: theme.palette.primary.main } }}><EditIcon fontSize="small" /></IconButton>}
-                            {onDelete && <IconButton size="small" onClick={() => onDelete(note.id)} color="error" sx={{ '&:hover': { bgcolor: alpha(theme.palette.error.main, 0.1) } }}><DeleteIcon fontSize="small" /></IconButton>}
+                            {onEdit && <IconButton size="small" onClick={() => onEdit(note)} sx={{ color: 'text.secondary' }}><EditIcon fontSize="small" /></IconButton>}
+                            {onDelete && <IconButton size="small" onClick={() => onDelete(note.id)} color="error"><DeleteIcon fontSize="small" /></IconButton>}
                         </Box>
                     )}
                 </Stack>
