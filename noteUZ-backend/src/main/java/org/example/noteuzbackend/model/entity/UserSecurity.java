@@ -1,45 +1,40 @@
 package org.example.noteuzbackend.model.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import org.example.noteuzbackend.model.enums.Role;
 
 import java.util.UUID;
 
 @Entity
 @Table(name = "user_security")
+@Getter
+@Setter
+@NoArgsConstructor
 public class UserSecurity {
 
     @Id
     @Column(name = "user_id")
-    private UUID userId;
+    private UUID id;
 
-    @Column(name = "is_admin")
-    private boolean isAdmin = false;
+    // Email pobieramy z AppUser, tutaj go nie mapujemy, by uniknąć błędów
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role", nullable = false)
+    private Role role = Role.USER;
 
     @Column(name = "is_banned")
     private boolean isBanned = false;
 
     @Column(name = "warning_count")
-    private int warningCount = 0;
+    private int warnings = 0;
 
-    public UserSecurity() {}
-
-    public UserSecurity(UUID userId) {
-        this.userId = userId;
+    public UserSecurity(UUID id) {
+        this.id = id;
+        this.role = Role.USER;
+        this.isBanned = false;
+        this.warnings = 0;
     }
-
-    // Getters & Setters
-    public UUID getUserId() { return userId; }
-    public void setUserId(UUID userId) { this.userId = userId; }
-
-    public boolean isAdmin() { return isAdmin; }
-    public void setAdmin(boolean admin) { isAdmin = admin; }
-
-    public boolean isBanned() { return isBanned; }
-    public void setBanned(boolean banned) { isBanned = banned; }
-
-    public int getWarningCount() { return warningCount; }
-    public void setWarningCount(int warningCount) { this.warningCount = warningCount; }
 }

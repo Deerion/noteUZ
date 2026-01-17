@@ -8,7 +8,9 @@ export interface UserData {
     };
     created_at: string;
     last_sign_in_at?: string;
-    isAdmin?: boolean; // <--- NOWE POLE
+    isAdmin?: boolean;
+    role?: 'USER' | 'MODERATOR' | 'ADMIN';
+    warnings?: number; // <--- Naprawia błąd TS2339
 }
 
 export interface Friendship {

@@ -6,7 +6,7 @@ import { GetServerSideProps } from 'next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useTranslation } from 'next-i18next';
 import {
-    Box, Container, Typography, Grid, CircularProgress
+    Box, Container, Typography, CircularProgress, Alert, AlertTitle
 } from '@mui/material';
 
 import { ProfileCard } from '@/components/Dashboard/ProfileCard';
@@ -77,36 +77,42 @@ export default function Dashboard() {
                         {t('your_panel')}
                     </Typography>
 
-                    <Grid container spacing={3}>
+                    {/* --- SEKCJA OSTRZEŻEŃ --- */}
+                    {user.warnings !== undefined && user.warnings > 0 && (
+                        <Alert severity="warning" variant="filled" sx={{ mb: 4, borderRadius: 2 }}>
+                            <AlertTitle>Uwaga!</AlertTitle>
+                            Masz aktywne ostrzeżenia na koncie: <strong>{user.warnings}</strong>.
+                            Prosimy o przestrzeganie regulaminu platformy, aby uniknąć blokady konta.
+                        </Alert>
+                    )}
+                    {/* ----------------------- */}
 
-                        {/* 1. GÓRA: Profil (4) i Dane (8) - RÓWNA WYSOKOŚĆ */}
-                        <Grid size={{ xs: 12, md: 4 }} sx={{ display: 'flex' }}>
-                            <Box sx={{ display: 'flex', flexGrow: 1, '& > *': { flexGrow: 1 } }}>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+
+                        {/* 1. GÓRA: Profil i Dane (Układ 1/3 + 2/3 na desktopie) */}
+                        <Box sx={{
+                            display: 'grid',
+                            gridTemplateColumns: { xs: '1fr', md: '1fr 2fr' },
+                            gap: 3
+                        }}>
+                            <Box sx={{ display: 'flex', flexDirection: 'column' }}>
                                 <ProfileCard user={user} />
                             </Box>
-                        </Grid>
-                        <Grid size={{ xs: 12, md: 8 }} sx={{ display: 'flex' }}>
-                            <Box sx={{ display: 'flex', flexGrow: 1, '& > *': { flexGrow: 1 } }}>
+                            <Box sx={{ display: 'flex', flexDirection: 'column' }}>
                                 <AccountDetailsCard user={user} />
                             </Box>
-                        </Grid>
+                        </Box>
 
-                        {/* 2. ŚRODEK: Wydarzenia (Pełna szerokość - logicznie nad zaproszeniami) */}
-                        <Grid size={{ xs: 12 }}>
-                            <UpcomingEventsSection />
-                        </Grid>
+                        {/* 2. ŚRODEK: Wydarzenia */}
+                        <UpcomingEventsSection />
 
-                        {/* 3. ŚRODEK: Zaproszenia do grup (Pełna szerokość) */}
-                        <Grid size={{ xs: 12 }}>
-                            <GroupInvitationsSection />
-                        </Grid>
+                        {/* 3. ŚRODEK: Zaproszenia do grup */}
+                        <GroupInvitationsSection />
 
-                        {/* 4. DÓŁ: Znajomi (Pełna szerokość) */}
-                        <Grid size={{ xs: 12 }}>
-                            <FriendsSection user={user} />
-                        </Grid>
+                        {/* 4. DÓŁ: Znajomi */}
+                        <FriendsSection user={user} />
 
-                    </Grid>
+                    </Box>
                 </Container>
             </Box>
         </>
