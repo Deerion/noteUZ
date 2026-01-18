@@ -28,7 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(NoteController.class)
 @AutoConfigureMockMvc(addFilters = false)
-class NoteControllerTest {
+class NoteUZControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
