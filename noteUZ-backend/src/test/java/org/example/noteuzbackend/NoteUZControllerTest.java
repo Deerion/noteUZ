@@ -43,7 +43,8 @@ class NoteUZControllerTest {
         String fakeToken = "valid-token";
         UUID userId = UUID.randomUUID();
 
-        given(authService.getUser(fakeToken)).willReturn(ResponseEntity.ok(Map.of("id", userId.toString())));
+        ResponseEntity response = ResponseEntity.ok(Map.of("id", userId.toString()));
+        given(authService.getUser(fakeToken)).willReturn(response);
 
         Note note = new Note();
         note.setTitle("Moja notatka");
@@ -61,7 +62,8 @@ class NoteUZControllerTest {
         UUID userId = UUID.randomUUID();
         Map<String, Object> requestBody = Map.of("title", "Nowa", "content", "Treść");
 
-        given(authService.getUser(fakeToken)).willReturn(ResponseEntity.ok(Map.of("id", userId.toString())));
+        ResponseEntity response = ResponseEntity.ok(Map.of("id", userId.toString()));
+        given(authService.getUser(fakeToken)).willReturn(response);
 
         Note createdNote = new Note();
         createdNote.setTitle("Nowa");
