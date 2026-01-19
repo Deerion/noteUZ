@@ -1,43 +1,34 @@
 package org.example.noteuzbackend.controller;
 
+import org.example.noteuzbackend.dto.AuthRequests.*;
+import org.example.noteuzbackend.service.AdminService;
 import org.example.noteuzbackend.service.AuthService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
     private final AuthService auth;
-    private final String cookieName;
-    private final String hcaptchaSecretKey;
+    private final AdminService adminService;
 
-    public AuthController(
-            AuthService auth,
-            @Value("${app.jwt.cookie}") String cookieName,
-            @Value("${hcaptcha.secret_key}") String hcaptchaSecretKey
-    ) {
+    public AuthController(AuthService auth, AdminService adminService) {
         this.auth = auth;
-        this.cookieName = cookieName;
-        this.hcaptchaSecretKey = hcaptchaSecretKey;
+        this.adminService = adminService;
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody Map<String, String> body) {
-        var email = body.getOrDefault("email", "");
-        var password = body.getOrDefault("password", "");
-        var captchaToken = body.getOrDefault("captchaToken", "");
-
-        System.out.println("Login request - email: " + email + ", has token: " + !captchaToken.isBlank());
-
-        // Weryfikuj CAPTCHA
-        ResponseEntity<?> captchaResponse = auth.verifyCaptcha(captchaToken);
+    public ResponseEntity<?> login(@RequestBody LoginRequest body) {
+        // Logika Captcha
+        ResponseEntity<?> captchaResponse = auth.verifyCaptcha(body.captchaToken());
         if (!captchaResponse.getStatusCode().is2xxSuccessful()) {
             return captchaResponse;
         }
-
-        return auth.signIn(email, password);
+        return auth.signIn(body.email(), body.password());
     }
 
     @PostMapping("/logout")
@@ -45,33 +36,53 @@ public class AuthController {
         return auth.signOut();
     }
 
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refresh(@CookieValue(value = "${app.jwt.refreshCookie}", required = false) String refreshToken) {
+        return auth.refreshSession(refreshToken);
+    }
+
     @GetMapping("/me")
-    public ResponseEntity<?> me(
-            @CookieValue(value = "#{@environment.getProperty('app.jwt.cookie')}", required = false)
-            String tokenFromCookie
-    ) {
-        boolean authenticated = tokenFromCookie != null && !tokenFromCookie.isBlank();
-        if (!authenticated) {
+    public ResponseEntity<?> me(@CookieValue(value = "${app.jwt.cookie}", required = false) String token) {
+        if (token == null || token.isBlank()) {
             return ResponseEntity.status(401).body(Map.of("authenticated", false));
         }
-        return ResponseEntity.ok(Map.of("authenticated", true));
+
+        ResponseEntity<?> userResponse = auth.getUser(token);
+
+        if (userResponse.getStatusCode().is2xxSuccessful()) {
+            Map<String, Object> userData = (Map<String, Object>) userResponse.getBody();
+            if (userData != null) {
+                String idStr = (String) userData.get("id");
+                if (idStr != null) {
+                    UUID userId = UUID.fromString(idStr);
+
+                    // Sprawdzamy rolę w naszej bazie
+                    boolean isAdmin = adminService.isAdmin(userId);
+                    boolean isMod = adminService.isAtLeastModerator(userId);
+
+                    // NOWE: Pobieramy liczbę ostrzeżeń
+                    int warningCount = adminService.getWarningCount(userId);
+
+                    // Frontend dostanie informację o roli i ostrzeżeniach
+                    userData.put("isAdmin", isAdmin);
+                    userData.put("isModerator", isMod);
+                    userData.put("role", isAdmin ? "ADMIN" : (isMod ? "MODERATOR" : "USER"));
+
+                    // Dodajemy ostrzeżenia do odpowiedzi
+                    userData.put("warnings", warningCount);
+                }
+            }
+            return ResponseEntity.ok(userData);
+        }
+        return ResponseEntity.status(401).body(Map.of("authenticated", false));
     }
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody Map<String, String> body) {
-        var email = body.getOrDefault("email", "");
-        var password = body.getOrDefault("password", "");
-        var displayName = body.getOrDefault("displayName", "");
-        var captchaToken = body.getOrDefault("captchaToken", "");
-
-        System.out.println("Register request - email: " + email + ", displayName: " + displayName + ", has token: " + !captchaToken.isBlank());
-
-        // Weryfikuj CAPTCHA
-        ResponseEntity<?> captchaResponse = auth.verifyCaptcha(captchaToken);
+    public ResponseEntity<?> register(@RequestBody RegisterRequest body) {
+        ResponseEntity<?> captchaResponse = auth.verifyCaptcha(body.captchaToken());
         if (!captchaResponse.getStatusCode().is2xxSuccessful()) {
             return captchaResponse;
         }
-
-        return auth.register(email, password, displayName);
+        return auth.register(body.email(), body.password(), body.displayName());
     }
 }

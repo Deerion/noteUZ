@@ -1,87 +1,30 @@
-/* styles/globals.css */
-@import "tailwindcss";
-
+/* src/styles/globals.css */
 :root {
+    /* Kolory dla trybu JASNEGO */
     --background: #ffffff;
+    --paper: #f9f9f9;
     --foreground: #171717;
-    --card-bg: #f9f9f9;
-    --border: #e5e5e5;
-    --text-secondary: #666666;
+
+    /* Specjalne tło dla Register/Login/Home (Gradient w jasnym) */
+    --page-gradient: linear-gradient(180deg, #fbfdff 0%, #eef6ff 100%);
+    --nav-bg: rgba(255, 255, 255, 0.8);
 }
 
-/* Dark mode - prefers-color-scheme */
-@media (prefers-color-scheme: dark) {
-    :root {
-        --background: #0a0a0a;
-        --foreground: #ededed;
-        --card-bg: #1a1a1a;
-        --border: #333333;
-        --text-secondary: #999999;
-    }
-}
-
-/* Dark mode - data-theme attribute (dla localStorage) */
 [data-theme='dark'] {
+    /* Kolory dla trybu CIEMNEGO */
     --background: #0a0a0a;
+    --paper: #1a1a1a;
     --foreground: #ededed;
-    --card-bg: #1a1a1a;
-    --border: #333333;
-    --text-secondary: #999999;
-}
 
-[data-theme='light'] {
-    --background: #ffffff;
-    --foreground: #171717;
-    --card-bg: #f9f9f9;
-    --border: #e5e5e5;
-    --text-secondary: #666666;
-}
-
-* {
-    box-sizing: border-box;
-}
-
-html {
-    transition: background-color 0.3s ease, color 0.3s ease;
+    /* W ciemnym motywie gradient zastępujemy płaskim kolorem */
+    --page-gradient: #0a0a0a;
+    --nav-bg: rgba(10, 10, 10, 0.8);
 }
 
 body {
-    background: var(--background);
+    background-color: var(--background);
     color: var(--foreground);
-    font-family: Arial, Helvetica, sans-serif;
     margin: 0;
-    padding: 0;
+    /* Płynne przejście kolorów */
     transition: background-color 0.3s ease, color 0.3s ease;
-}
-
-/* Theme Toggle Button */
-.theme-toggle {
-    background: transparent;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 8px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--foreground);
-    transition: all 0.3s ease;
-    width: 40px;
-    height: 40px;
-}
-
-.theme-toggle:hover {
-    background: var(--card-bg);
-    border-color: var(--text-secondary);
-}
-
-.theme-toggle:active {
-    transform: scale(0.95);
-}
-
-@theme inline {
-    --color-background: var(--background);
-    --color-foreground: var(--foreground);
-    --font-sans: var(--font-geist-sans);
-    --font-mono: var(--font-geist-mono);
 }

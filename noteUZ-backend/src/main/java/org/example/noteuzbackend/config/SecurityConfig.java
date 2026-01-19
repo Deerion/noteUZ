@@ -19,15 +19,23 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .cors(Customizer.withDefaults())
-                .csrf(csrf -> csrf.disable());
+                .csrf(csrf -> csrf.disable())
+                // DODANO: Konfiguracja uprawnień
+                .authorizeHttpRequests(auth -> auth
+                        // Zezwól na dostęp do wszystkich endpointów API i Auth
+                        .requestMatchers("/api/**").permitAll()
+                        // Zezwól na wszystko inne (opcjonalnie, dla celów deweloperskich)
+                        .anyRequest().permitAll()
+                );
         return http.build();
     }
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
+        // Upewnij się, że adres Twojego frontendu jest tutaj poprawny
         config.setAllowedOrigins(List.of("http://localhost:3000"));
-        config.setAllowedMethods(List.of("GET","POST","PUT","PATCH","DELETE","OPTIONS"));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setExposedHeaders(List.of("Location"));
         config.setAllowCredentials(true);

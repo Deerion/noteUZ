@@ -1,313 +1,152 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
+import type { GetServerSideProps, InferGetServerSidePropsType } from 'next';
 import Head from 'next/head';
-import Link from 'next/link';
-import { useRouter } from 'next/router';
-import ReactMarkdown from 'react-markdown';
-import toast from 'react-hot-toast';
-import ThemeToggle from '../components/ThemeToggle';
-import s from '../styles/Notes.module.css';
+import { useTranslation } from 'next-i18next';
+import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
+import { Box, Typography, Grid, Divider, Chip } from '@mui/material';
+import ShareIcon from '@mui/icons-material/Share';
 
-// Typ Notatki
-type Note = {
-    id: string;
-    title: string;
-    content: string;
-    createdAt: string;
+import { NotesLayout } from '@/components/NotesPage/NotesLayout';
+import { NoteCard } from '@/components/NotesPage/NoteCard';
+import { CreateNoteButton } from '@/components/NotesPage/CreateNoteButton';
+import { apiFetch } from '@/lib/api';
+import { Note } from '@/types/Note';
+
+interface SharedNote extends Note {
+    permission?: string;
+    status?: 'PENDING' | 'ACCEPTED' | 'REJECTED';
+}
+
+type Props = {
+    notes: Note[];
+    status: number;
+    error?: string;
 };
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? '';
+// --- SSR: Pobiera MOJE notatki z zachowaniem starej obsługi błędów ---
+export const getServerSideProps: GetServerSideProps<Props> = async ({ req, locale }) => {
+    const API = process.env.NEXT_PUBLIC_API_URL!;
+    const cookie = req.headers.cookie;
+    const translations = await serverSideTranslations(locale ?? 'pl', ['common']);
 
-export default function NotesPage() {
-    const router = useRouter();
-    const [notes, setNotes] = useState<Note[]>([]);
-    const [loading, setLoading] = useState(true);
+    try {
+        const res = await fetch(`${API}/api/notes`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                ...(cookie && { 'Cookie': cookie }),
+            },
+        });
 
-    // Stan Edytora
-    const [isEditorOpen, setIsEditorOpen] = useState(false);
-    const [currentNoteId, setCurrentNoteId] = useState<string | null>(null);
-    const [title, setTitle] = useState('');
-    const [content, setContent] = useState('');
-    const [saving, setSaving] = useState(false);
-    const [previewMode, setPreviewMode] = useState(false); // Nowy stan dla podglądu
+        if (res.status === 401) {
+            return { redirect: { destination: `/error?code=401`, permanent: false } };
+        }
 
-    const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-    // 1. Pobieranie notatek
-    const fetchNotes = async () => {
-        try {
-            const res = await fetch(`${API}/api/notes`, { credentials: 'include' });
-            if (res.status === 401) { router.push('/login'); return; }
-            if (res.ok) {
+        if (!res.ok) {
+            let errorMsg = `Błąd API ${res.status}`;
+            try {
                 const data = await res.json();
-                setNotes(data);
+                errorMsg = data.message || errorMsg;
+            } catch (e) { /* ignoruj */ }
+
+            return {
+                redirect: {
+                    destination: `/error?code=${res.status}&msg=${encodeURIComponent(errorMsg)}`,
+                    permanent: false,
+                },
+            };
+        }
+
+        const data = await res.json();
+        const notes = Array.isArray(data) ? data : [];
+
+        return {
+            props: {
+                notes,
+                status: res.status,
+                ...translations
             }
-        } catch (e) { console.error(e); }
-        finally { setLoading(false); }
-    };
+        };
+    } catch (e: unknown) {
+        return { redirect: { destination: `/error?code=503`, permanent: false } };
+    }
+};
 
-    useEffect(() => { fetchNotes(); }, []);
+export default function NotesPage({ notes = [] }: InferGetServerSidePropsType<typeof getServerSideProps>) {
+    const { t } = useTranslation('common');
+    const [sharedNotes, setSharedNotes] = useState<SharedNote[]>([]);
 
-    // 2. Obsługa Edytora
-    const openEditor = (note?: Note) => {
-        if (note) {
-            setCurrentNoteId(note.id);
-            setTitle(note.title);
-            setContent(note.content);
-        } else {
-            setCurrentNoteId(null);
-            setTitle('');
-            setContent('');
-        }
-        setPreviewMode(false); // Zawsze otwieraj w trybie edycji
-        setIsEditorOpen(true);
-    };
-
-    const closeEditor = () => {
-        setIsEditorOpen(false);
-        setTitle('');
-        setContent('');
-        setCurrentNoteId(null);
-        setPreviewMode(false);
-    };
-
-    // 3. Zapisywanie
-    const handleSave = async () => {
-        if (!content.trim()) {
-            toast.error('Notatka nie może być pusta');
-            return;
-        }
-        setSaving(true);
-        const toastId = toast.loading('Zapisywanie...');
-
-        try {
-            // Workaround: usuń starą wersję przed zapisem nowej
-            if (currentNoteId) {
-                await fetch(`${API}/api/notes/${currentNoteId}`, { method: 'DELETE', credentials: 'include' });
-            }
-
-            const res = await fetch(`${API}/api/notes`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ title, content }),
-            });
-
-            if (res.ok) {
-                toast.success('Zapisano pomyślnie!', { id: toastId });
-                closeEditor();
-                fetchNotes();
-            } else {
-                toast.error('Błąd zapisu', { id: toastId });
-            }
-        } catch {
-            toast.error('Błąd połączenia', { id: toastId });
-        } finally {
-            setSaving(false);
-        }
-    };
-
-    // 4. Usuwanie
-    const handleDelete = async (id: string) => {
-        if (!confirm('Usunąć notatkę trwale?')) return;
-
-        const toastId = toast.loading('Usuwanie...');
-        try {
-            const res = await fetch(`${API}/api/notes/${id}`, { method: 'DELETE', credentials: 'include' });
-            if(res.ok) {
-                setNotes(prev => prev.filter(n => n.id !== id));
-                if (isEditorOpen && currentNoteId === id) closeEditor();
-                toast.success('Usunięto', { id: toastId });
-            } else {
-                toast.error('Błąd usuwania', { id: toastId });
-            }
-        } catch (e) {
-            toast.error('Błąd serwera', { id: toastId });
-        }
-    };
-
-    // --- ULEPSZONE FORMATOWANIE ---
-    const insertFormat = (prefix: string, suffix: string = '') => {
-        if (!textareaRef.current) return;
-
-        // Jeśli jesteśmy w trybie podglądu, przełącz na edycję, żeby sformatować
-        if (previewMode) setPreviewMode(false);
-
-        const field = textareaRef.current;
-        const start = field.selectionStart;
-        const end = field.selectionEnd;
-        const text = field.value;
-
-        // INLINE
-        if (suffix) {
-            const newText = text.substring(0, start) + prefix + text.substring(start, end) + suffix + text.substring(end);
-            setContent(newText);
-            setTimeout(() => {
-                field.focus();
-                field.setSelectionRange(start + prefix.length, end + prefix.length);
-            }, 0);
-            return;
-        }
-
-        // BLOCK
-        let lineStart = text.lastIndexOf('\n', start - 1) + 1;
-        if (lineStart === -1) lineStart = 0;
-
-        let lineEnd = text.indexOf('\n', start);
-        if (lineEnd === -1) lineEnd = text.length;
-
-        const lineContent = text.substring(lineStart, lineEnd);
-
-        const blockPrefixes = ['# ', '## ', '- ', '> '];
-        let cleanLine = lineContent;
-        let existingPrefix = '';
-
-        for (const p of blockPrefixes) {
-            if (lineContent.startsWith(p)) {
-                cleanLine = lineContent.substring(p.length);
-                existingPrefix = p;
-                break;
-            }
-        }
-
-        let newLine = '';
-        if (existingPrefix === prefix) {
-            newLine = cleanLine;
-        } else {
-            newLine = prefix + cleanLine;
-        }
-
-        const newText = text.substring(0, lineStart) + newLine + text.substring(lineEnd);
-        setContent(newText);
-
-        setTimeout(() => {
-            field.focus();
-            const newCursorPos = lineStart + newLine.length;
-            field.setSelectionRange(newCursorPos, newCursorPos);
-        }, 0);
-    };
+    // Pobieramy notatki udostępnione (zachowano logikę filtrowania ACCEPTED)
+    useEffect(() => {
+        apiFetch<SharedNote[]>('/api/notes/shared')
+            .then(data => {
+                if (Array.isArray(data)) {
+                    setSharedNotes(data.filter(n => n.status === 'ACCEPTED' || !n.status));
+                }
+            })
+            .catch(console.error);
+    }, []);
 
     return (
         <>
-            <Head>
-                <title>Dokumenty | NoteUZ</title>
-            </Head>
+            <Head><title>{t('my_notes')} — NoteUZ</title></Head>
 
-            <div className={s.page}>
-                <header className={s.nav}>
-                    <Link href="/" className={s.brand}>
-                        <div className={s.logoIcon}>📝</div>
-                        <span>NoteUZ</span>
-                    </Link>
-                    <div style={{display:'flex', gap:16, alignItems:'center'}}>
-                        {/* Usunięto link "Strona główna" - nawigacja przez logo */}
-                        <ThemeToggle />
-                    </div>
-                </header>
+            <NotesLayout title={t('my_notes')} actionButton={<CreateNoteButton />}>
 
-                <main className={s.container}>
-                    <div className={s.headerRow}>
-                        <h1 className={s.title}>Twoje dokumenty</h1>
-                        <button className={s.createBtn} onClick={() => openEditor()}>
-                            <span>+</span> Nowa notatka
-                        </button>
-                    </div>
-
-                    {loading ? (
-                        <p style={{color:'#888'}}>Ładowanie dokumentów...</p>
-                    ) : notes.length === 0 ? (
-                        <div style={{textAlign:'center', padding:60, color:'#888', border:'2px dashed var(--border)', borderRadius:16}}>
-                            <h3>Pusto tutaj</h3>
-                            <p>Kliknij przycisk "Nowa notatka", aby utworzyć swój pierwszy dokument.</p>
-                        </div>
-                    ) : (
-                        <div className={s.notesGrid}>
-                            {notes.map(note => (
-                                <div key={note.id} className={s.noteCard} onClick={() => openEditor(note)}>
-                                    <h3 className={s.noteTitle}>{note.title || 'Dokument bez tytułu'}</h3>
-                                    <div className={s.notePreview}>
-                                        <ReactMarkdown>{note.content.substring(0, 200)}</ReactMarkdown>
-                                    </div>
-                                    <span className={s.noteDate}>
-                                        {new Date(note.createdAt).toLocaleDateString()}
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </main>
-
-                {isEditorOpen && (
-                    <div className={s.editorOverlay} onClick={closeEditor}>
-                        <div className={s.editorPaper} onClick={e => e.stopPropagation()}>
-                            <div className={s.editorToolbar}>
-                                {/* GŁÓWNY PRZYCISK: Przełącznik Podglądu (TEKSTOWY) */}
-                                <button
-                                    className={`${s.toggleModeBtn} ${previewMode ? s.toggleModeBtnActive : ''}`}
-                                    onClick={() => setPreviewMode(!previewMode)}
-                                >
-                                    {previewMode ? 'Wróć do edycji' : 'Zobacz podgląd'}
-                                </button>
-
-                                {/* Pionowy separator */}
-                                <div style={{width: 1, background: 'var(--border)', height: 20, margin: '0 8px'}} />
-
-                                {/* Przyciski formatowania */}
-                                <button className={s.toolBtn} onClick={() => insertFormat('**', '**')} title="Pogrubienie"><b>B</b></button>
-                                <button className={s.toolBtn} onClick={() => insertFormat('_', '_')} title="Kursywa"><i>I</i></button>
-
-                                <div style={{width: 1, background: 'var(--border)', height: 20, margin: '0 8px'}} />
-
-                                <button className={s.toolBtn} onClick={() => insertFormat('# ')} title="Nagłówek 1">H1</button>
-                                <button className={s.toolBtn} onClick={() => insertFormat('## ')} title="Nagłówek 2">H2</button>
-                                <button className={s.toolBtn} onClick={() => insertFormat('- ')} title="Lista">•</button>
-
-                                <div style={{flex:1}} />
-                                <button className={s.toolBtn} onClick={closeEditor} title="Zamknij">✕</button>
-                            </div>
-
-                            <div className={s.editorContent}>
-                                <input
-                                    className={s.inputTitle}
-                                    placeholder="Tytuł dokumentu"
-                                    value={title}
-                                    onChange={e => setTitle(e.target.value)}
-                                />
-
-                                {previewMode ? (
-                                    <div className={s.markdownPreview}>
-                                        <ReactMarkdown>{content || '*Brak treści*'}</ReactMarkdown>
-                                    </div>
-                                ) : (
-                                    <textarea
-                                        ref={textareaRef}
-                                        className={s.textareaBody}
-                                        placeholder="Zacznij pisać tutaj... (Użyj Markdown)"
-                                        value={content}
-                                        onChange={e => setContent(e.target.value)}
-                                    />
-                                )}
-                            </div>
-
-                            <div className={s.editorActions}>
-                                {currentNoteId ? (
-                                    <button className={s.deleteBtn} onClick={() => handleDelete(currentNoteId)}>
-                                        Usuń
-                                    </button>
-                                ) : <div />}
-
-                                <div style={{display:'flex', gap:12}}>
-                                    <button className={s.cancelBtn} onClick={closeEditor}>
-                                        Anuluj
-                                    </button>
-                                    <button className={s.saveBtn} onClick={handleSave} disabled={saving || !content}>
-                                        {saving ? 'Zapisywanie...' : 'Zapisz'}
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                {/* --- SEKCJA: MOJE NOTATKI --- */}
+                {notes.length === 0 ? (
+                    <Box sx={{ textAlign: 'center', py: 10, opacity: 0.6 }}>
+                        <Typography variant="h6" fontWeight={700} gutterBottom>{t('notes_empty_title')}</Typography>
+                        <Typography variant="body1">{t('notes_empty_desc')}</Typography>
+                    </Box>
+                ) : (
+                    // alignItems="stretch" zapewnia, że wszystkie kolumny w rzędzie mają tę samą wysokość
+                    <Grid container spacing={3} alignItems="stretch">
+                        {notes.map((note) => (
+                            // md: 3 daje 4 karty w rzędzie na komputerach
+                            <Grid key={note.id} size={{ xs: 12, sm: 6, md: 3 }} sx={{ display: 'flex' }}>
+                                <Box sx={{ width: '100%', display: 'flex' }}>
+                                    <NoteCard note={note} />
+                                </Box>
+                            </Grid>
+                        ))}
+                    </Grid>
                 )}
-            </div>
+
+                {/* --- SEKCJA: UDOSTĘPNIONE DLA MNIE --- */}
+                {sharedNotes.length > 0 && (
+                    <Box sx={{ mt: 10 }}>
+                        <Divider sx={{ mb: 5 }}>
+                            <Chip
+                                icon={<ShareIcon />}
+                                label={t('shared_notes', 'Udostępnione dla mnie')}
+                                sx={{ px: 2, fontWeight: 700, borderRadius: '12px' }}
+                            />
+                        </Divider>
+
+                        <Grid container spacing={3} alignItems="stretch">
+                            {sharedNotes.map((note) => (
+                                // md: 3 daje 4 karty w rzędzie
+                                <Grid key={note.id} size={{ xs: 12, sm: 6, md: 3 }} sx={{ display: 'flex' }}>
+                                    <Box sx={{ width: '100%', position: 'relative', display: 'flex' }}>
+                                        <NoteCard note={note} />
+                                        <Chip
+                                            label={note.permission === 'WRITE' ? t('perm_write') : t('perm_read')}
+                                            size="small"
+                                            color={note.permission === 'WRITE' ? 'secondary' : 'default'}
+                                            sx={{
+                                                position: 'absolute', top: 12, right: 12, zIndex: 2,
+                                                fontWeight: 700, boxShadow: '0 4px 10px rgba(0,0,0,0.1)',
+                                                backdropFilter: 'blur(4px)', pointerEvents: 'none'
+                                            }}
+                                        />
+                                    </Box>
+                                </Grid>
+                            ))}
+                        </Grid>
+                    </Box>
+                )}
+            </NotesLayout>
         </>
     );
 }
