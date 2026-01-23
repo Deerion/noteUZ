@@ -17,25 +17,45 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Argument resolver do wstrzykiwania identyfikatora użytkownika z żądania.
+ */
 @Component
 public class UserIdArgumentResolver implements HandlerMethodArgumentResolver {
 
     private final AuthService authService;
     private final String cookieName; // <--- Dodajemy pole na nazwę ciasteczka
 
-    // Wstrzykujemy nazwę ciasteczka z konfiguracji (tak samo jak w AuthService)
+    /**
+     * Konstruktor resolvera identyfikatora użytkownika.
+     * @param authService Serwis do autentykacji.
+     * @param cookieName Nazwa ciasteczka zawierającego token JWT.
+     */
     public UserIdArgumentResolver(AuthService authService,
                                   @Value("${app.jwt.cookie}") String cookieName) {
         this.authService = authService;
         this.cookieName = cookieName;
     }
 
+    /**
+     * Sprawdza, czy dany parametr jest obsługiwany przez ten resolver.
+     * @param parameter Parametr metody do sprawdzenia.
+     * @return true, jeśli parametr jest obsługiwany, false w przeciwnym razie.
+     */
     @Override
     public boolean supportsParameter(MethodParameter parameter) {
         return parameter.getParameterAnnotation(CurrentUser.class) != null
                 && (parameter.getParameterType().equals(UUID.class) || parameter.getParameterType().equals(UserSummary.class));
     }
 
+    /**
+     * Rozwiązuje argument, pobierając identyfikator użytkownika lub podsumowanie użytkownika z ciasteczka JWT.
+     * @param parameter Parametr metody do rozwiązywania.
+     * @param mavContainer Kontener dla modeli i widoków.
+     * @param webRequest Obecne żądanie webowe.
+     * @param binderFactory Fabryka do tworzenia binderów danych.
+     * @return Identyfikator użytkownika (UUID) lub obiekt UserSummary, lub null jeśli nie znaleziono tokenu.
+     */
     @Override
     public Object resolveArgument(MethodParameter parameter, ModelAndViewContainer mavContainer,
                                   NativeWebRequest webRequest, WebDataBinderFactory binderFactory) {

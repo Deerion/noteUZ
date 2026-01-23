@@ -8,15 +8,26 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.util.List;
 
+/**
+ * Konfiguracja CORS dla aplikacji.
+ */
 @Configuration
 public class CorsConfig implements WebMvcConfigurer {
 
     private final UserIdArgumentResolver userIdArgumentResolver;
 
+    /**
+     * Konstruktor klasy konfiguracji CORS.
+     * @param userIdArgumentResolver Resolver identyfikatora użytkownika.
+     */
     public CorsConfig(UserIdArgumentResolver userIdArgumentResolver) {
         this.userIdArgumentResolver = userIdArgumentResolver;
     }
 
+    /**
+     * Dodaje konfigurację CORS.
+     * @param registry Rejestr CORS do konfiguracji.
+     */
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
@@ -28,6 +39,10 @@ public class CorsConfig implements WebMvcConfigurer {
                 .maxAge(3600);
     }
 
+    /**
+     * Dodaje resolver argumentów do obsługi identyfikatora użytkownika.
+     * @param resolvers Lista resolverów argumentów do rozszerzenia.
+     */
     @Override
     public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
         resolvers.add(userIdArgumentResolver);
