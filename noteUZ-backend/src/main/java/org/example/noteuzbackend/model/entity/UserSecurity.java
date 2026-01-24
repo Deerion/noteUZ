@@ -31,6 +31,10 @@ public class UserSecurity {
     @Column(name = "warning_count")
     private int warnings = 0;
 
+    /**
+     * Konstruktor tworzący obiekt zabezpieczeń dla użytkownika.
+     * @param id identyfikator użytkownika
+     */
     public UserSecurity(UUID id) {
         this.id = id;
         this.role = Role.USER;

@@ -21,8 +21,21 @@ public class AppUser {
     @Column(name = "display_name")
     private String displayName;
 
-    // Getters
+    /**
+     * Pobiera identyfikator użytkownika.
+     * @return identyfikator UUID
+     */
     public UUID getId() { return id; }
+
+    /**
+     * Pobiera adres email użytkownika.
+     * @return adres email
+     */
     public String getEmail() { return email; }
+
+    /**
+     * Pobiera nazwę wyświetlaną użytkownika.
+     * @return nazwa wyświetlana
+     */
     public String getDisplayName() { return displayName; }
 }

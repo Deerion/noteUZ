@@ -35,20 +35,87 @@ public class Event {
     @Column(name = "note_id")
     private Set<UUID> noteIds = new HashSet<>();
 
-    // Getters and Setters
+    /**
+     * Pobiera identyfikator wydarzenia.
+     * @return identyfikator UUID
+     */
     public UUID getId() { return id; }
+
+    /**
+     * Ustawia identyfikator wydarzenia.
+     * @param id identyfikator UUID
+     */
     public void setId(UUID id) { this.id = id; }
+
+    /**
+     * Pobiera tytuł wydarzenia.
+     * @return tytuł wydarzenia
+     */
     public String getTitle() { return title; }
+
+    /**
+     * Ustawia tytuł wydarzenia.
+     * @param title tytuł wydarzenia
+     */
     public void setTitle(String title) { this.title = title; }
+
+    /**
+     * Pobiera opis wydarzenia.
+     * @return opis wydarzenia
+     */
     public String getDescription() { return description; }
+
+    /**
+     * Ustawia opis wydarzenia.
+     * @param description opis wydarzenia
+     */
     public void setDescription(String description) { this.description = description; }
+
+    /**
+     * Pobiera czas rozpoczęcia wydarzenia.
+     * @return data i czas rozpoczęcia
+     */
     public LocalDateTime getStart() { return start; }
+
+    /**
+     * Ustawia czas rozpoczęcia wydarzenia.
+     * @param start data i czas rozpoczęcia
+     */
     public void setStart(LocalDateTime start) { this.start = start; }
+
+    /**
+     * Pobiera czas zakończenia wydarzenia.
+     * @return data i czas zakończenia
+     */
     public LocalDateTime getEnd() { return end; }
+
+    /**
+     * Ustawia czas zakończenia wydarzenia.
+     * @param end data i czas zakończenia
+     */
     public void setEnd(LocalDateTime end) { this.end = end; }
+
+    /**
+     * Pobiera identyfikator użytkownika będącego właścicielem wydarzenia.
+     * @return identyfikator UUID użytkownika
+     */
     public UUID getUserId() { return userId; }
+
+    /**
+     * Ustawia identyfikator użytkownika będącego właścicielem wydarzenia.
+     * @param userId identyfikator UUID użytkownika
+     */
     public void setUserId(UUID userId) { this.userId = userId; }
 
+    /**
+     * Pobiera zbiór identyfikatorów notatek powiązanych z wydarzeniem.
+     * @return zbiór identyfikatorów UUID notatek
+     */
     public Set<UUID> getNoteIds() { return noteIds; }
+
+    /**
+     * Ustawia zbiór identyfikatorów notatek powiązanych z wydarzeniem.
+     * @param noteIds zbiór identyfikatorów UUID notatek
+     */
     public void setNoteIds(Set<UUID> noteIds) { this.noteIds = noteIds; }
 }

@@ -1,7 +1,13 @@
 package org.example.noteuzbackend.model.enums;
 
+/**
+ * Reprezentuje role systemowe użytkowników.
+ */
 public enum Role {
-    USER,       // Zwykły szary użytkownik
-    MODERATOR,  // Pomocnik (może banować userów, widzieć dane)
-    ADMIN       // Właściciel (święty, ustawiany tylko w bazie)
+    /** Zwykły użytkownik */
+    USER,
+    /** Moderator z uprawnieniami do banowania i wglądu w dane */
+    MODERATOR,
+    /** Administrator systemu z pełnymi uprawnieniami */
+    ADMIN
 }
