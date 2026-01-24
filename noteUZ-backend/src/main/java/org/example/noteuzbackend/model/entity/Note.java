@@ -4,6 +4,10 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+/**
+ * Reprezentuje notatkę utworzoną przez użytkownika.
+ * Notatka może być prywatna lub przypisana do grupy, posiada tytuł, treść oraz metadane o czasie utworzenia i edycji.
+ */
 @Entity
 @Table(name = "notes")
 public class Note {

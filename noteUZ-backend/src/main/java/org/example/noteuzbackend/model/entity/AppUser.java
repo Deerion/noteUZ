@@ -8,6 +8,10 @@ import org.hibernate.annotations.Immutable;
 
 import java.util.UUID;
 
+/**
+ * Reprezentuje widok profilu użytkownika w systemie.
+ * Klasa jest niemodyfikowalna (Immutable), co odzwierciedla fakt, że dane pochodzą z widoku bazy danych.
+ */
 @Entity
 @Immutable
 @Table(name = "users_view", schema = "public")

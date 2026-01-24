@@ -5,6 +5,10 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.Instant;
 import java.util.UUID;
 
+/**
+ * Reprezentuje grupę użytkowników w systemie.
+ * Grupa pozwala na wspólne zarządzanie notatkami i współpracę między jej członkami.
+ */
 @Entity
 @Table(name = "groups", schema = "public") // Schema public jest ważna w Supabase
 public class Group {

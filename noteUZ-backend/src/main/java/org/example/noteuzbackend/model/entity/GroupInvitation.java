@@ -5,6 +5,10 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.Instant;
 import java.util.UUID;
 
+/**
+ * Reprezentuje zaproszenie użytkownika do grupy.
+ * Zawiera informacje o grupie docelowej, osobie zapraszającej oraz zapraszanym użytkowniku.
+ */
 @Entity
 @Table(name = "group_invitations")
 public class GroupInvitation {

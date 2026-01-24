@@ -18,6 +18,9 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+/**
+ * Serwis zarządzania funkcjami administracyjnymi i moderacyjnymi.
+ */
 @Service
 public class AdminService {
 
@@ -27,6 +30,14 @@ public class AdminService {
     private final GroupMemberRepo groupMemberRepo;
     private final AppUserRepo appUserRepo;
 
+    /**
+     * Konstruktor serwisu AdminService.
+     * @param securityRepo repozytorium bezpieczeństwa użytkowników
+     * @param noteRepo repozytorium notatek
+     * @param groupRepo repozytorium grup
+     * @param groupMemberRepo repozytorium członków grup
+     * @param appUserRepo repozytorium użytkowników aplikacji
+     */
     public AdminService(UserSecurityRepo securityRepo, NoteRepo noteRepo, GroupRepo groupRepo, GroupMemberRepo groupMemberRepo, AppUserRepo appUserRepo) {
         this.securityRepo = securityRepo;
         this.noteRepo = noteRepo;

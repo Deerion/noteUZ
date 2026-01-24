@@ -3,6 +3,10 @@ package org.example.noteuzbackend.model.entity;
 import jakarta.persistence.*;
 import java.util.UUID;
 
+/**
+ * Reprezentuje głos oddany przez użytkownika na konkretną notatkę.
+ * Służy do zliczania popularności notatek w ramach grup.
+ */
 @Entity
 @Table(name = "note_votes", uniqueConstraints = {
         @UniqueConstraint(columnNames = {"note_id", "user_id"})

@@ -5,6 +5,10 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.Instant;
 import java.util.UUID;
 
+/**
+ * Reprezentuje relację znajomości między dwoma użytkownikami.
+ * Przechowuje informacje o inicjatorze, adresacie oraz aktualnym statusie relacji (np. PENDING, ACCEPTED).
+ */
 @Entity
 @Table(name = "friendships")
 public class Friendship {

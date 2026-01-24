@@ -6,6 +6,10 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
+/**
+ * Reprezentuje wydarzenie w kalendarzu użytkownika.
+ * Wydarzenie posiada tytuł, opis, ramy czasowe oraz może być powiązane z notatkami.
+ */
 @Entity
 @Table(name = "events")
 public class Event {

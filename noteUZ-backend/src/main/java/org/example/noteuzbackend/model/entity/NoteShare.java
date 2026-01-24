@@ -4,6 +4,10 @@ import jakarta.persistence.*;
 import java.util.UUID;
 import java.util.Objects;
 
+/**
+ * Reprezentuje udostępnienie notatki innemu użytkownikowi.
+ * Przechowuje informacje o poziomie uprawnień (np. READ, WRITE), statusie zaproszenia oraz tokenie weryfikacyjnym.
+ */
 @Entity
 @Table(name = "note_shares")
 public class NoteShare {

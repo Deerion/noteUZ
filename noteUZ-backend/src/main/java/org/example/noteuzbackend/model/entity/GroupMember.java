@@ -6,6 +6,10 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.Instant;
 import java.util.UUID;
 
+/**
+ * Reprezentuje powiązanie użytkownika z grupą (członkostwo).
+ * Określa rolę użytkownika w ramach konkretnej grupy oraz datę dołączenia.
+ */
 @Entity
 @Table(name = "group_members", schema = "public")
 public class GroupMember {

@@ -6,6 +6,10 @@ import java.util.UUID;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+/**
+ * Reprezentuje awatar użytkownika przechowywany w bazie danych.
+ * Zawiera dane binarne obrazu oraz informacje o jego typie (MIME type).
+ */
 @Entity
 @Table(name = "user_avatars")
 public class UserAvatar {

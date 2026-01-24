@@ -19,6 +19,9 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+/**
+ * Serwis zarządzający grupami użytkowników.
+ */
 @Service
 public class GroupService {
 
@@ -27,6 +30,13 @@ public class GroupService {
     private final AppUserRepo userRepo;
     private final GroupInvitationRepo invitationRepo;
 
+    /**
+     * Konstruktor serwisu.
+     * @param groupRepo Repozytorium grup
+     * @param memberRepo Repozytorium członków grup
+     * @param userRepo Repozytorium użytkowników
+     * @param invitationRepo Repozytorium zaproszeń do grup
+     */
     public GroupService(GroupRepo groupRepo, GroupMemberRepo memberRepo, AppUserRepo userRepo, GroupInvitationRepo invitationRepo) {
         this.groupRepo = groupRepo;
         this.memberRepo = memberRepo;

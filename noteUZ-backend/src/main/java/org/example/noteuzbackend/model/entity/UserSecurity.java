@@ -8,6 +8,10 @@ import org.example.noteuzbackend.model.enums.Role;
 
 import java.util.UUID;
 
+/**
+ * Reprezentuje dane bezpieczeństwa i uprawnień użytkownika.
+ * Przechowuje informacje o roli (USER, MODERATOR, ADMIN), statusie blokady oraz liczbie ostrzeżeń.
+ */
 @Entity
 @Table(name = "user_security")
 @Getter
