@@ -1,6 +1,5 @@
 package org.example.noteuzbackend;
 
-import org.example.noteuzbackend.model.entity.AppUser;
 import org.example.noteuzbackend.model.entity.UserSecurity;
 import org.example.noteuzbackend.model.enums.Role;
 import org.example.noteuzbackend.repository.*;
@@ -33,6 +32,7 @@ class AdminServiceTest {
 
     @Test
     void shouldToggleBanForUser() {
+        // Given
         UUID targetId = UUID.randomUUID();
         UUID modId = UUID.randomUUID();
 
@@ -47,7 +47,10 @@ class AdminServiceTest {
 
         adminService.toggleBan(targetId, modId);
 
-        assertThat(target.isBanned()).isTrue();
+        assertThat(target.isBanned())
+                .as("Status zbanowania użytkownika powinien zmienić się na TRUE")
+                .isTrue();
+
         verify(securityRepo).save(target);
     }
 
@@ -57,36 +60,42 @@ class AdminServiceTest {
         UUID modId = UUID.randomUUID();
 
         UserSecurity target = new UserSecurity(targetId);
-        target.setRole(Role.MODERATOR); // Cel jest moderatorem
-
+        target.setRole(Role.MODERATOR);
         UserSecurity mod = new UserSecurity(modId);
-        mod.setRole(Role.MODERATOR); // Aktor też
+        mod.setRole(Role.MODERATOR);
 
         when(securityRepo.findById(targetId)).thenReturn(Optional.of(target));
         when(securityRepo.findById(modId)).thenReturn(Optional.of(mod));
 
-        assertThrows(ResponseStatusException.class, () -> {
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
             adminService.toggleBan(targetId, modId);
         });
+
+        assertThat(exception.getStatusCode().value())
+                .as("Kod błędu powinien wynosić 403 (Forbidden) przy próbie zbanowania innego moderatora")
+                .isEqualTo(403);
     }
 
     @Test
     void shouldPromoteToModerator() {
+        // Given
         UUID targetId = UUID.randomUUID();
         UUID adminId = UUID.randomUUID();
 
         UserSecurity target = new UserSecurity(targetId);
         target.setRole(Role.USER);
-
         UserSecurity admin = new UserSecurity(adminId);
         admin.setRole(Role.ADMIN);
 
-        when(securityRepo.findById(adminId)).thenReturn(Optional.of(admin)); // Sprawdzenie uprawnień
+        when(securityRepo.findById(adminId)).thenReturn(Optional.of(admin));
         when(securityRepo.findById(targetId)).thenReturn(Optional.of(target));
 
         adminService.promoteToModerator(targetId, adminId);
 
-        assertThat(target.getRole()).isEqualTo(Role.MODERATOR);
+        assertThat(target.getRole())
+                .as("Rola użytkownika po awansie powinna wynosić MODERATOR")
+                .isEqualTo(Role.MODERATOR);
+
         verify(securityRepo).save(target);
     }
 }

@@ -31,7 +31,10 @@ class EventServiceTest {
 
         List<Event> events = eventService.getUserEvents(userId);
 
-        assertThat(events).hasSize(2);
+        assertThat(events)
+                .as("Powinna zostać zwrócona lista dokładnie 2 wydarzeń")
+                .hasSize(2);
+
         verify(eventRepo).findByUserIdOrderByStartAsc(userId);
     }
 
@@ -45,7 +48,10 @@ class EventServiceTest {
 
         Event result = eventService.createEvent(event);
 
-        assertThat(result.getTitle()).isEqualTo("Spotkanie");
+        assertThat(result.getTitle())
+                .as("Tytuł utworzonego wydarzenia powinien zgadzać się z wejściowym")
+                .isEqualTo("Spotkanie");
+
         verify(eventRepo).save(event);
     }
 }

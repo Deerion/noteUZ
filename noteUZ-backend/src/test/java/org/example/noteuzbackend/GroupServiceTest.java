@@ -47,7 +47,10 @@ class GroupServiceTest {
 
         Group result = groupService.createGroup(creatorId, name, "Opis");
 
-        assertThat(result.getName()).isEqualTo(name);
+        assertThat(result.getName())
+                .as("Nazwa utworzonej grupy powinna być identyczna z podaną na wejściu")
+                .isEqualTo(name);
+
         verify(memberRepo).save(argThat(member ->
                 member.getUserId().equals(creatorId) && member.getRole() == GroupRole.OWNER
         ));
@@ -55,17 +58,14 @@ class GroupServiceTest {
 
     @Test
     void shouldInviteUserByEmail() {
+        // Given
         UUID groupId = UUID.randomUUID();
         UUID adminId = UUID.randomUUID();
         String email = "friend@example.com";
         UUID friendId = UUID.randomUUID();
 
-        // Admin ma uprawnienia
         GroupMember adminMember = new GroupMember(groupId, adminId, GroupRole.ADMIN);
         when(memberRepo.findByGroupIdAndUserId(groupId, adminId)).thenReturn(Optional.of(adminMember));
-
-        // Znaleziony user do zaproszenia
-        AppUser friend = new AppUser();
 
         AppUser mockUser = mock(AppUser.class);
         when(mockUser.getId()).thenReturn(friendId);
@@ -74,13 +74,16 @@ class GroupServiceTest {
         when(memberRepo.existsByGroupIdAndUserId(groupId, friendId)).thenReturn(false);
         when(invitationRepo.existsByGroupIdAndInviteeId(groupId, friendId)).thenReturn(false);
 
+        // When
         groupService.inviteUserByEmail(groupId, adminId, email);
 
+        // Then
         verify(invitationRepo).save(any());
     }
 
     @Test
     void shouldThrowExceptionWhenRemovingOwner() {
+        // Given
         UUID groupId = UUID.randomUUID();
         UUID adminId = UUID.randomUUID();
         UUID ownerId = UUID.randomUUID();
@@ -91,8 +94,12 @@ class GroupServiceTest {
         when(memberRepo.findByGroupIdAndUserId(groupId, adminId)).thenReturn(Optional.of(admin));
         when(memberRepo.findByGroupIdAndUserId(groupId, ownerId)).thenReturn(Optional.of(owner));
 
-        assertThrows(ResponseStatusException.class, () -> {
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class, () -> {
             groupService.removeMember(groupId, adminId, ownerId);
         });
+
+        assertThat(ex.getMessage())
+                .as("Komunikat błędu powinien informować o braku możliwości usunięcia właściciela")
+                .contains("Nie możesz usunąć Właściciela");
     }
 }

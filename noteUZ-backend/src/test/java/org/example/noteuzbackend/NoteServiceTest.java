@@ -34,7 +34,28 @@ class NoteServiceTest {
     private NoteService noteService;
 
     @Test
+    void shouldCreateNoteSuccessfully() {
+        UUID userId = UUID.randomUUID();
+        String title = "Testowy Tytuł";
+        String content = "Testowa treść";
+
+        Note savedNote = new Note();
+        savedNote.setUserId(userId);
+        savedNote.setTitle(title);
+        savedNote.setContent(content);
+
+        when(noteRepo.save(any(Note.class))).thenReturn(savedNote);
+
+        Note result = noteService.create(userId, title, content);
+
+        assertThat(result.getTitle())
+                .as("Tytuł nowej notatki powinien być zgodny z podanym")
+                .isEqualTo(title);
+    }
+
+    @Test
     void shouldAddVoteIfNoneExists() {
+        // Given
         UUID noteId = UUID.randomUUID();
         UUID userId = UUID.randomUUID();
         Note note = new Note();
@@ -42,17 +63,23 @@ class NoteServiceTest {
 
         when(noteRepo.findById(noteId)).thenReturn(Optional.of(note));
         when(userRepo.findById(userId)).thenReturn(Optional.of(user));
-        when(voteRepo.findByNoteAndUser(note, user)).thenReturn(Optional.empty());
+        when(voteRepo.findByNoteAndUser(note, user)).thenReturn(Optional.empty()); // Brak głosu
         when(voteRepo.countByNote(note)).thenReturn(1L);
 
+        // When
         Map<String, Object> result = noteService.toggleVote(noteId, userId);
 
+        // Then
         verify(voteRepo).save(any(NoteVote.class));
-        assertThat(result.get("votedByMe")).isEqualTo(true);
+
+        assertThat(result.get("votedByMe"))
+                .as("Flaga votedByMe powinna wynosić true po oddaniu głosu")
+                .isEqualTo(true);
     }
 
     @Test
     void shouldRemoveVoteIfExists() {
+        // Given
         UUID noteId = UUID.randomUUID();
         UUID userId = UUID.randomUUID();
         Note note = new Note();
@@ -61,7 +88,7 @@ class NoteServiceTest {
 
         when(noteRepo.findById(noteId)).thenReturn(Optional.of(note));
         when(userRepo.findById(userId)).thenReturn(Optional.of(user));
-        when(voteRepo.findByNoteAndUser(note, user)).thenReturn(Optional.of(existingVote));
+        when(voteRepo.findByNoteAndUser(note, user)).thenReturn(Optional.of(existingVote)); // Głos istnieje
 
         noteService.toggleVote(noteId, userId);
 
