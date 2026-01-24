@@ -10,17 +10,30 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Kontroler obsługujący operacje autentykacji.
+ */
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
     private final AuthService auth;
     private final AdminService adminService;
 
+    /**
+     * Konstruktor kontrolera autentykacji.
+     * @param auth Serwis autentykacji.
+     * @param adminService Serwis administracyjny.
+     */
     public AuthController(AuthService auth, AdminService adminService) {
         this.auth = auth;
         this.adminService = adminService;
     }
 
+    /**
+     * Loguje użytkownika do systemu.
+     * @param body Dane logowania wraz z tokenem hCaptcha.
+     * @return ResponseEntity z wynikiem logowania (ciasteczka sesji).
+     */
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest body) {
         // Logika Captcha
@@ -31,16 +44,30 @@ public class AuthController {
         return auth.signIn(body.email(), body.password());
     }
 
+    /**
+     * Wylogowuje użytkownika z systemu.
+     * @return ResponseEntity z nagłówkami usuwającymi ciasteczka sesji.
+     */
     @PostMapping("/logout")
     public ResponseEntity<?> logout() {
         return auth.signOut();
     }
 
+    /**
+     * Odświeża sesję użytkownika na podstawie tokenu odświeżania.
+     * @param refreshToken Token odświeżania pobrany z ciasteczka.
+     * @return ResponseEntity z nowym tokenem dostępu.
+     */
     @PostMapping("/refresh")
     public ResponseEntity<?> refresh(@CookieValue(value = "${app.jwt.refreshCookie}", required = false) String refreshToken) {
         return auth.refreshSession(refreshToken);
     }
 
+    /**
+     * Pobiera informacje o aktualnie zalogowanym użytkowniku.
+     * @param token Token dostępu JWT pobrany z ciasteczka.
+     * @return ResponseEntity z danymi użytkownika, rolami i ostrzeżeniami.
+     */
     @GetMapping("/me")
     public ResponseEntity<?> me(@CookieValue(value = "${app.jwt.cookie}", required = false) String token) {
         if (token == null || token.isBlank()) {
@@ -77,6 +104,11 @@ public class AuthController {
         return ResponseEntity.status(401).body(Map.of("authenticated", false));
     }
 
+    /**
+     * Rejestruje nowego użytkownika w systemie.
+     * @param body Dane rejestracji wraz z tokenem hCaptcha.
+     * @return ResponseEntity z wynikiem rejestracji.
+     */
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest body) {
         ResponseEntity<?> captchaResponse = auth.verifyCaptcha(body.captchaToken());

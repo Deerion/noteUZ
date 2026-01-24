@@ -10,22 +10,40 @@ import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Kontroler obsługujący operacje na wydarzeniach kalendarza.
+ */
 @RestController
 @RequestMapping("/api/events")
 public class EventController {
 
     private final EventRepo eventRepo;
 
+    /**
+     * Konstruktor kontrolera wydarzeń.
+     * @param eventRepo Repozytorium wydarzeń.
+     */
     public EventController(EventRepo eventRepo) {
         this.eventRepo = eventRepo;
     }
 
+    /**
+     * Pobiera listę wszystkich wydarzeń zalogowanego użytkownika.
+     * @param userId Identyfikator zalogowanego użytkownika.
+     * @return ResponseEntity z listą wydarzeń posortowaną chronologicznie.
+     */
     @GetMapping
     public ResponseEntity<?> getMyEvents(@CurrentUser UUID userId) {
         if (userId == null) return ResponseEntity.status(401).build();
         return ResponseEntity.ok(eventRepo.findByUserIdOrderByStartAsc(userId));
     }
 
+    /**
+     * Tworzy nowe wydarzenie.
+     * @param event Dane nowego wydarzenia.
+     * @param userId Identyfikator zalogowanego użytkownika.
+     * @return ResponseEntity z zapisanym wydarzeniem lub komunikatem o błędzie.
+     */
     @PostMapping
     public ResponseEntity<?> createEvent(@RequestBody Event event, @CurrentUser UUID userId) {
         if (userId == null) return ResponseEntity.status(401).build();
@@ -48,6 +66,12 @@ public class EventController {
         return ResponseEntity.ok(eventRepo.save(event));
     }
 
+    /**
+     * Usuwa wydarzenie o podanym identyfikatorze.
+     * @param id Identyfikator wydarzenia.
+     * @param userId Identyfikator zalogowanego użytkownika.
+     * @return ResponseEntity z potwierdzeniem operacji.
+     */
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteEvent(@PathVariable UUID id, @CurrentUser UUID userId) {
         if (userId == null) return ResponseEntity.status(401).build();
@@ -60,7 +84,13 @@ public class EventController {
         return ResponseEntity.ok().build();
     }
 
-    // PATCH: Dla Drag & Drop (zostaje Map, bo to aktualizacja partial)
+    /**
+     * Aktualizuje daty wydarzenia (np. po przeciągnięciu w kalendarzu).
+     * @param id Identyfikator wydarzenia.
+     * @param updates Mapa zawierająca zaktualizowane pola (start, end).
+     * @param userId Identyfikator zalogowanego użytkownika.
+     * @return ResponseEntity z zaktualizowanym wydarzeniem.
+     */
     @PatchMapping("/{id}")
     public ResponseEntity<?> updateEventDates(@PathVariable UUID id,
                                               @RequestBody Map<String, Object> updates,
@@ -86,6 +116,13 @@ public class EventController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
+    /**
+     * Pełna aktualizacja danych wydarzenia.
+     * @param id Identyfikator wydarzenia.
+     * @param updatedEvent Nowe dane wydarzenia.
+     * @param userId Identyfikator zalogowanego użytkownika.
+     * @return ResponseEntity z zaktualizowanym wydarzeniem.
+     */
     @PutMapping("/{id}")
     public ResponseEntity<?> updateEventFull(@PathVariable UUID id,
                                              @RequestBody Event updatedEvent,

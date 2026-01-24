@@ -15,6 +15,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Kontroler obsługujący operacje na notatkach.
+ */
 @RestController
 @RequestMapping("/api/notes")
 public class NoteController {
@@ -23,25 +26,46 @@ public class NoteController {
     private final EmailService emailService;
     private final GroupMemberRepo groupMemberRepo;
 
+    /**
+     * Konstruktor kontrolera notatek.
+     * @param service Serwis notatek.
+     * @param emailService Serwis wysyłania emaili.
+     * @param groupMemberRepo Repozytorium członków grup.
+     */
     public NoteController(NoteService service, EmailService emailService, GroupMemberRepo groupMemberRepo) {
         this.service = service;
         this.emailService = emailService;
         this.groupMemberRepo = groupMemberRepo;
     }
 
+    /**
+     * Pobiera listę notatek użytkownika.
+     * @param userId Identyfikator zalogowanego użytkownika.
+     * @return ResponseEntity z listą notatek.
+     */
     @GetMapping
     public ResponseEntity<?> list(@CurrentUser UUID userId) {
         if (userId == null) return ResponseEntity.status(401).body(Map.of("message", "Nie jesteś zalogowany"));
         return ResponseEntity.ok(service.listNotes(userId));
     }
 
-    // Tu potrzebujemy maila, więc bierzemy UserSummary
+    /**
+     * Pobiera listę notatek udostępnionych użytkownikowi.
+     * @param user Podsumowanie danych zalogowanego użytkownika.
+     * @return ResponseEntity z listą udostępnionych notatek.
+     */
     @GetMapping("/shared")
     public ResponseEntity<?> listSharedNotes(@CurrentUser UserSummary user) {
         if (user == null) return ResponseEntity.status(401).body(Map.of("message", "Musisz być zalogowany"));
         return ResponseEntity.ok(service.getSharedNotes(user.email(), user.id()));
     }
 
+    /**
+     * Pobiera szczegóły konkretnej notatki.
+     * @param id Identyfikator notatki.
+     * @param user Podsumowanie danych zalogowanego użytkownika.
+     * @return ResponseEntity z danymi notatki i uprawnieniami.
+     */
     @GetMapping("/{id}")
     public ResponseEntity<Map<String, Object>> get(@PathVariable UUID id, @CurrentUser UserSummary user) {
         if (user == null) return ResponseEntity.status(401).build();
@@ -79,6 +103,12 @@ public class NoteController {
         ));
     }
 
+    /**
+     * Tworzy nową notatkę.
+     * @param body Dane nowej notatki.
+     * @param userId Identyfikator zalogowanego użytkownika.
+     * @return ResponseEntity z informacją o utworzonej notatce.
+     */
     @PostMapping
     public ResponseEntity<Map<String, Object>> create(@RequestBody CreateNoteRequest body, @CurrentUser UUID userId) {
         if (userId == null) return ResponseEntity.status(401).body(Map.of("message", "Nie jesteś zalogowany"));
@@ -92,6 +122,13 @@ public class NoteController {
         return ResponseEntity.ok(Map.of("id", saved.getId(), "title", saved.getTitle()));
     }
 
+    /**
+     * Aktualizuje istniejącą notatkę.
+     * @param id Identyfikator notatki.
+     * @param body Nowe dane notatki.
+     * @param user Podsumowanie danych zalogowanego użytkownika.
+     * @return ResponseEntity z wynikiem operacji.
+     */
     @PutMapping("/{id}")
     public ResponseEntity<?> update(@PathVariable UUID id, @RequestBody UpdateNoteRequest body, @CurrentUser UserSummary user) {
         if (user == null) return ResponseEntity.status(401).build();
@@ -114,6 +151,12 @@ public class NoteController {
         return ResponseEntity.ok(Map.of("id", updated.getId()));
     }
 
+    /**
+     * Usuwa notatkę lub cofa udostępnienie.
+     * @param id Identyfikator notatki.
+     * @param user Podsumowanie danych zalogowanego użytkownika.
+     * @return ResponseEntity z wynikiem operacji.
+     */
     @DeleteMapping("/{id}")
     public ResponseEntity<?> delete(@PathVariable UUID id, @CurrentUser UserSummary user) {
         if (user == null) return ResponseEntity.status(401).build();
@@ -134,6 +177,12 @@ public class NoteController {
         }
     }
 
+    /**
+     * Oddaje głos na notatkę (lub go cofa).
+     * @param id Identyfikator notatki.
+     * @param userId Identyfikator zalogowanego użytkownika.
+     * @return ResponseEntity z nowym stanem głosowania.
+     */
     @PostMapping("/{id}/vote")
     public ResponseEntity<?> voteNote(@PathVariable UUID id, @CurrentUser UUID userId) {
         if (userId == null) return ResponseEntity.status(401).build();
@@ -144,6 +193,13 @@ public class NoteController {
         }
     }
 
+    /**
+     * Udostępnia notatkę innemu użytkownikowi poprzez email.
+     * @param id Identyfikator notatki.
+     * @param body Dane udostępniania (email, uprawnienia).
+     * @param user Podsumowanie danych zalogowanego użytkownika.
+     * @return ResponseEntity z informacją o wysłanym zaproszeniu.
+     */
     @PostMapping("/{id}/share")
     public ResponseEntity<?> shareNote(@PathVariable UUID id, @RequestBody ShareNoteRequest body, @CurrentUser UserSummary user) {
         if (user == null) return ResponseEntity.status(401).build();
@@ -168,6 +224,12 @@ public class NoteController {
         }
     }
 
+    /**
+     * Pobiera listę udostępnień danej notatki.
+     * @param id Identyfikator notatki.
+     * @param userId Identyfikator zalogowanego użytkownika.
+     * @return ResponseEntity z listą udostępnień.
+     */
     @GetMapping("/{id}/shares")
     public ResponseEntity<?> getNoteShares(@PathVariable UUID id, @CurrentUser UUID userId) {
         Note note = service.getNoteById(id);
@@ -175,6 +237,12 @@ public class NoteController {
         return ResponseEntity.ok(service.getNoteShares(id));
     }
 
+    /**
+     * Akceptuje zaproszenie do udostępnionej notatki.
+     * @param token Token udostępnienia.
+     * @param userId Identyfikator zalogowanego użytkownika.
+     * @return ResponseEntity z wynikiem operacji.
+     */
     @PostMapping("/share/{token}/accept")
     public ResponseEntity<?> acceptShare(@PathVariable String token, @CurrentUser UUID userId) {
         if (userId == null) return ResponseEntity.status(401).body(Map.of("message", "Zaloguj się"));
@@ -186,6 +254,13 @@ public class NoteController {
         }
     }
 
+    /**
+     * Aktualizuje uprawnienia do udostępnionej notatki.
+     * @param shareId Identyfikator udostępnienia.
+     * @param body Nowe uprawnienia.
+     * @param userId Identyfikator zalogowanego użytkownika.
+     * @return ResponseEntity z informacją o zaktualizowaniu.
+     */
     @PutMapping("/share/{shareId}")
     public ResponseEntity<?> updateShare(@PathVariable UUID shareId, @RequestBody UpdateShareRequest body, @CurrentUser UUID userId) {
         if (userId == null) return ResponseEntity.status(401).build();
@@ -193,6 +268,12 @@ public class NoteController {
         return ResponseEntity.ok(Map.of("message", "Zaktualizowano"));
     }
 
+    /**
+     * Cofa udostępnienie notatki konkretnemu użytkownikowi.
+     * @param shareId Identyfikator udostępnienia.
+     * @param userId Identyfikator zalogowanego użytkownika.
+     * @return ResponseEntity z informacją o usunięciu.
+     */
     @DeleteMapping("/share/{shareId}")
     public ResponseEntity<?> revokeShare(@PathVariable UUID shareId, @CurrentUser UUID userId) {
         if (userId == null) return ResponseEntity.status(401).build();

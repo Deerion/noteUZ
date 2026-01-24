@@ -10,6 +10,9 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Kontroler obsługujący operacje na grupach.
+ */
 @RestController
 @RequestMapping("/api/groups")
 public class GroupController {
@@ -17,26 +20,45 @@ public class GroupController {
     private final GroupService groupService;
     private final NoteService noteService;
 
+    /**
+     * Konstruktor kontrolera grup.
+     * @param groupService Serwis do obsługi grup.
+     * @param noteService Serwis do obsługi notatek.
+     */
     public GroupController(GroupService groupService, NoteService noteService) {
         this.groupService = groupService;
         this.noteService = noteService;
     }
 
-    // 1. GET /api/groups - Lista grup
+    /**
+     * Pobiera listę grup, do których należy zalogowany użytkownik.
+     * @param userId Identyfikator zalogowanego użytkownika.
+     * @return ResponseEntity z listą grup.
+     */
     @GetMapping
     public ResponseEntity<?> listMyGroups(@CurrentUser UUID userId) {
         if (userId == null) return ResponseEntity.status(401).build();
         return ResponseEntity.ok(groupService.getUserGroups(userId));
     }
 
-    // 2. GET /api/groups/{id} - Szczegóły
+    /**
+     * Pobiera szczegółowe informacje o grupie, w tym listę członków.
+     * @param id Identyfikator grupy.
+     * @param userId Identyfikator zalogowanego użytkownika.
+     * @return ResponseEntity ze szczegółami grupy.
+     */
     @GetMapping("/{id}")
     public ResponseEntity<?> getGroupDetails(@PathVariable UUID id, @CurrentUser UUID userId) {
         if (userId == null) return ResponseEntity.status(401).build();
         return ResponseEntity.ok(groupService.getGroupDetails(id, userId));
     }
 
-    // 3. POST /api/groups - Utwórz grupę
+    /**
+     * Tworzy nową grupę.
+     * @param body Dane nowej grupy (nazwa, opis).
+     * @param userId Identyfikator zalogowanego użytkownika (twórcy).
+     * @return ResponseEntity z utworzoną grupą.
+     */
     @PostMapping
     public ResponseEntity<?> createGroup(@RequestBody CreateGroupRequest body, @CurrentUser UUID userId) {
         if (userId == null) return ResponseEntity.status(401).build();
@@ -48,7 +70,13 @@ public class GroupController {
         return ResponseEntity.ok(groupService.createGroup(userId, name, desc));
     }
 
-    // 4. POST /api/groups/{id}/members - Zaproś członka
+    /**
+     * Zaprasza użytkownika do grupy na podstawie adresu email.
+     * @param id Identyfikator grupy.
+     * @param body Dane zaproszenia (email użytkownika).
+     * @param userId Identyfikator zalogowanego użytkownika wysyłającego zaproszenie.
+     * @return ResponseEntity z potwierdzeniem wysłania zaproszenia.
+     */
     @PostMapping("/{id}/members")
     public ResponseEntity<?> inviteMember(@PathVariable UUID id, @RequestBody InviteMemberRequest body, @CurrentUser UUID userId) {
         if (userId == null) return ResponseEntity.status(401).build();
@@ -61,14 +89,24 @@ public class GroupController {
         return ResponseEntity.ok().build();
     }
 
-    // 5. GET /api/groups/invitations - Moje zaproszenia
+    /**
+     * Pobiera zaproszenia do grup dla zalogowanego użytkownika.
+     * @param userId Identyfikator zalogowanego użytkownika.
+     * @return ResponseEntity z listą zaproszeń.
+     */
     @GetMapping("/invitations")
     public ResponseEntity<?> getMyInvitations(@CurrentUser UUID userId) {
         if (userId == null) return ResponseEntity.status(401).build();
         return ResponseEntity.ok(groupService.getUserInvitations(userId));
     }
 
-    // 6. POST /api/groups/invitations/{invitationId} - Odpowiedz
+    /**
+     * Odpowiada na zaproszenie do grupy (akceptacja lub odrzucenie).
+     * @param invitationId Identyfikator zaproszenia.
+     * @param body Decyzja (czy zaakceptować).
+     * @param userId Identyfikator zalogowanego użytkownika.
+     * @return ResponseEntity z potwierdzeniem operacji.
+     */
     @PostMapping("/invitations/{invitationId}")
     public ResponseEntity<?> respondInvitation(@PathVariable UUID invitationId,
                                                @RequestBody InvitationResponseRequest body,
@@ -81,7 +119,13 @@ public class GroupController {
         return ResponseEntity.ok().build();
     }
 
-    // 7. DELETE /api/groups/{id}/members/{targetUserId}
+    /**
+     * Usuwa członka z grupy.
+     * @param id Identyfikator grupy.
+     * @param targetUserId Identyfikator użytkownika do usunięcia.
+     * @param userId Identyfikator zalogowanego użytkownika wykonującego akcję.
+     * @return ResponseEntity z potwierdzeniem usunięcia.
+     */
     @DeleteMapping("/{id}/members/{targetUserId}")
     public ResponseEntity<?> removeMember(@PathVariable UUID id, @PathVariable UUID targetUserId, @CurrentUser UUID userId) {
         if (userId == null) return ResponseEntity.status(401).build();
@@ -89,7 +133,14 @@ public class GroupController {
         return ResponseEntity.noContent().build();
     }
 
-    // 8. PATCH /api/groups/{id}/members/{targetUserId}
+    /**
+     * Zmienia rolę członka w grupie (np. nadaje uprawnienia admina grupy).
+     * @param id Identyfikator grupy.
+     * @param targetUserId Identyfikator użytkownika, któremu zmieniana jest rola.
+     * @param body Nowa rola.
+     * @param userId Identyfikator zalogowanego użytkownika wykonującego akcję.
+     * @return ResponseEntity z potwierdzeniem zmiany roli.
+     */
     @PatchMapping("/{id}/members/{targetUserId}")
     public ResponseEntity<?> changeRole(@PathVariable UUID id,
                                         @PathVariable UUID targetUserId,
@@ -103,14 +154,25 @@ public class GroupController {
         return ResponseEntity.ok().build();
     }
 
-    // 9. GET /api/groups/{id}/notes
+    /**
+     * Pobiera listę notatek powiązanych z grupą.
+     * @param id Identyfikator grupy.
+     * @param userId Identyfikator zalogowanego użytkownika.
+     * @return ResponseEntity z listą notatek grupy.
+     */
     @GetMapping("/{id}/notes")
     public ResponseEntity<?> getGroupNotes(@PathVariable UUID id, @CurrentUser UUID userId) {
         if (userId == null) return ResponseEntity.status(401).build();
         return ResponseEntity.ok(noteService.listGroupNotes(id));
     }
 
-    // 10. POST /api/groups/{id}/notes
+    /**
+     * Tworzy nową notatkę wewnątrz grupy.
+     * @param id Identyfikator grupy.
+     * @param body Dane notatki (tytuł, treść).
+     * @param userId Identyfikator zalogowanego użytkownika (autora).
+     * @return ResponseEntity z utworzoną notatką.
+     */
     @PostMapping("/{id}/notes")
     public ResponseEntity<?> createGroupNote(@PathVariable UUID id,
                                              @RequestBody CreateGroupNoteRequest body,
