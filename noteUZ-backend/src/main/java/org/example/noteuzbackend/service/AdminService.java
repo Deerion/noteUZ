@@ -37,30 +37,55 @@ public class AdminService {
 
     // --- Helpery ---
 
+    /**
+     * Sprawdza, czy użytkownik ma rolę co najmniej Moderatora.
+     * @param userId identyfikator użytkownika
+     * @return true, jeśli użytkownik jest moderatorem lub administratorem
+     */
     public boolean isAtLeastModerator(UUID userId) {
         return securityRepo.findById(userId)
                 .map(u -> u.getRole() == Role.ADMIN || u.getRole() == Role.MODERATOR)
                 .orElse(false);
     }
 
+    /**
+     * Sprawdza, czy użytkownik ma rolę Administratora.
+     * @param userId identyfikator użytkownika
+     * @return true, jeśli użytkownik jest administratorem
+     */
     public boolean isAdmin(UUID userId) {
         return securityRepo.findById(userId)
                 .map(u -> u.getRole() == Role.ADMIN)
                 .orElse(false);
     }
 
+    /**
+     * Weryfikuje, czy użytkownik jest administratorem, w przeciwnym razie rzuca wyjątek.
+     * @param userId identyfikator użytkownika
+     * @throws ResponseStatusException jeśli użytkownik nie ma uprawnień administratora
+     */
     public void ensureAdmin(UUID userId) {
         if (!isAdmin(userId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Wymagane uprawnienia Administratora.");
         }
     }
 
+    /**
+     * Weryfikuje, czy użytkownik jest co najmniej moderatorem, w przeciwnym razie rzuca wyjątek.
+     * @param userId identyfikator użytkownika
+     * @throws ResponseStatusException jeśli użytkownik nie ma uprawnień moderatora
+     */
     public void ensureAtLeastModerator(UUID userId) {
         if (!isAtLeastModerator(userId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Brak uprawnień (wymagany Moderator).");
         }
     }
 
+    /**
+     * Pobiera liczbę ostrzeżeń użytkownika.
+     * @param userId identyfikator użytkownika
+     * @return liczba ostrzeżeń
+     */
     public int getWarningCount(UUID userId) {
         return securityRepo.findById(userId)
                 .map(UserSecurity::getWarnings)
@@ -69,6 +94,10 @@ public class AdminService {
 
     // --- Metody dla Kontrolera ---
 
+    /**
+     * Pobiera listę wszystkich użytkowników w systemie wraz z ich uprawnieniami i stanem konta.
+     * @return lista obiektów AdminUserDTO
+     */
     public List<AdminUserDTO> getAllUsers() {
         List<UserSecurity> securities = securityRepo.findAll();
         List<AppUser> profiles = appUserRepo.findAll();
@@ -91,6 +120,10 @@ public class AdminService {
         }).collect(Collectors.toList());
     }
 
+    /**
+     * Pobiera listę wszystkich notatek w systemie wraz z informacją o autorze i grupie.
+     * @return lista obiektów AdminNoteDTO
+     */
     public List<AdminNoteDTO> getAllNotes() {
         List<Note> notes = noteRepo.findAll();
         List<AppUser> users = appUserRepo.findAll();
@@ -129,6 +162,10 @@ public class AdminService {
     }
 
     // --- ZAKTUALIZOWANA METODA: Grupy z pełnymi danymi (NAPRAWIONA DATA) ---
+    /**
+     * Pobiera listę wszystkich grup w systemie wraz z informacjami o właścicielu, liczbie notatek i członkach.
+     * @return lista obiektów AdminGroupDTO
+     */
     public List<AdminGroupDTO> getAllGroups() {
         List<Group> groups = groupRepo.findAll();
         List<GroupMember> allMembers = groupMemberRepo.findAll();
@@ -196,6 +233,11 @@ public class AdminService {
 
     // --- Reszta metod akcji ---
 
+    /**
+     * Nadaje użytkownikowi rolę Moderatora.
+     * @param targetId identyfikator użytkownika docelowego
+     * @param adminId identyfikator administratora wykonującego akcję
+     */
     public void promoteToModerator(UUID targetId, UUID adminId) {
         ensureAdmin(adminId);
         UserSecurity target = securityRepo.findById(targetId).orElseThrow();
@@ -204,6 +246,11 @@ public class AdminService {
         securityRepo.save(target);
     }
 
+    /**
+     * Degraduje użytkownika do roli zwykłego użytkownika (USER).
+     * @param targetId identyfikator użytkownika docelowego
+     * @param adminId identyfikator administratora wykonującego akcję
+     */
     public void demoteToUser(UUID targetId, UUID adminId) {
         ensureAdmin(adminId);
         UserSecurity target = securityRepo.findById(targetId).orElseThrow();
@@ -212,6 +259,11 @@ public class AdminService {
         securityRepo.save(target);
     }
 
+    /**
+     * Przełącza blokadę (ban) użytkownika.
+     * @param targetId identyfikator użytkownika docelowego
+     * @param actorId identyfikator osoby wykonującej akcję (Admin lub Moderator)
+     */
     public void toggleBan(UUID targetId, UUID actorId) {
         ensureAtLeastModerator(actorId);
         UserSecurity target = securityRepo.findById(targetId).orElseThrow();
@@ -224,6 +276,11 @@ public class AdminService {
         securityRepo.save(target);
     }
 
+    /**
+     * Dodaje ostrzeżenie (warning) użytkownikowi.
+     * @param targetId identyfikator użytkownika docelowego
+     * @param actorId identyfikator osoby wykonującej akcję
+     */
     public void addWarning(UUID targetId, UUID actorId) {
         ensureAtLeastModerator(actorId);
         UserSecurity target = securityRepo.findById(targetId).orElseThrow();
@@ -232,6 +289,11 @@ public class AdminService {
         securityRepo.save(target);
     }
 
+    /**
+     * Usuwa jedno ostrzeżenie użytkownikowi (jeśli jakieś posiada).
+     * @param targetId identyfikator użytkownika docelowego
+     * @param actorId identyfikator osoby wykonującej akcję
+     */
     public void removeWarning(UUID targetId, UUID actorId) {
         ensureAtLeastModerator(actorId);
         UserSecurity target = securityRepo.findById(targetId).orElseThrow();
@@ -241,10 +303,23 @@ public class AdminService {
         }
     }
 
+    /**
+     * Usuwa notatkę o podanym identyfikatorze (akcja administratora).
+     * @param id identyfikator notatki
+     */
     public void deleteNote(UUID id) { noteRepo.deleteById(id); }
 
+    /**
+     * Usuwa grupę o podanym identyfikatorze (akcja administratora).
+     * @param id identyfikator grupy
+     */
     public void deleteGroup(UUID id) { groupRepo.deleteById(id); }
 
+    /**
+     * Usuwa konto użytkownika z systemu.
+     * @param targetId identyfikator użytkownika do usunięcia
+     * @param actorId identyfikator administratora wykonującego akcję
+     */
     public void deleteUser(UUID targetId, UUID actorId) {
         ensureAdmin(actorId);
         UserSecurity target = securityRepo.findById(targetId)

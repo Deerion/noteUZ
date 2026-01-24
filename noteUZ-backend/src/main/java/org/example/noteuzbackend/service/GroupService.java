@@ -35,6 +35,13 @@ public class GroupService {
     }
 
     // 1. TWORZENIE GRUPY
+    /**
+     * Tworzy nową grupę i przypisuje twórcę jako jej właściciela.
+     * @param creatorId identyfikator twórcy grupy
+     * @param name nazwa grupy
+     * @param description opis grupy
+     * @return stworzony obiekt grupy
+     */
     @Transactional
     public Group createGroup(UUID creatorId, String name, String description) {
         Group group = new Group();
@@ -49,6 +56,11 @@ public class GroupService {
     }
 
     // 2. LISTA GRUP UŻYTKOWNIKA
+    /**
+     * Pobiera listę grup, do których należy użytkownik.
+     * @param userId identyfikator użytkownika
+     * @return lista map zawierających szczegóły członkostwa w grupach
+     */
     @Transactional(readOnly = true)
     public List<Map<String, Object>> getUserGroups(UUID userId) {
         List<GroupMember> memberships = memberRepo.findByUserId(userId);
@@ -68,6 +80,13 @@ public class GroupService {
         }).filter(item -> item != null).collect(Collectors.toList());
     }
 
+    /**
+     * Weryfikuje, czy użytkownik ma uprawnienia administracyjne w grupie (OWNER lub ADMIN).
+     * @param groupId identyfikator grupy
+     * @param requesterId identyfikator użytkownika sprawdzanego
+     * @return obiekt GroupMember jeśli weryfikacja przebiegła pomyślnie
+     * @throws ResponseStatusException jeśli użytkownik nie należy do grupy lub nie ma uprawnień (403)
+     */
     private GroupMember validateAdminAccess(UUID groupId, UUID requesterId) {
         GroupMember member = memberRepo.findByGroupIdAndUserId(groupId, requesterId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Nie należysz do tej grupy"));
@@ -79,6 +98,13 @@ public class GroupService {
     }
 
     // 3. ZAPRASZANIE CZŁONKA
+    /**
+     * Zaprasza użytkownika do grupy na podstawie jego adresu email.
+     * @param groupId identyfikator grupy
+     * @param requesterId identyfikator osoby zapraszającej
+     * @param targetEmail email osoby zapraszanej
+     * @throws ResponseStatusException jeśli użytkownik nie istnieje (404) lub zapraszający nie ma uprawnień (403)
+     */
     @Transactional
     public void inviteUserByEmail(UUID groupId, UUID requesterId, String targetEmail) {
         validateAdminAccess(groupId, requesterId);
@@ -96,6 +122,11 @@ public class GroupService {
     }
 
     // 4. POBIERANIE ZAPROSZEŃ
+    /**
+     * Pobiera listę zaproszeń do grup dla konkretnego użytkownika.
+     * @param userId identyfikator użytkownika
+     * @return lista map z informacjami o zaproszeniach
+     */
     @Transactional(readOnly = true)
     public List<Map<String, Object>> getUserInvitations(UUID userId) {
         return invitationRepo.findByInviteeId(userId).stream().map(inv -> {
@@ -116,6 +147,13 @@ public class GroupService {
     }
 
     // 5. ODPOWIEDŹ NA ZAPROSZENIE
+    /**
+     * Pozwala użytkownikowi zaakceptować lub odrzucić zaproszenie do grupy.
+     * @param invitationId identyfikator zaproszenia
+     * @param userId identyfikator użytkownika odpowiadającego
+     * @param accept true jeśli akceptuje, false jeśli odrzuca
+     * @throws ResponseStatusException jeśli zaproszenie nie istnieje (404)
+     */
     @Transactional
     public void respondToInvitation(UUID invitationId, UUID userId, boolean accept) {
         GroupInvitation inv = invitationRepo.findByIdAndInviteeId(invitationId, userId)
@@ -129,6 +167,13 @@ public class GroupService {
     }
 
     // 6. USUWANIE CZŁONKA
+    /**
+     * Usuwa członka z grupy lub pozwala członkowi na jej opuszczenie.
+     * @param groupId identyfikator grupy
+     * @param requesterId identyfikator osoby wykonującej akcję
+     * @param targetUserId identyfikator osoby usuwanej
+     * @throws ResponseStatusException przy braku uprawnień (403), gdy użytkownik nie jest w grupie (404) lub gdy właściciel próbuje odejść (400)
+     */
     @Transactional
     public void removeMember(UUID groupId, UUID requesterId, UUID targetUserId) {
         GroupMember requester = memberRepo.findByGroupIdAndUserId(groupId, requesterId)
@@ -158,6 +203,14 @@ public class GroupService {
     }
 
     // 7. ZMIANA ROLI
+    /**
+     * Zmienia rolę członka w grupie.
+     * @param groupId identyfikator grupy
+     * @param requesterId identyfikator osoby wykonującej akcję
+     * @param targetUserId identyfikator osoby, której rola jest zmieniana
+     * @param newRoleStr nazwa nowej roli (np. "ADMIN", "MEMBER")
+     * @throws ResponseStatusException przy błędnej roli (400) lub braku uprawnień (403)
+     */
     @Transactional
     public void changeRole(UUID groupId, UUID requesterId, UUID targetUserId, String newRoleStr) {
         GroupMember requester = validateAdminAccess(groupId, requesterId);
@@ -182,6 +235,13 @@ public class GroupService {
     }
 
     // 8. SZCZEGÓŁY GRUPY (ZMODYFIKOWANA METODA)
+    /**
+     * Pobiera szczegółowe informacje o grupie wraz z listą jej członków i ich danymi profilowymi.
+     * @param groupId identyfikator grupy
+     * @param requesterId identyfikator użytkownika żądającego
+     * @return mapa zawierająca obiekt grupy oraz listę wzbogaconych członków
+     * @throws ResponseStatusException jeśli grupa nie istnieje (404) lub użytkownik nie ma do niej dostępu (403)
+     */
     @Transactional(readOnly = true)
     public Map<String, Object> getGroupDetails(UUID groupId, UUID requesterId) {
         memberRepo.findByGroupIdAndUserId(groupId, requesterId)

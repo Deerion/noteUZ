@@ -31,6 +31,11 @@ public class NoteService {
     }
 
     // --- Helper do uzupełniania głosów ---
+    /**
+     * Wzbogaca obiekty notatek o aktualną liczbę głosów oraz informację, czy bieżący użytkownik oddał głos.
+     * @param notes lista notatek do wzbogacenia
+     * @param currentUserId identyfikator bieżącego użytkownika (może być null)
+     */
     private void enrichWithVotes(List<Note> notes, UUID currentUserId) {
         if (notes == null || notes.isEmpty()) return;
 
@@ -46,12 +51,23 @@ public class NoteService {
 
     // --- LISTING ---
 
+    /**
+     * Pobiera listę prywatnych notatek użytkownika (nieprzypisanych do żadnej grupy).
+     * @param userId identyfikator użytkownika
+     * @return lista notatek użytkownika
+     */
     public List<Note> listNotes(UUID userId) {
         List<Note> notes = noteRepo.findByUserIdAndGroupIdIsNull(userId);
         enrichWithVotes(notes, userId);
         return notes;
     }
 
+    /**
+     * Pobiera listę notatek należących do konkretnej grupy.
+     * @param groupId identyfikator grupy
+     * @param userId identyfikator użytkownika żądającego (do sprawdzenia głosów)
+     * @return lista notatek grupowych
+     */
     public List<Note> listGroupNotes(UUID groupId, UUID userId) {
         List<Note> notes = noteRepo.findByGroupIdOrderByCreatedAtDesc(groupId);
         enrichWithVotes(notes, userId);
@@ -59,14 +75,30 @@ public class NoteService {
     }
 
     // Metoda legacy (dla kompatybilności)
+    /**
+     * Metoda legacy do pobierania notatek grupowych bez kontekstu użytkownika.
+     * @param groupId identyfikator grupy
+     * @return lista notatek grupowych
+     */
     public List<Note> listGroupNotes(UUID groupId) {
         return listGroupNotes(groupId, null);
     }
 
+    /**
+     * Pobiera notatkę na podstawie jej identyfikatora.
+     * @param id identyfikator notatki
+     * @return obiekt notatki
+     */
     public Note getNoteById(UUID id) {
         return getNoteById(id, null);
     }
 
+    /**
+     * Pobiera notatkę na podstawie jej identyfikatora wraz ze statystykami głosów.
+     * @param id identyfikator notatki
+     * @param userId identyfikator użytkownika żądającego
+     * @return obiekt notatki
+     */
     public Note getNoteById(UUID id, UUID userId) {
         Note note = noteRepo.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Notatka nie istnieje"));
@@ -76,6 +108,13 @@ public class NoteService {
 
     // --- CRUD ---
 
+    /**
+     * Tworzy nową prywatną notatkę.
+     * @param userId identyfikator autora
+     * @param title tytuł notatki
+     * @param content treść notatki
+     * @return stworzona notatka
+     */
     public Note create(UUID userId, String title, String content) {
         var note = new Note();
         note.setUserId(userId);
@@ -84,6 +123,14 @@ public class NoteService {
         return noteRepo.save(note);
     }
 
+    /**
+     * Tworzy nową notatkę przypisaną do grupy.
+     * @param groupId identyfikator grupy
+     * @param userId identyfikator autora
+     * @param title tytuł notatki
+     * @param content treść notatki
+     * @return stworzona notatka grupowa
+     */
     public Note createGroupNote(UUID groupId, UUID userId, String title, String content) {
         var note = new Note();
         note.setGroupId(groupId);
@@ -93,6 +140,13 @@ public class NoteService {
         return noteRepo.save(note);
     }
 
+    /**
+     * Aktualizuje tytuł i treść istniejącej notatki.
+     * @param id identyfikator notatki
+     * @param title nowy tytuł
+     * @param content nowa treść
+     * @return zaktualizowana notatka
+     */
     public Note update(UUID id, String title, String content) {
         Note note = noteRepo.findById(id).orElseThrow(() -> new IllegalArgumentException("Notatka nie istnieje"));
         note.setTitle(title);
@@ -101,6 +155,10 @@ public class NoteService {
         return noteRepo.save(note);
     }
 
+    /**
+     * Trwale usuwa notatkę wraz ze wszystkimi powiązanymi udostępnieniami i głosami.
+     * @param id identyfikator notatki
+     */
     @Transactional
     public void delete(UUID id) {
         // 1. Usuń udostępnienia
@@ -118,6 +176,12 @@ public class NoteService {
 
     // --- NOWA FUNKCJONALNOŚĆ: GŁOSOWANIE ---
 
+    /**
+     * Przełącza głos użytkownika pod notatką (dodaje jeśli nie ma, usuwa jeśli już oddał).
+     * @param noteId identyfikator notatki
+     * @param userId identyfikator użytkownika
+     * @return mapa z nowym licznikiem głosów i stanem głosu bieżącego użytkownika
+     */
     @Transactional
     public Map<String, Object> toggleVote(UUID noteId, UUID userId) {
         AppUser user = userRepo.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
@@ -139,6 +203,15 @@ public class NoteService {
 
     // --- UDOSTĘPNIANIE (BEZ ZMIAN) ---
 
+    /**
+     * Tworzy nowe udostępnienie notatki dla innego użytkownika (na podstawie adresu email).
+     * Generuje unikalny token udostępnienia.
+     * @param noteId identyfikator notatki
+     * @param ownerId identyfikator właściciela notatki
+     * @param recipientEmail email odbiorcy
+     * @param permission poziom uprawnień
+     * @return link do zaakceptowania udostępnienia
+     */
     @Transactional
     public String createShare(UUID noteId, UUID ownerId, String recipientEmail, NoteShare.Permission permission) {
         Optional<AppUser> ownerOpt = userRepo.findById(ownerId);
@@ -173,6 +246,11 @@ public class NoteService {
         return "http://localhost:3000/notes/shared?token=" + share.getToken();
     }
 
+    /**
+     * Zmienia uprawnienia dla istniejącego udostępnienia.
+     * @param shareId identyfikator udostępnienia
+     * @param newPermission nowy poziom uprawnień
+     */
     public void updateSharePermission(UUID shareId, NoteShare.Permission newPermission) {
         NoteShare share = shareRepo.findById(shareId)
                 .orElseThrow(() -> new IllegalArgumentException("Udostępnienie nie istnieje"));
@@ -180,10 +258,19 @@ public class NoteService {
         shareRepo.save(share);
     }
 
+    /**
+     * Cofa udostępnienie notatki.
+     * @param shareId identyfikator udostępnienia
+     */
     public void revokeShare(UUID shareId) {
         shareRepo.deleteById(shareId);
     }
 
+    /**
+     * Akceptuje zaproszenie do współdzielenia notatki na podstawie tokena.
+     * @param shareToken token udostępnienia
+     * @param recipientId identyfikator użytkownika akceptującego
+     */
     @Transactional
     public void acceptShare(UUID shareToken, UUID recipientId) {
         NoteShare share = shareRepo.findByToken(shareToken.toString())
@@ -198,6 +285,12 @@ public class NoteService {
         shareRepo.save(share);
     }
 
+    /**
+     * Pobiera listę notatek udostępnionych konkretnemu użytkownikowi.
+     * @param recipientEmail email użytkownika
+     * @param userId identyfikator użytkownika (do wzbogacenia o głosy)
+     * @return lista map zawierających dane udostępnionych notatek
+     */
     public List<Map<String, Object>> getSharedNotes(String recipientEmail, UUID userId) {
         List<NoteShare> shares = shareRepo.findAll().stream()
                 .filter(s -> s.getRecipientEmail().equals(recipientEmail))
@@ -236,10 +329,21 @@ public class NoteService {
         return result;
     }
 
+    /**
+     * Szuka udostępnienia dla danej notatki i adresu email.
+     * @param noteId identyfikator notatki
+     * @param email adres email odbiorcy
+     * @return Optional z obiektem NoteShare
+     */
     public Optional<NoteShare> findShare(UUID noteId, String email) {
         return shareRepo.findByNoteIdAndRecipientEmail(noteId, email);
     }
 
+    /**
+     * Pobiera listę wszystkich aktywnych udostępnień dla konkretnej notatki.
+     * @param noteId identyfikator notatki
+     * @return lista map z informacjami o udostępnieniach
+     */
     public List<Map<String, Object>> getNoteShares(UUID noteId) {
         List<NoteShare> shares = shareRepo.findAll().stream()
                 .filter(s -> s.getNoteId().equals(noteId))

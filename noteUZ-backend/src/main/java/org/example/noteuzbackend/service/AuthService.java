@@ -51,7 +51,13 @@ public class AuthService {
                 .build();
     }
 
-    // Pomocnicza metoda do tworzenia ciasteczek
+    /**
+     * Pomocnicza metoda do tworzenia ciasteczek HTTP-only.
+     * @param name nazwa ciasteczka
+     * @param value wartość ciasteczka
+     * @param age czas życia ciasteczka w sekundach
+     * @return skonfigurowany obiekt ResponseCookie
+     */
     private ResponseCookie createCookie(String name, String value, int age) {
         return ResponseCookie.from(name, value)
                 .httpOnly(true)
@@ -63,6 +69,11 @@ public class AuthService {
     }
 
     // ========== WERYFIKACJA CAPTCHA (Bez zmian) ==========
+    /**
+     * Weryfikuje token CAPTCHA przy użyciu usługi hCaptcha.
+     * @param token token CAPTCHA otrzymany z frontendu
+     * @return ResponseEntity z wynikiem weryfikacji
+     */
     @SuppressWarnings("unchecked")
     public ResponseEntity<?> verifyCaptcha(String token) {
         if (token == null || token.isBlank()) {
@@ -119,6 +130,13 @@ public class AuthService {
     }
 
     // ========== LOGOWANIE (Zmodyfikowane) ==========
+    /**
+     * Autentykuje użytkownika na podstawie adresu email i hasła.
+     * Ustawia ciasteczka Access Token oraz Refresh Token.
+     * @param email adres email użytkownika
+     * @param password hasło użytkownika
+     * @return ResponseEntity z wynikiem logowania i ustawionymi ciasteczkami
+     */
     @SuppressWarnings("unchecked")
     public ResponseEntity<?> signIn(String email, String password) {
         var body = Map.of("email", email, "password", password);
@@ -173,6 +191,11 @@ public class AuthService {
     }
 
     // ========== ODŚWIEŻANIE SESJI (Nowa metoda) ==========
+    /**
+     * Odświeża sesję użytkownika na podstawie tokena odświeżania (Refresh Token).
+     * @param refreshToken aktualny token odświeżania
+     * @return ResponseEntity z nowym Access Tokenem i zaktualizowanym Refresh Tokenem
+     */
     @SuppressWarnings("unchecked")
     public ResponseEntity<?> refreshSession(String refreshToken) {
         if (refreshToken == null || refreshToken.isBlank()) {
@@ -216,6 +239,11 @@ public class AuthService {
     }
 
     // ========== POBIERANIE DANYCH UŻYTKOWNIKA (Bez zmian) ==========
+    /**
+     * Pobiera dane profilowe zalogowanego użytkownika.
+     * @param accessToken token dostępowy użytkownika
+     * @return ResponseEntity z danymi użytkownika lub błędem
+     */
     @SuppressWarnings("unchecked")
     public ResponseEntity<?> getUser(String accessToken) {
         try {
@@ -239,6 +267,13 @@ public class AuthService {
     }
 
     // ========== REJESTRACJA (Bez zmian) ==========
+    /**
+     * Rejestruje nowego użytkownika w systemie wraz z walidacją danych.
+     * @param email adres email
+     * @param password hasło (min. 8 znaków, cyfra, wielka i mała litera)
+     * @param displayName nazwa wyświetlana użytkownika
+     * @return ResponseEntity z wynikiem rejestracji
+     */
     @SuppressWarnings("unchecked")
     public ResponseEntity<?> register(String email, String password, String displayName) {
         if (email == null || email.isBlank() || password == null || password.isBlank()) {
@@ -317,6 +352,10 @@ public class AuthService {
     }
 
     // ========== WYLOGOWANIE (Zmodyfikowane) ==========
+    /**
+     * Wylogowuje użytkownika poprzez usunięcie (wygaśnięcie) ciasteczek sesji.
+     * @return ResponseEntity z pustą treścią i instrukcjami usunięcia ciasteczek
+     */
     public ResponseEntity<?> signOut() {
         // Czyścimy OBA ciasteczka
         var c1 = createCookie(cookieName, "", 0);

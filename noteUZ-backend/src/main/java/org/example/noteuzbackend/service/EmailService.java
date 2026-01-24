@@ -15,6 +15,15 @@ public class EmailService {
         this.mailSender = mailSender;
     }
 
+    /**
+     * Wysyła zaproszenie do współdzielenia notatki drogą mailową.
+     * @param to adres email odbiorcy
+     * @param senderEmail adres email nadawcy
+     * @param noteTitle tytuł udostępnianej notatki
+     * @param shareUrl link do zaakceptowania udostępnienia
+     * @param permission poziom uprawnień (np. "WRITE", "READ")
+     * @throws RuntimeException jeśli wystąpi błąd podczas wysyłania wiadomości
+     */
     public void sendShareInvitation(String to, String senderEmail, String noteTitle, String shareUrl, String permission) {
         try {
             MimeMessage message = mailSender.createMimeMessage();

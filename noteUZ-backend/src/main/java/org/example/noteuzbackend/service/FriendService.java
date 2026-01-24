@@ -19,6 +19,14 @@ public class FriendService {
     }
 
     // Wyślij zaproszenie
+    /**
+     * Wysyła zaproszenie do znajomych do innego użytkownika.
+     * @param requesterId identyfikator użytkownika wysyłającego
+     * @param requesterEmail email użytkownika wysyłającego
+     * @param targetEmail email użytkownika zapraszanego
+     * @return stworzony obiekt relacji Friendship
+     * @throws ResponseStatusException jeśli użytkownik zaprasza samego siebie (400) lub relacja już istnieje (409)
+     */
     @Transactional
     public Friendship invite(UUID requesterId, String requesterEmail, String targetEmail) {
         if (requesterEmail.equalsIgnoreCase(targetEmail)) {
@@ -40,6 +48,12 @@ public class FriendService {
     }
 
     // Pobierz listę znajomych i oczekujących zaproszeń
+    /**
+     * Pobiera listę wszystkich relacji (zarówno wysłanych jak i otrzymanych) dla zalogowanego użytkownika.
+     * @param myId identyfikator użytkownika
+     * @param myEmail email użytkownika
+     * @return lista obiektów Friendship
+     */
     public List<Friendship> getMyFriendships(UUID myId, String myEmail) {
         // Pobieramy to co wysłałem i to co dostałem
         List<Friendship> sent = repo.findByRequesterId(myId);
@@ -49,6 +63,12 @@ public class FriendService {
     }
 
     // Zaakceptuj zaproszenie
+    /**
+     * Akceptuje otrzymane zaproszenie do znajomych.
+     * @param friendshipId identyfikator relacji
+     * @param myEmail email użytkownika akceptującego
+     * @throws ResponseStatusException jeśli relacja nie istnieje (404) lub zaproszenie nie jest skierowane do tego użytkownika (403)
+     */
     @Transactional
     public void accept(UUID friendshipId, String myEmail) {
         Friendship f = repo.findById(friendshipId)
@@ -63,6 +83,13 @@ public class FriendService {
     }
 
     // Odrzuć/Usuń znajomego
+    /**
+     * Usuwa relację znajomości lub odrzuca zaproszenie.
+     * @param friendshipId identyfikator relacji
+     * @param myId identyfikator użytkownika wykonującego akcję
+     * @param myEmail email użytkownika wykonującego akcję
+     * @throws ResponseStatusException jeśli relacja nie istnieje (404) lub użytkownik nie jest jej częścią (403)
+     */
     @Transactional
     public void remove(UUID friendshipId, UUID myId, String myEmail) {
         Friendship f = repo.findById(friendshipId)
