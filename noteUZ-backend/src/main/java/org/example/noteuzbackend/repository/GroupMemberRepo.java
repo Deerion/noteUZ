@@ -7,18 +7,37 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Repozytorium dla encji GroupMember.
+ */
 public interface GroupMemberRepo extends JpaRepository<GroupMember, UUID> {
-    // Pobierz członków konkretnej grupy
+    /**
+     * Pobiera listę członków konkretnej grupy.
+     * @param groupId identyfikator grupy
+     * @return lista członków grupy
+     */
     List<GroupMember> findByGroupId(UUID groupId);
 
-    // Sprawdź, czy dany user jest w grupie (do weryfikacji uprawnień)
+    /**
+     * Znajduje powiązanie użytkownika z grupą na podstawie ich identyfikatorów.
+     * @param groupId identyfikator grupy
+     * @param userId identyfikator użytkownika
+     * @return opcjonalny obiekt członka grupy
+     */
     Optional<GroupMember> findByGroupIdAndUserId(UUID groupId, UUID userId);
 
-    // Sprawdź czy już istnieje (żeby nie dodawać 2 razy)
+    /**
+     * Sprawdza, czy użytkownik jest już członkiem danej grupy.
+     * @param groupId identyfikator grupy
+     * @param userId identyfikator użytkownika
+     * @return true, jeśli użytkownik jest członkiem grupy
+     */
     boolean existsByGroupIdAndUserId(UUID groupId, UUID userId);
 
-    // Pobierz grupy, do których należy user
-    // Uwaga: To zwróci listę obiektów GroupMember.
-    // W serwisie zamienimy to na listę Grup lub DTO.
+    /**
+     * Pobiera listę powiązań z grupami dla konkretnego użytkownika.
+     * @param userId identyfikator użytkownika
+     * @return lista powiązań z grupami
+     */
     List<GroupMember> findByUserId(UUID userId);
 }

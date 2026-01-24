@@ -8,10 +8,15 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
+/**
+ * Repozytorium dla encji UserSecurity.
+ */
 public interface UserSecurityRepo extends JpaRepository<UserSecurity, UUID> {
 
-    // ZMIANA: Dodano metodę do usuwania użytkownika z głównej tabeli auth.users
-    // Dzięki ON DELETE CASCADE w bazie, to usunie też wszystko inne (notatki, grupy itp.)
+    /**
+     * Usuwa użytkownika bezpośrednio ze schematu auth (dotyczy integracji z zewnętrznym systemem uwierzytelniania).
+     * @param userId identyfikator użytkownika
+     */
     @Modifying
     @Transactional
     @Query(value = "DELETE FROM auth.users WHERE id = :userId", nativeQuery = true)

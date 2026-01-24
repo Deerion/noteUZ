@@ -5,7 +5,14 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Repozytorium dla encji AppUser.
+ */
 public interface AppUserRepo extends JpaRepository<AppUser, UUID> {
-    // Ta metoda magicznie zamieni E-mail na całego usera (wraz z ID)
+    /**
+     * Znajduje użytkownika na podstawie adresu email.
+     * @param email adres email użytkownika
+     * @return opcjonalny obiekt użytkownika
+     */
     Optional<AppUser> findByEmail(String email);
 }

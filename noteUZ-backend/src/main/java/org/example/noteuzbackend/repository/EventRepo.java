@@ -5,7 +5,14 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Repozytorium dla encji Event.
+ */
 public interface EventRepo extends JpaRepository<Event, UUID> {
-    // Ta metoda jest kluczowa - pobiera wydarzenia i sortuje je chronologicznie
+    /**
+     * Pobiera wydarzenia użytkownika posortowane chronologicznie według czasu rozpoczęcia.
+     * @param userId identyfikator użytkownika
+     * @return lista wydarzeń
+     */
     List<Event> findByUserIdOrderByStartAsc(UUID userId);
 }
