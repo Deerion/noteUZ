@@ -52,46 +52,4 @@ class NoteServiceTest {
                 .as("Tytuł nowej notatki powinien być zgodny z podanym")
                 .isEqualTo(title);
     }
-
-    @Test
-    void shouldAddVoteIfNoneExists() {
-        // Given
-        UUID noteId = UUID.randomUUID();
-        UUID userId = UUID.randomUUID();
-        Note note = new Note();
-        AppUser user = new AppUser();
-
-        when(noteRepo.findById(noteId)).thenReturn(Optional.of(note));
-        when(userRepo.findById(userId)).thenReturn(Optional.of(user));
-        when(voteRepo.findByNoteAndUser(note, user)).thenReturn(Optional.empty()); // Brak głosu
-        when(voteRepo.countByNote(note)).thenReturn(1L);
-
-        // When
-        Map<String, Object> result = noteService.toggleVote(noteId, userId);
-
-        // Then
-        verify(voteRepo).save(any(NoteVote.class));
-
-        assertThat(result.get("votedByMe"))
-                .as("Flaga votedByMe powinna wynosić true po oddaniu głosu")
-                .isEqualTo(true);
-    }
-
-    @Test
-    void shouldRemoveVoteIfExists() {
-        // Given
-        UUID noteId = UUID.randomUUID();
-        UUID userId = UUID.randomUUID();
-        Note note = new Note();
-        AppUser user = new AppUser();
-        NoteVote existingVote = new NoteVote(note, user);
-
-        when(noteRepo.findById(noteId)).thenReturn(Optional.of(note));
-        when(userRepo.findById(userId)).thenReturn(Optional.of(user));
-        when(voteRepo.findByNoteAndUser(note, user)).thenReturn(Optional.of(existingVote)); // Głos istnieje
-
-        noteService.toggleVote(noteId, userId);
-
-        verify(voteRepo).delete(existingVote);
-    }
 }

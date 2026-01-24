@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class AdminServiceTest {
+class AdminDashboardTest {
 
     @Mock private UserSecurityRepo securityRepo;
     @Mock private NoteRepo noteRepo;

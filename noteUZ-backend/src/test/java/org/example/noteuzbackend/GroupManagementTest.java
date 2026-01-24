@@ -25,7 +25,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class GroupServiceTest {
+class GroupManagementTest {
 
     @Mock private GroupRepo groupRepo;
     @Mock private GroupMemberRepo memberRepo;

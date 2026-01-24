@@ -19,7 +19,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class EventServiceTest {
+class EventCalendarTest {
 
     @Mock private EventRepo eventRepo;
     @InjectMocks private EventService eventService;
