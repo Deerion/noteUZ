@@ -226,5 +226,19 @@
   "feature_speed_title": "Lightning Fast",
   "feature_speed_desc": "Optimized for speed, so you never wait for your content.",
   "feature_security_title": "Secure by Default",
-  "feature_security_desc": "Your data is safe with enterprise-grade security standards."
+  "feature_security_desc": "Your data is safe with enterprise-grade security standards.",
+  "admin_tab_users": "Users",
+  "admin_tab_notes": "Notes",
+  "admin_tab_groups": "Groups",
+  "col_id": "ID",
+  "col_created_at": "Created At",
+  "col_updated_at": "Updated At",
+  "col_members_count": "Members Count",
+  "col_actions": "Actions",
+  "rows_per_page": "Rows per page:",
+  "label_displayed_rows": "{{from}}–{{to}} of {{count}}",
+  "search_users": "Search users...",
+  "search_notes": "Search notes...",
+  "search_groups": "Search groups...",
+  "no_data": "No data to display."
 }

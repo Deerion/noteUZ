@@ -1,7 +1,7 @@
 import React from 'react';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-    Typography, Stack, Avatar, Chip, IconButton, Tooltip
+    Typography, Stack, Avatar, Chip, IconButton, Tooltip, TablePagination
 } from '@mui/material';
 import BlockIcon from '@mui/icons-material/Block';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
@@ -10,6 +10,7 @@ import PersonRemoveIcon from '@mui/icons-material/PersonRemove';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import RemoveCircleIcon from '@mui/icons-material/RemoveCircle';
+import { useTranslation } from 'next-i18next';
 
 // Definicja typu
 export interface AdminUser {
@@ -35,16 +36,18 @@ interface UsersTableProps {
 export const UsersTable: React.FC<UsersTableProps> = ({
                                                           users, currentUserRole, onPromote, onDemote, onToggleBan, onWarn, onUnwarn, onDelete
                                                       }) => {
+    const { t } = useTranslation('common');
+
     return (
         <TableContainer>
             <Table>
                 <TableHead>
                     <TableRow>
-                        <TableCell>Użytkownik</TableCell>
-                        <TableCell>Rola</TableCell>
-                        <TableCell align="center">Status</TableCell>
-                        <TableCell align="center">Ostrzeżenia</TableCell>
-                        <TableCell align="right">Akcje</TableCell>
+                        <TableCell>{t('col_user')}</TableCell>
+                        <TableCell>{t('col_role')}</TableCell>
+                        <TableCell align="center">{t('col_status')}</TableCell>
+                        <TableCell align="center">{t('col_warnings')}</TableCell>
+                        <TableCell align="right">{t('col_actions')}</TableCell>
                     </TableRow>
                 </TableHead>
                 <TableBody>
@@ -52,7 +55,6 @@ export const UsersTable: React.FC<UsersTableProps> = ({
                         <TableRow key={u.id} hover>
                             <TableCell>
                                 <Stack direction="row" spacing={2} alignItems="center">
-                                    {/* ZMIANA TUTAJ: Dodano src wskazujący na proxy-avatar */}
                                     <Avatar
                                         src={`/api/proxy-avatar/${u.id}`}
                                         alt={u.displayName || u.email}
@@ -75,8 +77,8 @@ export const UsersTable: React.FC<UsersTableProps> = ({
                             </TableCell>
                             <TableCell align="center">
                                 {u.isBanned ?
-                                    <Chip label="ZBANOWANY" color="error" size="small" /> :
-                                    <Chip label="Aktywny" color="success" size="small" variant="outlined" />
+                                    <Chip label={t('status_banned')} color="error" size="small" /> :
+                                    <Chip label={t('status_active')} color="success" size="small" variant="outlined" />
                                 }
                             </TableCell>
                             <TableCell align="center">
@@ -88,25 +90,25 @@ export const UsersTable: React.FC<UsersTableProps> = ({
                                 {u.role !== 'ADMIN' && (
                                     <>
                                         {u.role === 'USER' ? (
-                                            <Tooltip title="Awansuj na Moderatora">
+                                            <Tooltip title={t('action_change_role')}>
                                                 <IconButton onClick={() => onPromote(u.id)} color="primary" size="small">
                                                     <ArrowUpwardIcon />
                                                 </IconButton>
                                             </Tooltip>
                                         ) : (
-                                            <Tooltip title="Zdegraduj do Usera">
+                                            <Tooltip title={t('action_change_role')}>
                                                 <IconButton onClick={() => onDemote(u.id)} color="warning" size="small">
                                                     <ArrowDownwardIcon />
                                                 </IconButton>
                                             </Tooltip>
                                         )}
-                                        <Tooltip title={u.isBanned ? "Odbanuj" : "Zbanuj"}>
+                                        <Tooltip title={u.isBanned ? t('action_unban') : t('action_ban')}>
                                             <IconButton onClick={() => onToggleBan(u.id, u.isBanned)} color={u.isBanned ? "success" : "default"} size="small">
                                                 {u.isBanned ? <CheckCircleIcon /> : <BlockIcon />}
                                             </IconButton>
                                         </Tooltip>
 
-                                        <Tooltip title="Daj ostrzeżenie">
+                                        <Tooltip title={t('action_warn')}>
                                             <IconButton onClick={() => onWarn(u.id)} color="warning" size="small">
                                                 <WarningAmberIcon />
                                             </IconButton>
@@ -121,7 +123,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({
                                         )}
 
                                         {currentUserRole === 'ADMIN' && (
-                                            <Tooltip title="Usuń konto trwale">
+                                            <Tooltip title={t('action_delete_user')}>
                                                 <IconButton onClick={() => onDelete(u.id)} color="error" size="small">
                                                     <PersonRemoveIcon />
                                                 </IconButton>
@@ -135,7 +137,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({
                     {users.length === 0 && (
                         <TableRow>
                             <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
-                                <Typography color="text.secondary">Brak użytkowników.</Typography>
+                                <Typography color="text.secondary">{t('no_data')}</Typography>
                             </TableCell>
                         </TableRow>
                     )}

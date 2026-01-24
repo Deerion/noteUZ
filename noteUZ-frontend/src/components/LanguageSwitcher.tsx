@@ -26,7 +26,6 @@ export default function LanguageSwitcher() {
     // Etykieta przycisku
     const getLabel = (loc?: string) => {
         if (loc === 'pl') return 'PL';
-        if (loc === 'zh') return 'CN'; // Chiny
         return 'EN';
     };
 
@@ -41,12 +40,12 @@ export default function LanguageSwitcher() {
                 variant="outlined"
                 color="inherit"
                 title="Zmień język / Change Language"
-                startIcon={<LanguageIcon fontSize="small" />} // Dodaliśmy ikonę globusa
+                startIcon={<LanguageIcon fontSize="small" />}
                 sx={{
                     textDecoration: 'none',
                     fontSize: '14px',
                     fontWeight: 600,
-                    minWidth: 70, // Trochę szerszy dla ikony
+                    minWidth: 70,
                     height: 40,
                     padding: '8px 12px',
                     borderRadius: '8px',
@@ -84,9 +83,6 @@ export default function LanguageSwitcher() {
                 </MenuItem>
                 <MenuItem onClick={() => changeLanguage('en')} selected={locale === 'en'}>
                     English
-                </MenuItem>
-                <MenuItem onClick={() => changeLanguage('zh')} selected={locale === 'zh'}>
-                    中文 (Chinese)
                 </MenuItem>
             </Menu>
         </>

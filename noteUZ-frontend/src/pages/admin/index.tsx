@@ -82,7 +82,7 @@ export default function AdminPage() {
             setGroups(groupsData);
         } catch (e) {
             console.error(e);
-            setError("Błąd pobierania danych lub brak uprawnień.");
+            setError(t('error_backend') || "Błąd pobierania danych lub brak uprawnień.");
         } finally {
             setLoading(false);
         }
@@ -95,7 +95,7 @@ export default function AdminPage() {
     const handleConfirmAction = async () => {
         if (confirmDialog.action) {
             try { await confirmDialog.action(); showSnackbar(t('success_op'), "success"); }
-            catch (e) { showSnackbar("Operacja nieudana.", "error"); }
+            catch (e) { showSnackbar(t('error_op'), "error"); }
         }
         setConfirmDialog(prev => ({ ...prev, open: false }));
         fetchAll();
@@ -134,7 +134,9 @@ export default function AdminPage() {
                     <Avatar sx={{ bgcolor: 'primary.main', width: 48, height: 48 }}><SecurityIcon /></Avatar>
                     <Box>
                         <Typography variant="h4" fontWeight={800} color="text.primary">{t('admin_panel')}</Typography>
-                        <Typography variant="body1" color="text.secondary">Zalogowano jako: <b>{currentUserRole}</b></Typography>
+                        <Typography variant="body1" color="text.secondary">
+                            {t('col_role')}: <b>{currentUserRole}</b>
+                        </Typography>
                     </Box>
                 </Box>
 
@@ -168,14 +170,14 @@ export default function AdminPage() {
                             variant="scrollable"
                             scrollButtons="auto"
                         >
-                            <Tab label={t('tab_users')} />
-                            <Tab label="Notatki" />
-                            <Tab label="Grupy" />
+                            <Tab label={t('admin_tab_users')} />
+                            <Tab label={t('admin_tab_notes')} />
+                            <Tab label={t('admin_tab_groups')} />
                         </Tabs>
 
                         <TextField
                             size="small"
-                            placeholder="Szukaj..."
+                            placeholder={t('search_placeholder') || "Szukaj..."}
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment> }}
@@ -187,26 +189,26 @@ export default function AdminPage() {
                         <UsersTable
                             users={filteredUsers}
                             currentUserRole={currentUserRole}
-                            onPromote={(id) => openConfirm("Mianować Moderatorem?", "Nadajesz uprawnienia.", async () => apiFetch(`/api/admin/users/${id}/promote`, { method: 'POST' }))}
-                            onDemote={(id) => openConfirm("Zdegradować?", "Odbierasz uprawnienia.", async () => apiFetch(`/api/admin/users/${id}/demote`, { method: 'POST' }), true)}
-                            onToggleBan={(id, isBanned) => openConfirm(isBanned ? "Odbanować?" : "Zbanować?", "Zmieniasz status dostępu.", async () => apiFetch(`/api/admin/users/${id}/ban`, { method: 'POST' }), !isBanned)}
-                            onWarn={(id) => openConfirm("Ostrzeżenie", "Dodać ostrzeżenie?", async () => apiFetch(`/api/admin/users/${id}/warn`, { method: 'POST' }), true)}
-                            onUnwarn={(id) => openConfirm("Cofnąć ostrzeżenie?", "Czy na pewno chcesz usunąć ostrzeżenie?", async () => apiFetch(`/api/admin/users/${id}/unwarn`, { method: 'POST' }), false)}
-                            onDelete={(id) => openConfirm("Usunąć konto?", "Operacja nieodwracalna.", async () => apiFetch(`/api/admin/users/${id}`, { method: 'DELETE' }), true)}
+                            onPromote={(id) => openConfirm(t('dialog_role_title'), t('dialog_role_desc'), async () => apiFetch(`/api/admin/users/${id}/promote`, { method: 'POST' }))}
+                            onDemote={(id) => openConfirm(t('dialog_role_title'), t('dialog_role_desc'), async () => apiFetch(`/api/admin/users/${id}/demote`, { method: 'POST' }), true)}
+                            onToggleBan={(id, isBanned) => openConfirm(isBanned ? t('dialog_unban_title') : t('dialog_ban_title'), isBanned ? t('dialog_unban_desc') : t('dialog_ban_desc'), async () => apiFetch(`/api/admin/users/${id}/ban`, { method: 'POST' }), !isBanned)}
+                            onWarn={(id) => openConfirm(t('dialog_warn_title'), t('dialog_warn_desc'), async () => apiFetch(`/api/admin/users/${id}/warn`, { method: 'POST' }), true)}
+                            onUnwarn={(id) => openConfirm(t('dialog_warn_title'), "Cofnąć ostrzeżenie?", async () => apiFetch(`/api/admin/users/${id}/unwarn`, { method: 'POST' }), false)}
+                            onDelete={(id) => openConfirm(t('dialog_delete_user_title'), t('dialog_delete_user_desc'), async () => apiFetch(`/api/admin/users/${id}`, { method: 'DELETE' }), true)}
                         />
                     )}
 
                     {tab === 1 && (
                         <NotesTable
                             notes={filteredNotes}
-                            onDelete={(id) => openConfirm("Usunąć notatkę?", "Nieodwracalne.", async () => apiFetch(`/api/admin/notes/${id}`, { method: 'DELETE' }), true)}
+                            onDelete={(id) => openConfirm(t('dialog_delete_note_title'), t('dialog_delete_note_desc'), async () => apiFetch(`/api/admin/notes/${id}`, { method: 'DELETE' }), true)}
                         />
                     )}
 
                     {tab === 2 && (
                         <GroupsTable
                             groups={filteredGroups}
-                            onDelete={(id) => openConfirm("Usunąć grupę?", "Nieodwracalne.", async () => apiFetch(`/api/admin/groups/${id}`, { method: 'DELETE' }), true)}
+                            onDelete={(id) => openConfirm(t('dialog_delete_group_title'), t('dialog_delete_group_desc'), async () => apiFetch(`/api/admin/groups/${id}`, { method: 'DELETE' }), true)}
                         />
                     )}
                 </Paper>
@@ -216,8 +218,8 @@ export default function AdminPage() {
                 <DialogTitle>{confirmDialog.title}</DialogTitle>
                 <DialogContent><DialogContentText>{confirmDialog.content}</DialogContentText></DialogContent>
                 <DialogActions>
-                    <Button onClick={() => setConfirmDialog(prev => ({ ...prev, open: false }))}>Anuluj</Button>
-                    <Button onClick={handleConfirmAction} variant="contained" color={confirmDialog.isDestructive ? "error" : "primary"}>Potwierdź</Button>
+                    <Button onClick={() => setConfirmDialog(prev => ({ ...prev, open: false }))}>{t('common.cancel')}</Button>
+                    <Button onClick={handleConfirmAction} variant="contained" color={confirmDialog.isDestructive ? "error" : "primary"}>{t('btn_confirm')}</Button>
                 </DialogActions>
             </Dialog>
 

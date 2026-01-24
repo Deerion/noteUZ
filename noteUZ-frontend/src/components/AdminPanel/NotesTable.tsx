@@ -9,6 +9,7 @@ import GroupsIcon from '@mui/icons-material/Groups';
 import PersonIcon from '@mui/icons-material/Person';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import { useTranslation } from 'next-i18next';
 
 export interface AdminNote {
     id: string;
@@ -25,10 +26,9 @@ interface NotesTableProps {
     onDelete: (id: string) => void;
 }
 
-// Funkcja pomocnicza do formatowania daty na polski czas
 const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString('pl-PL', {
-        timeZone: 'Europe/Warsaw', // Wymuszamy polską strefę czasową
+        timeZone: 'Europe/Warsaw',
         year: 'numeric',
         month: '2-digit',
         day: '2-digit',
@@ -38,6 +38,7 @@ const formatDate = (dateString: string) => {
 };
 
 export const NotesTable: React.FC<NotesTableProps> = ({ notes, onDelete }) => {
+    const { t } = useTranslation('common');
     const [viewNote, setViewNote] = useState<AdminNote | null>(null);
 
     return (
@@ -46,11 +47,11 @@ export const NotesTable: React.FC<NotesTableProps> = ({ notes, onDelete }) => {
                 <Table>
                     <TableHead>
                         <TableRow>
-                            <TableCell width="30%">Tytuł</TableCell>
-                            <TableCell width="25%">Autor</TableCell>
-                            <TableCell width="25%">Kontekst (Grupa)</TableCell>
-                            <TableCell width="20%">Data</TableCell>
-                            <TableCell align="right" width="10%">Akcje</TableCell>
+                            <TableCell width="30%">{t('col_title')}</TableCell>
+                            <TableCell width="25%">{t('col_author')}</TableCell>
+                            <TableCell width="25%">{t('groups_title')}</TableCell>
+                            <TableCell width="20%">{t('col_created_at')}</TableCell>
+                            <TableCell align="right" width="10%">{t('col_actions')}</TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
@@ -58,7 +59,7 @@ export const NotesTable: React.FC<NotesTableProps> = ({ notes, onDelete }) => {
                             <TableRow key={n.id} hover>
                                 <TableCell>
                                     <Typography fontWeight="bold" variant="body2">
-                                        {n.title || <span style={{ fontStyle: 'italic', opacity: 0.6 }}>Bez tytułu</span>}
+                                        {n.title || <span style={{ fontStyle: 'italic', opacity: 0.6 }}>{t('note_untitled')}</span>}
                                     </Typography>
                                 </TableCell>
 
@@ -80,7 +81,7 @@ export const NotesTable: React.FC<NotesTableProps> = ({ notes, onDelete }) => {
                                         />
                                     ) : (
                                         <Chip
-                                            label="Prywatna"
+                                            label={t('my_notes')}
                                             size="small"
                                             variant="outlined"
                                             sx={{ opacity: 0.5 }}
@@ -90,19 +91,18 @@ export const NotesTable: React.FC<NotesTableProps> = ({ notes, onDelete }) => {
 
                                 <TableCell>
                                     <Typography variant="caption" color="text.secondary">
-                                        {/* Używamy nowej funkcji formatującej */}
                                         {formatDate(n.createdAt)}
                                     </Typography>
                                 </TableCell>
 
                                 <TableCell align="right">
                                     <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                                        <Tooltip title="Podgląd notatki">
+                                        <Tooltip title={t('btn_open')}>
                                             <IconButton onClick={() => setViewNote(n)} color="info" size="small">
                                                 <VisibilityIcon />
                                             </IconButton>
                                         </Tooltip>
-                                        <Tooltip title="Usuń notatkę">
+                                        <Tooltip title={t('action_delete_note')}>
                                             <IconButton onClick={() => onDelete(n.id)} color="error" size="small">
                                                 <DeleteIcon />
                                             </IconButton>
@@ -114,7 +114,7 @@ export const NotesTable: React.FC<NotesTableProps> = ({ notes, onDelete }) => {
                         {notes.length === 0 && (
                             <TableRow>
                                 <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
-                                    <Typography color="text.secondary">Brak notatek w systemie.</Typography>
+                                    <Typography color="text.secondary">{t('no_data')}</Typography>
                                 </TableCell>
                             </TableRow>
                         )}
@@ -122,7 +122,6 @@ export const NotesTable: React.FC<NotesTableProps> = ({ notes, onDelete }) => {
                 </Table>
             </TableContainer>
 
-            {/* --- MODAL PODGLĄDU NOTATKI --- */}
             <Dialog
                 open={!!viewNote}
                 onClose={() => setViewNote(null)}
@@ -133,7 +132,7 @@ export const NotesTable: React.FC<NotesTableProps> = ({ notes, onDelete }) => {
                     <>
                         <DialogTitle sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
                             <Typography variant="h6" fontWeight="bold">
-                                {viewNote.title || "Notatka bez tytułu"}
+                                {viewNote.title || t('note_untitled')}
                             </Typography>
                             <Stack direction="row" spacing={2} sx={{ mt: 1 }}>
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, opacity: 0.7 }}>
@@ -142,11 +141,10 @@ export const NotesTable: React.FC<NotesTableProps> = ({ notes, onDelete }) => {
                                 </Box>
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, opacity: 0.7 }}>
                                     <CalendarTodayIcon fontSize="small" />
-                                    {/* Tutaj też formatujemy datę */}
                                     <Typography variant="caption">{formatDate(viewNote.createdAt)}</Typography>
                                 </Box>
                                 {viewNote.isGroupNote && (
-                                    <Chip label={`Grupa: ${viewNote.groupName}`} size="small" color="primary" variant="outlined" />
+                                    <Chip label={`${t('groups_title')}: ${viewNote.groupName}`} size="small" color="primary" variant="outlined" />
                                 )}
                             </Stack>
                         </DialogTitle>
@@ -166,7 +164,7 @@ export const NotesTable: React.FC<NotesTableProps> = ({ notes, onDelete }) => {
                         </DialogContent>
 
                         <DialogActions>
-                            <Button onClick={() => setViewNote(null)}>Zamknij</Button>
+                            <Button onClick={() => setViewNote(null)}>{t('common.cancel')}</Button>
                             <Button
                                 variant="contained"
                                 color="error"
@@ -176,7 +174,7 @@ export const NotesTable: React.FC<NotesTableProps> = ({ notes, onDelete }) => {
                                     setViewNote(null);
                                 }}
                             >
-                                Usuń notatkę
+                                {t('action_delete_note')}
                             </Button>
                         </DialogActions>
                     </>

@@ -1,9 +1,8 @@
 import React from 'react';
 import Link from 'next/link';
 import { useTranslation } from 'next-i18next';
-import { AppBar, Toolbar, Box, Typography, InputBase, Button as MuiButton, useTheme, alpha, IconButton, Avatar, Tooltip } from '@mui/material';
+import { AppBar, Toolbar, Box, Typography, Button as MuiButton, useTheme, alpha, IconButton, Avatar, Tooltip } from '@mui/material';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
-import SearchIcon from '@mui/icons-material/Search';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import { UserData } from '@/types/User';
 
@@ -17,7 +16,7 @@ interface NavbarProps {
     hideSearch?: boolean;
 }
 
-export const Navbar = ({ user, onLogout, busy, hideSearch = false }: NavbarProps) => {
+export const Navbar = ({ user, onLogout, busy }: NavbarProps) => {
     const { t } = useTranslation('common');
     const theme = useTheme();
 
@@ -38,9 +37,9 @@ export const Navbar = ({ user, onLogout, busy, hideSearch = false }: NavbarProps
             }}
         >
             <Toolbar sx={{ justifyContent: 'space-between', gap: 2, py: 1 }}>
-                {/* Logo */}
-                <Link href={user ? "/dashboard" : "/"} legacyBehavior passHref>
-                    <Box component="a" sx={{ display: 'flex', alignItems: 'center', gap: 1.5, textDecoration: 'none', color: 'inherit' }}>
+                {/* Logo - ZAWSZE kieruje na stronę główną ("/") */}
+                <Link href="/" legacyBehavior passHref>
+                    <Box component="a" sx={{ display: 'flex', alignItems: 'center', gap: 1.5, textDecoration: 'none', color: 'inherit', cursor: 'pointer' }}>
                         <Box sx={{
                             width: 40, height: 40, borderRadius: '12px',
                             background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
@@ -53,41 +52,6 @@ export const Navbar = ({ user, onLogout, busy, hideSearch = false }: NavbarProps
                         </Typography>
                     </Box>
                 </Link>
-
-                {/* Search Bar (POPRAWIONE WYŚRODKOWANIE) */}
-                {!hideSearch && (
-                    <Box sx={{ flex: 1, maxWidth: 500, display: { xs: 'none', md: 'block' }, mx: 4 }}>
-                        <Box sx={{
-                            display: 'flex',           // Flexbox do układania elementów
-                            alignItems: 'center',      // Idealne centrowanie w pionie
-                            height: 44,                // Stała wysokość dla spójności
-                            borderRadius: '50px',      // Pastylka
-                            backgroundColor: theme.palette.mode === 'light' ? '#f0f2f5' : '#1e1e1e',
-                            transition: 'background-color 0.2s',
-                            px: 2,                     // Padding poziomy kontenera
-                            '&:hover': {
-                                backgroundColor: theme.palette.mode === 'light' ? '#e4e6e9' : '#2d2d2d',
-                            },
-                        }}>
-                            {/* Ikona jako element flexa, nie absolute */}
-                            <SearchIcon
-                                fontSize="small"
-                                sx={{ color: 'text.secondary', mr: 1.5, display: 'flex' }}
-                            />
-
-                            {/* Input wypełnia resztę miejsca */}
-                            <InputBase
-                                placeholder={t('search')}
-                                sx={{
-                                    flex: 1,
-                                    fontSize: '0.95rem',
-                                    color: 'inherit',
-                                    '& input': { padding: 0 } // Reset domyślnych paddingów inputa html
-                                }}
-                            />
-                        </Box>
-                    </Box>
-                )}
 
                 {/* Actions */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>

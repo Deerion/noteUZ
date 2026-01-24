@@ -96,11 +96,21 @@ public class AdminService {
         List<AppUser> users = appUserRepo.findAll();
         List<Group> groups = groupRepo.findAll();
 
+        // --- POPRAWKA TUTAJ ---
+        // Zabezpieczenie przed nullem w display_name (u.getDisplayName() != null ? ... : "...")
         Map<UUID, String> userNames = users.stream()
-                .collect(Collectors.toMap(AppUser::getId, AppUser::getDisplayName, (a, b) -> a));
+                .collect(Collectors.toMap(
+                        AppUser::getId,
+                        u -> u.getDisplayName() != null ? u.getDisplayName() : "Brak nazwy", // <--- TO NAPRAWIA BŁĄD 500
+                        (a, b) -> a
+                ));
 
         Map<UUID, String> groupNames = groups.stream()
-                .collect(Collectors.toMap(Group::getId, Group::getName, (a, b) -> a));
+                .collect(Collectors.toMap(
+                        Group::getId,
+                        g -> g.getName() != null ? g.getName() : "Bez nazwy", // <--- Tu też warto dodać dla bezpieczeństwa
+                        (a, b) -> a
+                ));
 
         return notes.stream().map(note -> {
             String author = userNames.getOrDefault(note.getUserId(), "Nieznany (ID: " + note.getUserId() + ")");

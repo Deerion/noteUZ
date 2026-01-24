@@ -226,5 +226,19 @@
   "feature_speed_title": "Błyskawicznie Szybki",
   "feature_speed_desc": "Zoptymalizowany pod kątem szybkości, abyś nie czekał na swoje treści.",
   "feature_security_title": "Bezpieczny",
-  "feature_security_desc": "Twoje dane są chronione dzięki standardom bezpieczeństwa klasy enterprise."
+  "feature_security_desc": "Twoje dane są chronione dzięki standardom bezpieczeństwa klasy enterprise.",
+  "admin_tab_users": "Użytkownicy",
+  "admin_tab_notes": "Notatki",
+  "admin_tab_groups": "Grupy",
+  "col_id": "ID",
+  "col_created_at": "Utworzono",
+  "col_updated_at": "Zaktualizowano",
+  "col_members_count": "Liczba członków",
+  "col_actions": "Akcje",
+  "rows_per_page": "Wierszy na stronę:",
+  "label_displayed_rows": "od {{from}} do {{to}} z {{count}}",
+  "search_users": "Szukaj użytkowników...",
+  "search_notes": "Szukaj notatek...",
+  "search_groups": "Szukaj grup...",
+  "no_data": "Brak danych do wyświetlenia."
 }

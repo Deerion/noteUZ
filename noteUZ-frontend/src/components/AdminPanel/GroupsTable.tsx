@@ -9,9 +9,9 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import GroupsIcon from '@mui/icons-material/Groups';
 import PersonIcon from '@mui/icons-material/Person';
 import NoteIcon from '@mui/icons-material/Note';
-import CrownIcon from '@mui/icons-material/EmojiEvents'; // Ikona korony dla właściciela
+import CrownIcon from '@mui/icons-material/EmojiEvents';
+import { useTranslation } from 'next-i18next';
 
-// Zaktualizowany interfejs pasujący do nowego DTO z Backend'u
 export interface GroupMemberDTO {
     name: string;
     email: string;
@@ -27,7 +27,7 @@ export interface AdminGroup {
     memberCount: number;
     noteCount: number;
     createdAt: string;
-    members: GroupMemberDTO[]; // Lista członków
+    members: GroupMemberDTO[];
 }
 
 interface GroupsTableProps {
@@ -36,6 +36,7 @@ interface GroupsTableProps {
 }
 
 export const GroupsTable: React.FC<GroupsTableProps> = ({ groups, onDelete }) => {
+    const { t } = useTranslation('common');
     const [viewGroup, setViewGroup] = useState<AdminGroup | null>(null);
 
     return (
@@ -44,11 +45,11 @@ export const GroupsTable: React.FC<GroupsTableProps> = ({ groups, onDelete }) =>
                 <Table>
                     <TableHead>
                         <TableRow>
-                            <TableCell width="25%">Grupa</TableCell>
-                            <TableCell width="25%">Właściciel</TableCell>
-                            <TableCell width="20%">Statystyki</TableCell>
-                            <TableCell width="20%">Data utworzenia</TableCell>
-                            <TableCell align="right" width="10%">Akcje</TableCell>
+                            <TableCell width="25%">{t('col_name')}</TableCell>
+                            <TableCell width="25%">{t('role_OWNER')}</TableCell>
+                            <TableCell width="20%">{t('features')}</TableCell>
+                            <TableCell width="20%">{t('col_created_at')}</TableCell>
+                            <TableCell align="right" width="10%">{t('col_actions')}</TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
@@ -62,7 +63,7 @@ export const GroupsTable: React.FC<GroupsTableProps> = ({ groups, onDelete }) =>
                                         <Box>
                                             <Typography fontWeight="bold" variant="body2">{g.name}</Typography>
                                             <Typography variant="caption" color="text.secondary" noWrap sx={{ maxWidth: 200, display: 'block' }}>
-                                                {g.description || "Brak opisu"}
+                                                {g.description || t('no_description')}
                                             </Typography>
                                         </Box>
                                     </Box>
@@ -89,14 +90,14 @@ export const GroupsTable: React.FC<GroupsTableProps> = ({ groups, onDelete }) =>
                                             label={g.memberCount}
                                             size="small"
                                             variant="outlined"
-                                            title="Liczba członków"
+                                            title={t('col_members_count')}
                                         />
                                         <Chip
                                             icon={<NoteIcon />}
                                             label={g.noteCount}
                                             size="small"
                                             variant="outlined"
-                                            title="Liczba notatek"
+                                            title={t('stat_notes')}
                                         />
                                     </Box>
                                 </TableCell>
@@ -109,12 +110,12 @@ export const GroupsTable: React.FC<GroupsTableProps> = ({ groups, onDelete }) =>
 
                                 <TableCell align="right">
                                     <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                                        <Tooltip title="Szczegóły i członkowie">
+                                        <Tooltip title={t('btn_open')}>
                                             <IconButton onClick={() => setViewGroup(g)} color="info" size="small">
                                                 <VisibilityIcon />
                                             </IconButton>
                                         </Tooltip>
-                                        <Tooltip title="Usuń grupę">
+                                        <Tooltip title={t('action_delete_group')}>
                                             <IconButton onClick={() => onDelete(g.id)} color="error" size="small">
                                                 <DeleteIcon />
                                             </IconButton>
@@ -126,7 +127,7 @@ export const GroupsTable: React.FC<GroupsTableProps> = ({ groups, onDelete }) =>
                         {groups.length === 0 && (
                             <TableRow>
                                 <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
-                                    <Typography color="text.secondary">Brak grup w systemie.</Typography>
+                                    <Typography color="text.secondary">{t('no_data')}</Typography>
                                 </TableCell>
                             </TableRow>
                         )}
@@ -134,7 +135,6 @@ export const GroupsTable: React.FC<GroupsTableProps> = ({ groups, onDelete }) =>
                 </Table>
             </TableContainer>
 
-            {/* --- MODAL SZCZEGÓŁÓW GRUPY --- */}
             <Dialog
                 open={!!viewGroup}
                 onClose={() => setViewGroup(null)}
@@ -154,13 +154,13 @@ export const GroupsTable: React.FC<GroupsTableProps> = ({ groups, onDelete }) =>
                         <DialogContent sx={{ mt: 2 }}>
                             {viewGroup.description && (
                                 <Box sx={{ mb: 3, p: 2, bgcolor: 'action.hover', borderRadius: 1 }}>
-                                    <Typography variant="subtitle2" fontWeight="bold">Opis:</Typography>
+                                    <Typography variant="subtitle2" fontWeight="bold">{t('col_desc')}:</Typography>
                                     <Typography variant="body2">{viewGroup.description}</Typography>
                                 </Box>
                             )}
 
                             <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1 }}>
-                                Członkowie ({viewGroup.members.length}):
+                                {t('tab_members')} ({viewGroup.members.length}):
                             </Typography>
 
                             <List dense sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, maxHeight: 300, overflow: 'auto' }}>
@@ -187,7 +187,7 @@ export const GroupsTable: React.FC<GroupsTableProps> = ({ groups, onDelete }) =>
                         </DialogContent>
 
                         <DialogActions>
-                            <Button onClick={() => setViewGroup(null)}>Zamknij</Button>
+                            <Button onClick={() => setViewGroup(null)}>{t('common.cancel')}</Button>
                         </DialogActions>
                     </>
                 )}
