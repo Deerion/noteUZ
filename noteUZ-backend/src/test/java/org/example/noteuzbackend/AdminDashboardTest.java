@@ -18,6 +18,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
+/**
+ * Testy jednostkowe serwisu administracyjnego AdminService.
+ * Weryfikują logikę banowania, nadawania uprawnień oraz walidację dostępu.
+ */
 @ExtendWith(MockitoExtension.class)
 class AdminDashboardTest {
 
@@ -30,6 +34,9 @@ class AdminDashboardTest {
     @InjectMocks
     private AdminService adminService;
 
+    /**
+     * Testuje czy moderator może zablokować (zbanować) zwykłego użytkownika.
+     */
     @Test
     void shouldToggleBanForUser() {
         // Given
@@ -54,6 +61,9 @@ class AdminDashboardTest {
         verify(securityRepo).save(target);
     }
 
+    /**
+     * Testuje czy moderator nie może zablokować innego moderatora (oczekiwany błąd 403).
+     */
     @Test
     void moderatorCannotBanAnotherModerator() {
         UUID targetId = UUID.randomUUID();
@@ -76,6 +86,9 @@ class AdminDashboardTest {
                 .isEqualTo(403);
     }
 
+    /**
+     * Testuje czy administrator może awansować użytkownika na moderatora.
+     */
     @Test
     void shouldPromoteToModerator() {
         // Given

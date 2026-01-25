@@ -22,6 +22,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+/**
+ * Testy jednostkowe funkcjonalności głosowania na notatki w NoteService.
+ * Weryfikują logikę przełączania głosu (toggle).
+ */
 @ExtendWith(MockitoExtension.class)
 public class NoteVotingTest {
 
@@ -33,6 +37,9 @@ public class NoteVotingTest {
     @InjectMocks
     private NoteService noteService;
 
+    /**
+     * Testuje dodanie głosu pod notatką, gdy użytkownik jeszcze nie głosował.
+     */
     @Test
     void shouldAddVoteIfNoneExists() {
         // Given
@@ -55,6 +62,9 @@ public class NoteVotingTest {
                 .isEqualTo(true);
     }
 
+    /**
+     * Testuje usunięcie głosu pod notatką, gdy użytkownik już wcześniej go oddał.
+     */
     @Test
     void shouldRemoveVoteIfExists() {
         // Given

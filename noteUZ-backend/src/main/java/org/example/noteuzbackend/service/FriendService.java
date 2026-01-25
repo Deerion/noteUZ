@@ -10,10 +10,17 @@ import org.springframework.http.HttpStatus;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Serwis zarządzający relacjami znajomości między użytkownikami.
+ */
 @Service
 public class FriendService {
     private final FriendshipRepo repo;
 
+    /**
+     * Konstruktor serwisu FriendService.
+     * @param repo repozytorium relacji znajomości
+     */
     public FriendService(FriendshipRepo repo) {
         this.repo = repo;
     }

@@ -12,6 +12,10 @@ import org.springframework.mail.javamail.JavaMailSender;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
+/**
+ * Testy jednostkowe serwisu EmailService.
+ * Weryfikują poprawność wysyłania powiadomień o udostępnieniu notatki.
+ */
 @ExtendWith(MockitoExtension.class)
 class EmailSharingTest {
 
@@ -21,6 +25,9 @@ class EmailSharingTest {
     @InjectMocks
     private EmailService emailService;
 
+    /**
+     * Testuje czy metoda wysyłająca zaproszenie do współdzielenia poprawnie wywołuje mailSender.
+     */
     @Test
     void shouldSendShareInvitationEmail() {
         String to = "user@example.com";

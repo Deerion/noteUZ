@@ -6,11 +6,18 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
+/**
+ * Serwis odpowiedzialny za wysyłanie powiadomień email.
+ */
 @Service
 public class EmailService {
-
+    
     private final JavaMailSender mailSender;
 
+    /**
+     * Konstruktor serwisu EmailService.
+     * @param mailSender nadawca wiadomości email
+     */
     public EmailService(JavaMailSender mailSender) {
         this.mailSender = mailSender;
     }

@@ -21,6 +21,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+/**
+ * Testy jednostkowe serwisu NoteService.
+ * Weryfikują cykl życia notatki: tworzenie, pobieranie, aktualizację oraz usuwanie.
+ */
 @ExtendWith(MockitoExtension.class)
 class NoteLifecycleTest {
 
@@ -31,6 +35,9 @@ class NoteLifecycleTest {
 
     @InjectMocks private NoteService noteService;
 
+    /**
+     * Testuje pomyślne utworzenie nowej notatki.
+     */
     @Test
     void shouldCreateNoteSuccessfully() {
         // Given
@@ -56,6 +63,9 @@ class NoteLifecycleTest {
         verify(noteRepo).save(any(Note.class));
     }
 
+    /**
+     * Testuje pobieranie notatki na podstawie jej identyfikatora.
+     */
     @Test
     void shouldGetNoteById() {
         // Given
@@ -74,6 +84,9 @@ class NoteLifecycleTest {
         assertThat(result.getTitle()).isEqualTo("Szukana notatka");
     }
 
+    /**
+     * Testuje aktualizację tytułu i treści istniejącej notatki.
+     */
     @Test
     void shouldUpdateNote() {
         // Given
@@ -96,6 +109,9 @@ class NoteLifecycleTest {
         verify(noteRepo).save(existingNote);
     }
 
+    /**
+     * Testuje trwałe usunięcie notatki wraz z powiązanymi danymi.
+     */
     @Test
     void shouldDeleteNote() {
         UUID noteId = UUID.randomUUID();

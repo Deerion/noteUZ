@@ -10,6 +10,10 @@ import org.springframework.web.client.RestClient;
 import java.time.Duration;
 import java.util.Map;
 
+/**
+ * Serwis obsługujący procesy autentykacji, rejestracji oraz weryfikacji CAPTCHA.
+ * Komunikuje się z zewnętrznym serwisem Supabase Auth.
+ */
 @Service
 public class AuthService {
     private final RestClient http;
@@ -23,6 +27,16 @@ public class AuthService {
 
     private final String hcaptchaSecretKey;
 
+    /**
+     * Inicjalizuje serwis autentykacji z danymi konfiguracyjnymi Supabase i hCaptcha.
+     * @param authUrl adres URL serwisu autentykacji Supabase
+     * @param serviceKey klucz serwisu Supabase
+     * @param cookieName nazwa ciasteczka dla Access Tokena
+     * @param maxAge czas życia Access Tokena w sekundach
+     * @param refreshCookieName nazwa ciasteczka dla Refresh Tokena
+     * @param refreshMaxAge czas życia Refresh Tokena w sekundach
+     * @param hcaptchaSecretKey klucz prywatny hCaptcha
+     */
     public AuthService(
             @Value("${supabase.auth.url}") String authUrl,
             @Value("${supabase.service_key}") String serviceKey,

@@ -39,14 +39,25 @@ public class NoteShare {
     @Column(nullable = false, unique = true)
     private String token;
 
+    /**
+     * Poziomy uprawnień do współdzielonej notatki.
+     */
     public enum Permission {
+        /** Uprawnienie tylko do odczytu. */
         READ,
+        /** Uprawnienie do odczytu i edycji treści. */
         WRITE
     }
 
+    /**
+     * Statusy zaproszenia do współdzielenia notatki.
+     */
     public enum ShareStatus {
+        /** Zaproszenie oczekuje na decyzję odbiorcy. */
         PENDING,
+        /** Zaproszenie zostało zaakceptowane. */
         ACCEPTED,
+        /** Zaproszenie zostało odrzucone przez odbiorcę. */
         REJECTED
     }
 

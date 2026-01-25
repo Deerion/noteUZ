@@ -26,6 +26,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+/**
+ * Testy integracyjne (WebMvcTest) przepływu autentykacji i rejestracji.
+ * Weryfikują działanie AuthController przy użyciu MockMvc.
+ */
 @WebMvcTest(AuthController.class)
 class AuthenticationFlowTest {
 
@@ -41,6 +45,10 @@ class AuthenticationFlowTest {
     @MockBean
     private AdminService adminService;
 
+    /**
+     * Testuje czy użytkownik może się zalogować przy podaniu poprawnych danych i tokena CAPTCHA.
+     * @throws Exception w przypadku błędu MockMvc
+     */
     @Test
     @WithMockUser
     void shouldLoginSpecificUser() throws Exception {
@@ -68,6 +76,10 @@ class AuthenticationFlowTest {
         verify(authService).signIn(eq(email), eq(password));
     }
 
+    /**
+     * Testuje proces rejestracji nowego użytkownika wraz z walidacją CAPTCHA.
+     * @throws Exception w przypadku błędu MockMvc
+     */
     @Test
     @WithMockUser
     void shouldRegisterNewUser() throws Exception {

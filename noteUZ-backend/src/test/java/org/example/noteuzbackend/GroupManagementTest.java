@@ -24,6 +24,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+/**
+ * Testy jednostkowe serwisu GroupService.
+ * Weryfikują tworzenie grup, zapraszanie członków oraz zarządzanie nimi.
+ */
 @ExtendWith(MockitoExtension.class)
 class GroupManagementTest {
 
@@ -35,6 +39,9 @@ class GroupManagementTest {
     @InjectMocks
     private GroupService groupService;
 
+    /**
+     * Testuje tworzenie nowej grupy i automatyczne przypisanie twórcy jako właściciela.
+     */
     @Test
     void shouldCreateGroupAndAssignOwner() {
         UUID creatorId = UUID.randomUUID();
@@ -56,6 +63,9 @@ class GroupManagementTest {
         ));
     }
 
+    /**
+     * Testuje zapraszanie użytkownika do grupy na podstawie adresu email.
+     */
     @Test
     void shouldInviteUserByEmail() {
         // Given
@@ -81,6 +91,9 @@ class GroupManagementTest {
         verify(invitationRepo).save(any());
     }
 
+    /**
+     * Testuje czy system uniemożliwia usunięcie właściciela z grupy.
+     */
     @Test
     void shouldThrowExceptionWhenRemovingOwner() {
         // Given

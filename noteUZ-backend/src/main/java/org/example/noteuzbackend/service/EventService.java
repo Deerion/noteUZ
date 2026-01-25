@@ -8,10 +8,17 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Serwis zarządzający wydarzeniami w kalendarzu użytkownika.
+ */
 @Service
 public class EventService {
     private final EventRepo eventRepo;
 
+    /**
+     * Konstruktor serwisu EventService.
+     * @param eventRepo repozytorium wydarzeń
+     */
     public EventService(EventRepo eventRepo) {
         this.eventRepo = eventRepo;
     }

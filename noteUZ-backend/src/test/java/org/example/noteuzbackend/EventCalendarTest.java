@@ -18,12 +18,19 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+/**
+ * Testy jednostkowe serwisu EventService.
+ * Weryfikują operacje na wydarzeniach w kalendarzu.
+ */
 @ExtendWith(MockitoExtension.class)
 class EventCalendarTest {
 
     @Mock private EventRepo eventRepo;
     @InjectMocks private EventService eventService;
 
+    /**
+     * Testuje pobieranie wydarzeń użytkownika w kolejności chronologicznej.
+     */
     @Test
     void shouldGetUserEventsOrdered() {
         UUID userId = UUID.randomUUID();
@@ -38,6 +45,9 @@ class EventCalendarTest {
         verify(eventRepo).findByUserIdOrderByStartAsc(userId);
     }
 
+    /**
+     * Testuje tworzenie nowego wydarzenia.
+     */
     @Test
     void shouldCreateEvent() {
         Event event = new Event();

@@ -15,6 +15,9 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * Serwis zarządzający operacjami na notatkach, ich udostępnianiem oraz głosowaniem.
+ */
 @Service
 public class NoteService {
 
@@ -23,6 +26,13 @@ public class NoteService {
     private final AppUserRepo userRepo;
     private final NoteVoteRepo voteRepo; // <--- NOWE
 
+    /**
+     * Konstruktor serwisu NoteService.
+     * @param noteRepo repozytorium notatek
+     * @param shareRepo repozytorium udostępnień
+     * @param userRepo repozytorium użytkowników
+     * @param voteRepo repozytorium głosów
+     */
     public NoteService(NoteRepo noteRepo, NoteShareRepo shareRepo, AppUserRepo userRepo, NoteVoteRepo voteRepo) {
         this.noteRepo = noteRepo;
         this.shareRepo = shareRepo;
