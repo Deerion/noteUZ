@@ -17,7 +17,7 @@ import static org.mockito.Mockito.*;
  * Weryfikują poprawność wysyłania powiadomień o udostępnieniu notatki.
  */
 @ExtendWith(MockitoExtension.class)
-class EmailSharingTest {
+public class EmailSharingTest {
 
     @Mock
     private JavaMailSender mailSender;

@@ -26,7 +26,7 @@ import static org.mockito.Mockito.*;
  * Weryfikują cykl życia notatki: tworzenie, pobieranie, aktualizację oraz usuwanie.
  */
 @ExtendWith(MockitoExtension.class)
-class NoteLifecycleTest {
+public class NoteLifecycleTest {
 
     @Mock private NoteRepo noteRepo;
     @Mock private NoteShareRepo shareRepo;

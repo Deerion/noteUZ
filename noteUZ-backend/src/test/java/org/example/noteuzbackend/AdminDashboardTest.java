@@ -23,7 +23,7 @@ import static org.mockito.Mockito.*;
  * Weryfikują logikę banowania, nadawania uprawnień oraz walidację dostępu.
  */
 @ExtendWith(MockitoExtension.class)
-class AdminDashboardTest {
+public class AdminDashboardTest {
 
     @Mock private UserSecurityRepo securityRepo;
     @Mock private NoteRepo noteRepo;

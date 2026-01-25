@@ -23,7 +23,7 @@ import static org.mockito.Mockito.when;
  * Weryfikują operacje na wydarzeniach w kalendarzu.
  */
 @ExtendWith(MockitoExtension.class)
-class EventCalendarTest {
+public class EventCalendarTest {
 
     @Mock private EventRepo eventRepo;
     @InjectMocks private EventService eventService;

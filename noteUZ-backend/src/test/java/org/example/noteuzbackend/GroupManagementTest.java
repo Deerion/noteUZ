@@ -29,7 +29,7 @@ import static org.mockito.Mockito.*;
  * Weryfikują tworzenie grup, zapraszanie członków oraz zarządzanie nimi.
  */
 @ExtendWith(MockitoExtension.class)
-class GroupManagementTest {
+public class GroupManagementTest {
 
     @Mock private GroupRepo groupRepo;
     @Mock private GroupMemberRepo memberRepo;

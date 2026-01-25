@@ -31,7 +31,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Weryfikują działanie AuthController przy użyciu MockMvc.
  */
 @WebMvcTest(AuthController.class)
-class AuthenticationFlowTest {
+public class AuthenticationFlowTest {
 
     @Autowired
     private MockMvc mockMvc;
