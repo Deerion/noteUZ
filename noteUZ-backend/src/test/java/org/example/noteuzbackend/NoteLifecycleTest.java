@@ -75,7 +75,6 @@ class NoteLifecycleTest {
     }
 
     @Test
-    @DisplayName("Powinien zaktualizować tytuł i treść notatki")
     void shouldUpdateNote() {
         // Given
         UUID noteId = UUID.randomUUID();
