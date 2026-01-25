@@ -27,7 +27,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(AuthController.class)
-@DisplayName("Testy Przepływu Uwierzytelniania (Authentication Flow)")
 class AuthenticationFlowTest {
 
     @Autowired
@@ -43,7 +42,6 @@ class AuthenticationFlowTest {
     private AdminService adminService;
 
     @Test
-    @DisplayName("Powinien poprawnie zalogować użytkownika test12345@example.com")
     @WithMockUser
     void shouldLoginSpecificUser() throws Exception {
         // Given
@@ -71,7 +69,6 @@ class AuthenticationFlowTest {
     }
 
     @Test
-    @DisplayName("Powinien poprawnie zarejestrować nowego użytkownika")
     @WithMockUser
     void shouldRegisterNewUser() throws Exception {
         // Given
